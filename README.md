@@ -17,6 +17,15 @@ Both the multitask and instruction tuning models are now available on Hugging Fa
 - [InfMLLM-7B-Chat](https://huggingface.co/mightyzau/InfMLLM_7B_Chat)
 
 
+## Install
+```
+conda create -n infmllm python=3.9
+conda activate infmllm
+conda install pytorch==2.1.0 torchvision==0.16.0 torchaudio==2.1.0 pytorch-cuda=12.1 -c pytorch -c nvidia
+pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
+```
+
+
 ## Evaluation
 
 We conducted evaluations of the **InfMLLM-7B** multitask model across five VQA (Visual Question Answering) datasets and three visual grounding datasets. Meanwhile, the **InfMLLM-7B-Chat** model, tuned for instruction-following, was assessed on four VQA datasets and six multi-modal benchmarks. For detailed evaluation procedures, please refer to [Evaluation](docs/Evaluation.md).
