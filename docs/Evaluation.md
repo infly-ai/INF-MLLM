@@ -40,7 +40,7 @@ okvqa: 61.23
 textvqa: 67.90
 gqa: 63.06
 ocr-vqa: 73.51
-vqav2-testdev: 
+vqav2-testdev: 81.96
 ```
 
 
