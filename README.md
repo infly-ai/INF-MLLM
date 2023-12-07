@@ -1,20 +1,22 @@
 ## [InfMLLM: A Unified Model for Visual-Language Tasks](https://arxiv.org/abs/2311.06791)
 
+<a href='https://arxiv.org/abs/2311.06791'><img src='https://img.shields.io/badge/Paper-Arxiv-red'></a>
+
 <p align="center">
 <img src="docs/framework.png" alt="" width="100%"/>
 </p>
 
 
 ## Release
-[12/06] Make the models and evaluation code available; the manuscript v2 will be posted on ArXiv in two days.
-[11/06] Upload the initial version of the manuscript to arXiv.
+- [12/06] Make the models and evaluation code available; the manuscript v2 will be posted on ArXiv in two days.
+- [11/06] Upload the initial version of the manuscript to arXiv.
 
 
-## Models
-Both the multitask and instruction tuning models are now available on Hugging Face!
-
-- [InfMLLM-7B](https://huggingface.co/mightyzau/InfMLLM_7B)
-- [InfMLLM-7B-Chat](https://huggingface.co/mightyzau/InfMLLM_7B_Chat)
+## Contents
+- [Install](#install)
+- [Model Zoo](#model-zoo)
+- [Evaluation](#evaluation)
+- [Demo](#demo)
 
 
 ## Install
@@ -24,6 +26,15 @@ conda activate infmllm
 conda install pytorch==2.1.0 torchvision==0.16.0 torchaudio==2.1.0 pytorch-cuda=12.1 -c pytorch -c nvidia
 pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
 ```
+
+
+
+## Model Zoo
+Both the multitask and instruction tuning models are now available on Hugging Face!
+
+- [InfMLLM-7B](https://huggingface.co/mightyzau/InfMLLM_7B)
+- [InfMLLM-7B-Chat](https://huggingface.co/mightyzau/InfMLLM_7B_Chat)
+
 
 
 ## Evaluation
