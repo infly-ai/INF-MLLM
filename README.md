@@ -34,7 +34,7 @@ Both the multitask and instruction tuning models are now available on Hugging Fa
 
 - [InfMLLM-7B](https://huggingface.co/mightyzau/InfMLLM_7B)
 - [InfMLLM-7B-Chat](https://huggingface.co/mightyzau/InfMLLM_7B_Chat)
-
+- [InfMLLM-13B-Chat]
 
 
 ## Evaluation
@@ -48,6 +48,12 @@ We conducted evaluations of the **InfMLLM-7B** multitask model across five VQA (
 <p align="center">
 <img src="docs/performance_infmllm_7b_chat.png" alt="" width="80%"/>
 </p>
+
+With larger size LLM and self-built SFT dataset, **InfMLLM** has achieved better scores on several multi-modal benchmarks. 
+**MME**
+**InfMLLM-13B-Chat** has achieved 1673.46 points on MME perception score, which was top1 on 2023-12-12. Please refer to MME.
+**SEED-Bench**
+**InfMLLM-13B-Chat** has achieved 62.3 average score on SEED v1 benchmark, which was top1 on 2023-11-18.
 
 ## Demo
 Trying **InfMLLM-7B-Chat** is straightforward. We've provided a [demo script](demo.py) to run on the following example image.
