@@ -34,6 +34,7 @@ Both the multitask and instruction tuning models are now available on Hugging Fa
 
 - [InfMLLM-7B](https://huggingface.co/mightyzau/InfMLLM_7B)
 - [InfMLLM-7B-Chat](https://huggingface.co/mightyzau/InfMLLM_7B_Chat)
+- [InfMLLM-13B-Chat](https://huggingface.co/mightyzau/inf-mllm-13b-chat)
 
 
 
