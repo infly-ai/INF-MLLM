@@ -68,3 +68,8 @@ The inference process for INF-MLLM2 is straightforward. We also provide a simple
 ```bash
 CUDA_VISIBLE_DEVICES=0 python demo.py --model_path /path/to/InfMLLM2_7B_chat
 ```
+
+## Acknowledgement
+
+We thank the great work from [LLaVA-Next](https://github.com/LLaVA-VL/LLaVA-NeXT.git) and [InternLM-XComposer](https://github.com/InternLM/InternLM-XComposer.git).
+
