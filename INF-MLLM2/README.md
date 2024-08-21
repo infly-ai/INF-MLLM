@@ -2,9 +2,9 @@
 
 In INF-MLLM2, we have introduced significant updates, particularly in high-resolution image processing, document understanding and OCR.
 The key improvements include the following:
-• Dynamic Image Resolution Support: The model now supports dynamic image resolution up to 1344x1344 pixels.
-• Enhanced OCR Capabilities: The model has significantly improved OCR capabilities, enabling robust document parsing, table and formula recognition, document layout analysis, and key information extraction.
-• Advanced Training Strategies: We employed a progressive multi-stage training strategy along with an enhanced data mixup strategy tailored for image and document multitask scenarios.
+- Dynamic Image Resolution Support: The model now supports dynamic image resolution up to 1344x1344 pixels.
+- Enhanced OCR Capabilities: The model has significantly improved OCR capabilities, enabling robust document parsing, table and formula recognition, document layout analysis, and key information extraction.
+- Advanced Training Strategies: We employed a progressive multi-stage training strategy along with an enhanced data mixup strategy tailored for image and document multitask scenarios.
 
 <p align="center">
 <img src="docs/model.png" alt="" width="100%"/>
