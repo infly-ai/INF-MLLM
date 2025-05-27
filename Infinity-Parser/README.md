@@ -26,7 +26,7 @@ Comparison between Infinity-Doc-55K and existing data:
     <meta charset="utf-8">
 </head>
 <body>
-<table border="1" class="dataframe dataframe">
+<table style="text-align:center;">
     <tr style="text-align: center;">
       <th rowspan="2">Benchmark</th>
       <th rowspan="2">Document Domain</th>
@@ -167,7 +167,7 @@ Comprehensive evaluation of document parsing algorithms on OmniDocBench:
     <meta charset="utf-8">
 </head>
 <body>
-<table>
+<table style="text-align:center;">
     <tr style="text-align: right;">
       <th rowspan="2">Methods</th>
       <th colspan="2">Text<sup>Edit↓</sup></th>
@@ -524,7 +524,7 @@ Performance comparison of dense English and Chinese OCR on document-level pages:
     <meta charset="utf-8">
 </head>
 <body>
-<table>
+<table style="text-align:center;">
   <thead>
     <tr style="text-align: right;">
       <th rowspan="2">Method</th>
@@ -770,7 +770,7 @@ Performance comparison on the olmOCR:
     <meta charset="utf-8">
 </head>
 <body>
-<table>
+<table style="text-align:center;">
   <thead>
     <tr style="text-align: center;">
       <th>Model</th>
