@@ -997,3 +997,7 @@ Performance comparison on the olmOCR:
 </table>
 </body>
 </html>
+
+## Acknowledgement
+
+We thank the great work from [Qwen2.5-VL](https://github.com/QwenLM/Qwen2.5-VL) and [EasyR1](https://github.com/hiyouga/EasyR1).
