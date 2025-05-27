@@ -24,16 +24,6 @@ Comparison between Infinity-Doc-55K and existing data:
 <html>
 <head>
     <meta charset="utf-8">
-    <style>
-        table {
-            border-collapse: collapse;
-            width: 100%;
-            margin: 20px 0;
-        }
-        th, td {
-            text-align: center;
-        }
-    </style>
 </head>
 <body>
 <table border="1" class="dataframe dataframe">
@@ -175,16 +165,6 @@ Comprehensive evaluation of document parsing algorithms on OmniDocBench:
 <html>
 <head>
     <meta charset="utf-8">
-    <style>
-        table {
-            border-collapse: collapse;
-            width: 100%;
-            margin: 20px 0;
-        }
-        th, td {
-            text-align: center;
-        }
-    </style>
 </head>
 <body>
 <table>
@@ -542,16 +522,6 @@ Performance comparison of dense English and Chinese OCR on document-level pages:
 <html>
 <head>
     <meta charset="utf-8">
-    <style>
-        table {
-            border-collapse: collapse;
-            width: 100%;
-            margin: 20px 0;
-        }
-        th, td {
-            text-align: center;
-        }
-    </style>
 </head>
 <body>
 <table>
@@ -798,16 +768,6 @@ Performance comparison on the olmOCR:
 <html>
 <head>
     <meta charset="utf-8">
-    <style>
-        table {
-            border-collapse: collapse;
-            width: 100%;
-            margin: 20px 0;
-        }
-        th, td {
-            text-align: center;
-        }
-    </style>
 </head>
 <body>
 <table>
