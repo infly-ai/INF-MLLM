@@ -6,11 +6,11 @@
 
 ## Models
 
-- [**INF-MLLM1**](INF-MLLM1) - InfMLLM: A Unified Model for Visual-Language Tasks
+- [**Infinity-Parser**](Infinity-Parser) - Infinity-Parser: Layout-Aware Reinforcement Learning for Scanned Document Parsing
 
 - [**INF-MLLM2**](INF-MLLM2) - INF-MLLM2: High-Resolution Image and Document Understanding
 
-- [**Infinity-Parser**](Infinity-Parser) - Infinity-Parser: Layout-Aware Reinforcement Learning for Scanned Document Parsing
+- [**INF-MLLM1**](INF-MLLM1) - InfMLLM: A Unified Model for Visual-Language Tasks
 
 ## Updates
 - [2025/05/27] We added an introduction to Infinity-Parser.
