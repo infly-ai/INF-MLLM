@@ -34,7 +34,7 @@ Comparison between Infinity-Doc-55K and existing data:
       <th colspan="4">End-to-End Task</th>
       <th rowspan="2">Exactly Match</th>
     </tr>
-    <tr>
+    <tr style="text-align: center;">
       <td>BBox</td>
       <td>Text</td>
       <td>Table</td>
@@ -45,10 +45,10 @@ Comparison between Infinity-Doc-55K and existing data:
       <td>MFR</td>
       <td>ROD</td>
     </tr>
-    <tr>
+    <tr style="text-align: center;">
       <td colspan="12">End-to-end Eval Benchmarks</td>
     </tr>
-    <tr>
+    <tr style="text-align: center;">
       <td>Fox</td>
       <td>2</td>
       <td>✓</td>
@@ -62,7 +62,7 @@ Comparison between Infinity-Doc-55K and existing data:
       <td> </td>
       <td> </td>
     </tr>
-    <tr>
+    <tr style="text-align: center;">
       <td>Nougat</td>
       <td>1</td>
       <td> </td>
@@ -76,7 +76,7 @@ Comparison between Infinity-Doc-55K and existing data:
       <td> </td>
       <td> </td>
     </tr>
-    <tr>
+    <tr style="text-align: center;">
       <td>GOT OCR 2.0</td>
       <td>2</td>
       <td> </td>
@@ -90,7 +90,7 @@ Comparison between Infinity-Doc-55K and existing data:
       <td> </td>
       <td>✓</td>
     </tr>
-    <tr>
+    <tr style="text-align: center;">
       <td>OmniDocBench</td>
       <td>9</td>
       <td>✓</td>
@@ -104,10 +104,10 @@ Comparison between Infinity-Doc-55K and existing data:
       <td>✓</td>
       <td>✓</td>
     </tr>
-    <tr>
+    <tr style="text-align: center;">
       <td colspan="12">End-to-end Train Dataset</td>
     </tr>
-    <tr>
+    <tr style="text-align: center;">
       <td>DocStruct4M</td>
       <td>-</td>
       <td> </td>
@@ -121,7 +121,7 @@ Comparison between Infinity-Doc-55K and existing data:
       <td> </td>
       <td> </td>
     </tr>
-    <tr>
+    <tr style="text-align: center;">
       <td>olmoOCR-mix</td>
       <td>-</td>
       <td> </td>
@@ -135,7 +135,7 @@ Comparison between Infinity-Doc-55K and existing data:
       <td>✓</td>
       <td> </td>
     </tr>
-    <tr>
+    <tr style="text-align: center;">
       <td>Infinity-Doc-55K</td>
       <td>7</td>
       <td>✓</td>
@@ -178,7 +178,7 @@ Comprehensive evaluation of document parsing algorithms on OmniDocBench:
       <th colspan="2">Read Order<sup>Edit↓</sup></th>
       <th colspan="2">Overall<sup>Edit↓</sup></th>
     </tr>
-    <tr>
+    <tr style="text-align: center;">
       <td>EN</td>
       <td>ZH</td>
       <td>EN</td>
@@ -194,10 +194,10 @@ Comprehensive evaluation of document parsing algorithms on OmniDocBench:
       <td>EN</td>
       <td>ZH</td>
     </tr>
-    <tr>
+    <tr style="text-align: center;">
       <td colspan="15">Based on Pipeline Tools</td>
     </tr>
-    <tr>
+    <tr style="text-align: center;">
       <td>MinerU</td>
       <td><b>0.061</b></td>
       <td>0.215</td>
@@ -214,7 +214,7 @@ Comprehensive evaluation of document parsing algorithms on OmniDocBench:
       <td><b>0.15</b></td>
       <td>0.357</td>
     </tr>
-    <tr>
+    <tr style="text-align: center;">
       <td>Marker</td>
       <td>0.08</td>
       <td>0.315</td>
@@ -231,7 +231,7 @@ Comprehensive evaluation of document parsing algorithms on OmniDocBench:
       <td>0.336</td>
       <td>0.556</td>
     </tr>
-    <tr>
+    <tr style="text-align: center;">
       <td>Mathpix</td>
       <td>0.105</td>
       <td>0.384</td>
@@ -248,7 +248,7 @@ Comprehensive evaluation of document parsing algorithms on OmniDocBench:
       <td>0.191</td>
       <td>0.365</td>
     </tr>
-    <tr>
+    <tr style="text-align: center;">
       <td>Docling</td>
       <td>0.416</td>
       <td>0.987</td>
@@ -265,7 +265,7 @@ Comprehensive evaluation of document parsing algorithms on OmniDocBench:
       <td>0.589</td>
       <td>0.909</td>
     </tr>
-    <tr>
+    <tr style="text-align: center;">
       <td>Pix2Text</td>
       <td>0.138</td>
       <td>0.356</td>
@@ -282,7 +282,7 @@ Comprehensive evaluation of document parsing algorithms on OmniDocBench:
       <td>0.32</td>
       <td>0.528</td>
     </tr>
-    <tr>
+    <tr style="text-align: center;">
       <td>Unstructured-0.17.2</td>
       <td>0.198</td>
       <td>0.481</td>
@@ -299,7 +299,7 @@ Comprehensive evaluation of document parsing algorithms on OmniDocBench:
       <td>0.586</td>
       <td>0.716</td>
     </tr>
-    <tr>
+    <tr style="text-align: center;">
       <td>OpenParse-0.7.0</td>
       <td>0.681</td>
       <td>0.974</td>
@@ -316,10 +316,10 @@ Comprehensive evaluation of document parsing algorithms on OmniDocBench:
       <td>0.646</td>
       <td>0.814</td>
     </tr>
-    <tr>
+    <tr style="text-align: center;">
       <td colspan="15">Based on Expert VLMs</td>
     </tr>
-    <tr>
+    <tr style="text-align: center;">
       <td>GOT-OCR</td>
       <td>0.189</td>
       <td>0.315</td>
@@ -336,7 +336,7 @@ Comprehensive evaluation of document parsing algorithms on OmniDocBench:
       <td>0.287</td>
       <td>0.411</td>
     </tr>
-    <tr>
+    <tr style="text-align: center;">
       <td>Nougat</td>
       <td>0.365</td>
       <td>0.998</td>
@@ -353,7 +353,7 @@ Comprehensive evaluation of document parsing algorithms on OmniDocBench:
       <td>0.452</td>
       <td>0.973</td>
     </tr>
-    <tr>
+    <tr style="text-align: center;">
       <td>Mistral OCR</td>
       <td>0.072</td>
       <td>0.325</td>
@@ -370,7 +370,7 @@ Comprehensive evaluation of document parsing algorithms on OmniDocBench:
       <td>0.268</td>
       <td>0.439</td>
     </tr>
-    <tr>
+    <tr style="text-align: center;">
       <td>OLMoCR-sglang</td>
       <td>0.097</td>
       <td>0.293</td>
@@ -387,7 +387,7 @@ Comprehensive evaluation of document parsing algorithms on OmniDocBench:
       <td>0.326</td>
       <td>0.469</td>
     </tr>
-    <tr>
+    <tr style="text-align: center;">
       <td>SmolDocling-256M</td>
       <td>0.262</td>
       <td>0.838</td>
@@ -404,10 +404,10 @@ Comprehensive evaluation of document parsing algorithms on OmniDocBench:
       <td>0.493</td>
       <td>0.816</td>
     </tr>
-    <tr>
+    <tr style="text-align: center;">
       <td colspan="15">Based on General VLMs</td>
     </tr>
-    <tr>
+    <tr style="text-align: center;">
       <td>GPT-4o</td>
       <td>0.144</td>
       <td>0.409</td>
@@ -424,7 +424,7 @@ Comprehensive evaluation of document parsing algorithms on OmniDocBench:
       <td>0.233</td>
       <td>0.399</td>
     </tr>
-    <tr>
+    <tr style="text-align: center;">
       <td>Qwen2-VL-72B</td>
       <td>0.096</td>
       <td>0.218</td>
@@ -441,7 +441,7 @@ Comprehensive evaluation of document parsing algorithms on OmniDocBench:
       <td>0.252</td>
       <td>0.327</td>
     </tr>
-    <tr>
+    <tr style="text-align: center;">
       <td>InternVL2-76B</td>
       <td>0.353</td>
       <td>0.29</td>
@@ -458,7 +458,7 @@ Comprehensive evaluation of document parsing algorithms on OmniDocBench:
       <td>0.44</td>
       <td>0.443</td>
     </tr>
-    <tr>
+    <tr style="text-align: center;">
       <td>Qwen2.5-VL-7B</td>
       <td>0.222</td>
       <td>0.236</td>
@@ -475,7 +475,7 @@ Comprehensive evaluation of document parsing algorithms on OmniDocBench:
       <td>0.332</td>
       <td>0.331</td>
     </tr>
-    <tr>
+    <tr style="text-align: center;">
       <td>InternVL3-8B</td>
       <td>0.315</td>
       <td>0.345</td>
@@ -492,10 +492,10 @@ Comprehensive evaluation of document parsing algorithms on OmniDocBench:
       <td>0.426</td>
       <td>0.385</td>
     </tr>
-    <tr>
+    <tr style="text-align: center;">
       <td colspan="15">Based on Reinforcement Learning</td>
     </tr>
-    <tr>
+    <tr style="text-align: center;">
       <td>Infinity-Parser-7B</td>
       <td>0.093</td>
       <td><b>0.156</b></td>
@@ -536,7 +536,7 @@ Performance comparison of dense English and Chinese OCR on document-level pages:
       <th colspan="2">METEOR↑</th>
       <th colspan="2">Edit Distance↓</th>
     </tr>
-    <tr>
+    <tr style="text-align: center;">
       <td>EN</td>
       <td>ZH</td>
       <td>EN</td>
@@ -550,7 +550,7 @@ Performance comparison of dense English and Chinese OCR on document-level pages:
       <td>EN</td>
       <td>ZH</td>
     </tr>
-    <tr>
+    <tr style="text-align: center;">
       <td>UReader</td>
       <td>7B</td>
       <td>0.344</td>
@@ -566,7 +566,7 @@ Performance comparison of dense English and Chinese OCR on document-level pages:
       <td>0.718</td>
       <td>-</td>
     </tr>
-    <tr>
+    <tr style="text-align: center;">
       <td>LLaVA-NeXT</td>
       <td>34B</td>
       <td>0.647</td>
@@ -582,7 +582,7 @@ Performance comparison of dense English and Chinese OCR on document-level pages:
       <td>0.43</td>
       <td>-</td>
     </tr>
-    <tr>
+    <tr style="text-align: center;">
       <td>InternVL-ChatV1.5</td>
       <td>26B</td>
       <td>0.751</td>
@@ -598,7 +598,7 @@ Performance comparison of dense English and Chinese OCR on document-level pages:
       <td>0.393</td>
       <td>0.265</td>
     </tr>
-    <tr>
+    <tr style="text-align: center;">
       <td>Nougat</td>
       <td>250M</td>
       <td>0.745</td>
@@ -614,7 +614,7 @@ Performance comparison of dense English and Chinese OCR on document-level pages:
       <td>0.255</td>
       <td>-</td>
     </tr>
-    <tr>
+    <tr style="text-align: center;">
       <td>TextMonkey</td>
       <td>7B</td>
       <td>0.821</td>
@@ -630,7 +630,7 @@ Performance comparison of dense English and Chinese OCR on document-level pages:
       <td>0.265</td>
       <td>-</td>
     </tr>
-    <tr>
+    <tr style="text-align: center;">
       <td>DocOwl1.5</td>
       <td>7B</td>
       <td>0.862</td>
@@ -646,7 +646,7 @@ Performance comparison of dense English and Chinese OCR on document-level pages:
       <td>0.258</td>
       <td>-</td>
     </tr>
-    <tr>
+    <tr style="text-align: center;">
       <td>Vary</td>
       <td>7B</td>
       <td>0.918</td>
@@ -662,7 +662,7 @@ Performance comparison of dense English and Chinese OCR on document-level pages:
       <td>0.092</td>
       <td>0.113</td>
     </tr>
-    <tr>
+    <tr style="text-align: center;">
       <td>Vary-toy</td>
       <td>1.8B</td>
       <td>0.924</td>
@@ -678,7 +678,7 @@ Performance comparison of dense English and Chinese OCR on document-level pages:
       <td>0.082</td>
       <td>0.142</td>
     </tr>
-    <tr>
+    <tr style="text-align: center;">
       <td>Qwen-VL-Plus</td>
       <td>-</td>
       <td>0.931</td>
@@ -694,7 +694,7 @@ Performance comparison of dense English and Chinese OCR on document-level pages:
       <td>0.096</td>
       <td>0.121</td>
     </tr>
-    <tr>
+    <tr style="text-align: center;">
       <td>Qwen-VL-Max</td>
       <td>&gt;72B</td>
       <td><b>0.964</b></td>
@@ -710,7 +710,7 @@ Performance comparison of dense English and Chinese OCR on document-level pages:
       <td>0.057</td>
       <td>0.091</td>
     </tr>
-    <tr>
+    <tr style="text-align: center;">
       <td>Fox</td>
       <td>1.8B</td>
       <td>0.952</td>
@@ -726,7 +726,7 @@ Performance comparison of dense English and Chinese OCR on document-level pages:
       <td>0.046</td>
       <td>0.061</td>
     </tr>
-    <tr>
+    <tr style="text-align: center;">
       <td>GOT</td>
       <td>580M</td>
       <td>0.972</td>
@@ -742,7 +742,7 @@ Performance comparison of dense English and Chinese OCR on document-level pages:
       <td>0.035</td>
       <td>0.038</td>
     </tr>
-    <tr>
+    <tr style="text-align: center;">
       <td>Infinity-Parser-7B</td>
       <td>7B</td>
       <td>0.955</td>
@@ -785,7 +785,7 @@ Performance comparison on the olmOCR:
       <th>Base</th>
       <th>Overall</th>
     </tr>
-    <tr>
+    <tr style="text-align: center;">
       <td>GOT OCR</td>
       <td> </td>
       <td>52.7</td>
@@ -798,7 +798,7 @@ Performance comparison on the olmOCR:
       <td>94.0</td>
       <td>48.3</td>
     </tr>
-    <tr>
+    <tr style="text-align: center;">
       <td>Marker v1.6.2</td>
       <td> </td>
       <td>24.3</td>
@@ -811,7 +811,7 @@ Performance comparison on the olmOCR:
       <td>99.5</td>
       <td>59.4</td>
     </tr>
-    <tr>
+    <tr style="text-align: center;">
       <td>MinerU v1.3.10</td>
       <td> </td>
       <td>75.4</td>
@@ -824,7 +824,7 @@ Performance comparison on the olmOCR:
       <td>96.6</td>
       <td>61.5</td>
     </tr>
-    <tr>
+    <tr style="text-align: center;">
       <td>Mistral OCR API</td>
       <td> </td>
       <td>77.2</td>
@@ -837,7 +837,7 @@ Performance comparison on the olmOCR:
       <td><b>99.4</b></td>
       <td>72.0</td>
     </tr>
-    <tr>
+    <tr style="text-align: center;">
       <td>GPT-4o</td>
       <td> </td>
       <td>51.5</td>
@@ -850,7 +850,7 @@ Performance comparison on the olmOCR:
       <td>96.7</td>
       <td>68.9</td>
     </tr>
-    <tr>
+    <tr style="text-align: center;">
       <td>GPT-4o</td>
       <td>✓</td>
       <td>53.5</td>
@@ -863,7 +863,7 @@ Performance comparison on the olmOCR:
       <td>96.8</td>
       <td>69.9</td>
     </tr>
-    <tr>
+    <tr style="text-align: center;">
       <td>Gemini Flash 2</td>
       <td> </td>
       <td>32.1</td>
@@ -876,7 +876,7 @@ Performance comparison on the olmOCR:
       <td>94.0</td>
       <td>57.8</td>
     </tr>
-    <tr>
+    <tr style="text-align: center;">
       <td>Gemini Flash 2</td>
       <td>✓</td>
       <td>54.5</td>
@@ -889,7 +889,7 @@ Performance comparison on the olmOCR:
       <td>95.6</td>
       <td>63.8</td>
     </tr>
-    <tr>
+    <tr style="text-align: center;">
       <td>Qwen 2 VL</td>
       <td> </td>
       <td>19.7</td>
@@ -902,7 +902,7 @@ Performance comparison on the olmOCR:
       <td>55.5</td>
       <td>31.5</td>
     </tr>
-    <tr>
+    <tr style="text-align: center;">
       <td>Qwen 2.5 VL</td>
       <td> </td>
       <td>63.1</td>
@@ -915,7 +915,7 @@ Performance comparison on the olmOCR:
       <td>98.3</td>
       <td>65.5</td>
     </tr>
-    <tr>
+    <tr style="text-align: center;">
       <td>olmOCR v0.1.68</td>
       <td> </td>
       <td>72.1</td>
@@ -928,7 +928,7 @@ Performance comparison on the olmOCR:
       <td>98.1</td>
       <td>76.3</td>
     </tr>
-    <tr>
+    <tr style="text-align: center;">
       <td>olmOCR v0.1.68</td>
       <td>✓</td>
       <td>75.6</td>
@@ -941,7 +941,7 @@ Performance comparison on the olmOCR:
       <td>99.0</td>
       <td>77.4</td>
     </tr>
-    <tr>
+    <tr style="text-align: center;">
       <td>Infinity-Parse-7B</td>
       <td> </td>
       <td><b>87.2</b></td>
