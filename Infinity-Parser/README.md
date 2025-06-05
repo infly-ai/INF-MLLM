@@ -961,3 +961,17 @@ Performance comparison on the olmOCR:
 ## Acknowledgement
 
 We thank the great work from [Qwen2.5-VL](https://github.com/QwenLM/Qwen2.5-VL) and [EasyR1](https://github.com/hiyouga/EasyR1).
+
+## Citation
+
+```
+@misc{wang2025infinityparserlayoutaware,
+      title={Infinity Parser: Layout Aware Reinforcement Learning for Scanned Document Parsing}, 
+      author={Baode Wang and Biao Wu and Weizhen Li and Meng Fang and Yanjie Liang and Zuming Huang and Haozhe Wang and Jun Huang and Ling Chen and Wei Chu and Yuan Qi},
+      year={2025},
+      eprint={2506.03197},
+      archivePrefix={arXiv},
+      primaryClass={cs.CV},
+      url={https://arxiv.org/abs/2506.03197}, 
+}
+```
