@@ -13,6 +13,7 @@
 - [**INF-MLLM1**](INF-MLLM1) - InfMLLM: A Unified Model for Visual-Language Tasks
 
 ## Updates
+- [2025/06/30] The Infinity-Doc-55K dataset and Infinity-Parser chat demo have been released.
 - [2025/05/27] We added an introduction to Infinity-Parser.
 - [2024/08/19] We have released INF-MLLM2, and models(INF-MLLM2-7B) and evaluation code are available.
 - [2023/12/06] Models and evaluation code of INF-MLLM1 are available.
