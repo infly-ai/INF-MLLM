@@ -3,7 +3,7 @@
 <div align="center">
   <a href="https://www.arxiv.org/pdf/2506.03197"><img src="assets/logo.png" height="16" width="16" style="vertical-align:middle"><b> Paper </b></a> | 
   <a href="https://huggingface.co/datasets/infly/Infinity-Doc-55K"><img src="https://huggingface.co/front/assets/huggingface_logo-noborder.svg" height="16" width="16" style="vertical-align:middle"><b> Dataset </b></a> | 
-  <a>💬<b> Web Demo (coming soon) </b></a>
+  <a href="https://huggingface.co/spaces/infly/Infinity-Parser-Demo">💬<b> Web Demo </b></a>
 </div>
 
 ## Introduction
