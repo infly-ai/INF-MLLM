@@ -10,6 +10,7 @@ INF-MLLM is a series of open-source multimodal large language models developed b
 
 - [2025/06/30] The [Infinity-Doc-55K dataset](https://huggingface.co/datasets/infly/Infinity-Doc-55K) and [Infinity-Parser web demo](https://huggingface.co/spaces/infly/Infinity-Parser-Demo) are now available.
 - [2025/05/27] We have added an introduction to our latest model, **Infinity-Parser**.
+- [2025/04/22] VL-Rethinker models (7B & 72B) are released! They achieve new state-of-the-art results on MathVista, MathVerse, and MathVision benchmarks.
 - [2024/08/19] We have released **INF-MLLM2**, with the [INF-MLLM2-7B model](https://huggingface.co/QianYEee/InfMLLM2_7B_chat) and evaluation code now available.
 - [2023/12/06] The models and evaluation code for **INF-MLLM1** are now available.
 - [2023/11/06] We have released **INF-MLLM1** and uploaded the initial version of the manuscript to [arXiv](https://arxiv.org/abs/2311.06791).
@@ -26,6 +27,16 @@ Here is a brief overview of the models available in this repository. For more de
 - **Paper:** [Infinity Parser: Layout Aware Reinforcement Learning for Scanned Document Parsing](https://arxiv.org/abs/2506.03197)
 - **Dataset:** [Infinity-Doc-55K](https://huggingface.co/datasets/infly/Infinity-Doc-55K)
 - **Web Demo:** [Infinity-Parser-Demo](https://huggingface.co/spaces/infly/Infinity-Parser-Demo)
+
+### [VL-Rethinker](https://github.com/TIGER-AI-Lab/VL-Rethinker)
+
+**VL-Rethinker** is a project designed to incentivize the self-reflection capabilities of Vision-Language Models (VLMs) through Reinforcement Learning. The research introduces a novel technique called Selective Sample Replay (SSR) to enhance the GRPO algorithm, addressing the "vanishing advantages" problem. It also employs "Forced Rethinking" to explicitly guide the model through a self-reflection reasoning step. By combining these methods, VL-Rethinker significantly advances the state-of-the-art performance on multiple vision-language benchmarks, including MathVista, MathVerse, and MathVision.
+
+- **Key Features:** Advanced RL techniques, fine-grained multimodal dataset, fully open-sourced.
+- **Paper:** [VL-Rethinker: Incentivizing Self-Reflection of Vision-Language Models with Reinforcement Learning](https://arxiv.org/abs/2504.08837)
+- **Dataset:** [ViRL39K](https://huggingface.co/datasets/TIGER-Lab/ViRL39K)
+- **Models:** [VL-Rethinker-7B](https://huggingface.co/TIGER-Lab/VL-Rethinker-7B), [VL-Rethinker-72B](https://huggingface.co/TIGER-Lab/VL-Rethinker-72B)
+- **Web Demo:** [VL-Rethinker-Demo](https://huggingface.co/spaces/TIGER-Lab/VL-Rethinker)
 
 ### [INF-MLLM2](INF-MLLM2)
 
