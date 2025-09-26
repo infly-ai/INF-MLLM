@@ -53,3 +53,4 @@ Here is a brief overview of the models available in this repository. For more de
 - **Key Features:** Unified framework, multitask learning, instruction tuning.
 - **Paper:** [InfMLLM: A Unified Framework for Visual-Language Tasks](https://arxiv.org/abs/2311.06791)
 - **Models:** [InfMLLM-7B](https://huggingface.co/mightyzau/InfMLLM_7B), [InfMLLM-7B-Chat](https://huggingface.co/mightyzau/InfMLLM_7B_Chat), [InfMLLM-13B-Chat](https://huggingface.co/mightyzau/inf-mllm-13b-chat)
+
