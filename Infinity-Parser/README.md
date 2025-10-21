@@ -135,7 +135,7 @@ print(output_text)
 # Visualization
 
 ## Data Display
-![image](assets/case.png)
+![image](assets/case.jpg)
 
 # Citation
 
