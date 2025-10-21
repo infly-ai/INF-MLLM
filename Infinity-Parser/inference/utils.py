@@ -4,6 +4,7 @@ from PIL import Image
 from typing import Optional, List, Tuple
 from pathlib import Path
 
+
 def extract_markdown_content(text):
     matches = re.search(r"```markdown\n(.*?)\n```", text, re.DOTALL)
     if matches:
@@ -13,7 +14,7 @@ def extract_markdown_content(text):
 
 def update_config_from_args(config, args):
     """
-    动态更新 config 属性，仅在 config 存在该属性时才更新。
+    Dynamically update the attributes of the config object
     """
     for key, value in vars(args).items():
         if hasattr(config, key) and value is not None:
@@ -53,7 +54,9 @@ def load_inputs(input_path: str, prompt: str) -> List[Tuple[str, Image.Image]]:
         for idx, img in enumerate(images):
             inputs.append((Path(input_path).stem + f"page_{idx+1}", prompt, img))
 
-    elif os.path.isfile(input_path) and input_path.lower().endswith((".jpg", ".jpeg", ".png", ".bmp", ".webp")):
+    elif os.path.isfile(input_path) and input_path.lower().endswith(
+        (".jpg", ".jpeg", ".png", ".bmp", ".webp")
+    ):
         inputs.append((Path(input_path).stem, prompt, Image.open(input_path)))
 
     elif os.path.isdir(input_path):
@@ -64,8 +67,12 @@ def load_inputs(input_path: str, prompt: str) -> List[Tuple[str, Image.Image]]:
                 if file_path.lower().endswith(".pdf"):
                     images = convert_from_path(file_path, dpi=200)
                     for idx, img in enumerate(images):
-                        inputs.append((Path(file_path).stem + f"page_{idx+1}", prompt, img))
-                elif file_path.lower().endswith((".jpg", ".jpeg", ".png", ".bmp", ".webp")):
+                        inputs.append(
+                            (Path(file_path).stem + f"page_{idx+1}", prompt, img)
+                        )
+                elif file_path.lower().endswith(
+                    (".jpg", ".jpeg", ".png", ".bmp", ".webp")
+                ):
                     inputs.append((Path(file_path).stem, prompt, Image.open(file_path)))
 
     else:
