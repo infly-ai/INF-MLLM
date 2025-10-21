@@ -41,9 +41,8 @@ def main():
     parser.add_argument("--input", type=str, required=True, help="Input JSON file")
     parser.add_argument("--output", type=str, required=True, help="Output Folder")
     parser.add_argument("--tp", type=int, default=1, help="tensor_parallel_size")
-    
+
     parser.add_argument("--batch_size", type=int, default=128, help="batch size")
-    
 
     args = parser.parse_args()
 

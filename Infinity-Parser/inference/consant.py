@@ -1,5 +1,3 @@
-
-
 PROMPT = """Please convert the image document into Markdown format, strictly following the requirements below:
 
 1. **Text Processing**
