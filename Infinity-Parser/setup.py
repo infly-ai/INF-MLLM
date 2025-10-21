@@ -6,7 +6,7 @@ setup(
     packages=find_packages(),
     install_requires=[
         "vllm>=0.10.1.1",
-        "transformers>=4.40.0",
+        "transformers>=4.49.0",
         "Pillow",
     ],
     entry_points={
