@@ -135,7 +135,7 @@ print(output_text)
 # Visualization
 
 ## Data Display
-![](assets/case.png)
+![image](assets/case.png)
 
 # Citation
 
@@ -176,3 +176,4 @@ In future research, we will continue to deepen our efforts in the following dire
 - **Chart & Figure Understanding**: Extend the model’s capability to handle chart detection, semantic interpretation, and structured data extraction from graphical elements.
 
 - **General-Purpose Perception**: Move toward a unified **Vision-Language perception model** that integrates detection, image captioning, OCR, layout analysis, and chart understanding into a single framework.
+
