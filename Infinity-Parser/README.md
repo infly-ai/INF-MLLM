@@ -148,7 +148,7 @@ print(output_text)
 
 # Visualization
 
-## Data Display
+## Comparison Examples
 ![image](assets/case.jpeg)
 
 # Citation
