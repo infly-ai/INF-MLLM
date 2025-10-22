@@ -1,12 +1,14 @@
 # Infinity Parser: Layout Aware Reinforcement Learning for Scanned Document Parsing
 
-<p align="center">
+<div align="center">
 
-  &nbsp&nbsp 🤗 <a href="https://huggingface.co/infly/Infinity-Parser-7B">Model</a>&nbsp&nbsp | 
-  &nbsp&nbsp 📊 <a href="https://huggingface.co/datasets/infly/Infinity-Doc-55K">Dataset</a>&nbsp&nbsp | 
-  &nbsp&nbsp 📄<a href="https://arxiv.org/pdf/2506.03197">Paper</a>&nbsp&nbsp |
-  &nbsp&nbsp 🚀<a href="https://huggingface.co/spaces/infly/Infinity-Parser-Demo">Demo</a>&nbsp&nbsp
-</p>
+🤗 <a href="https://huggingface.co/infly/Infinity-Parser-7B">Model</a> |
+📊 <a href="https://huggingface.co/datasets/infly/Infinity-Doc-55K">Dataset</a> |
+📄 <a href="https://arxiv.org/pdf/2506.03197">Paper</a> |
+🚀 <a href="https://huggingface.co/spaces/infly/Infinity-Parser-Demo">Demo</a>
+
+</div>
+
 
 # Introduction
 
