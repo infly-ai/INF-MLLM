@@ -70,7 +70,7 @@ The result folder contains the following contents:
 
 ```
 output_folders/
-├── <fime_name>/output.md
+├── <file_name>/output.md
 ├── ...
 ├── ...
 ```
