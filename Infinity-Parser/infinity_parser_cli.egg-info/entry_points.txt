@@ -1,0 +1,2 @@
+[console_scripts]
+parser = inference.main:main
