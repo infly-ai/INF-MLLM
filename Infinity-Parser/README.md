@@ -12,7 +12,7 @@
 
 We develop Infinity-Parser, an end-to-end scanned document parsing model trained with reinforcement learning. By incorporating verifiable rewards based on layout and content, Infinity-Parser maintains the original document's structure and content with high fidelity. Extensive evaluations on benchmarks in cluding OmniDocBench, olmOCR-Bench, PubTabNet, and FinTabNet show that Infinity-Parser consistently achieves state-of-the-art performance across a broad range of document types, languages, and structural complexities, substantially outperforming both specialized document parsing systems and general-purpose vision-language models while preserving the model’s general multimodal understanding capability.
 
-## Key features
+## Key Features
 
 - LayoutRL Framework: a reinforcement learning framework that explicitly trains models to be layout-aware through verifiable multi-aspect rewards combining edit distance, paragraph accuracy, and reading order preservation.
 
@@ -38,7 +38,7 @@ Overview of Infinity-Parser training framework. Our model is optimized via reinf
 ![image](assets/table.png)
 
 # Quick Start
-### Download model weights
+### Download Model Weights
 
 ```shell
 git clone https://github.com/infly-ai/INF-MLLM.git
@@ -48,7 +48,7 @@ pip install -r requirements.txt
 python3 tools/download_model.py
 ```
 
-### Vllm inference
+### Vllm Inference
 We recommend using the vLLM backend for accelerated inference.
  It supports image and PDF inputs, automatically parses the document content, and exports the results in Markdown format to a specified directory.
  
@@ -74,7 +74,7 @@ output_folders/
 </details>
 
 
-### Using transformers to inference
+### Using Transformers to Inference
 
 <details>
     <summary> Transformers Inference Example </summary>
