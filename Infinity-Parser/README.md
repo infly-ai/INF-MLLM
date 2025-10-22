@@ -76,6 +76,7 @@ output_folders/
 
 <details>
     <summary> Transformers Inference Example </summary>
+    
 ```python
 import torch
 from transformers import Qwen2_5_VLForConditionalGeneration, AutoTokenizer, AutoProcessor
