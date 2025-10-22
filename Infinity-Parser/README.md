@@ -1,6 +1,6 @@
 # Infinity Parser: Layout Aware Reinforcement Learning for Scanned Document Parsing
 
-[![Model Weight (🤗Hugging Face)])](https://huggingface.co/infly/Infinity-Parser-7B) ｜ [[Dataset (🤗Hugging Face)]](https://huggingface.co/datasets/infly/Infinity-Doc-55K)
+[[Model Weight (🤗Hugging Face)])](https://huggingface.co/infly/Infinity-Parser-7B) ｜ [[Dataset (🤗Hugging Face)]](https://huggingface.co/datasets/infly/Infinity-Doc-55K)
 
 <a href="https://arxiv.org/pdf/2506.03197"><img src="assets/logo.png" height="16" width="16" style="display: inline"><b> Paper </b></a> | 
 <a href="https://github.com/infly-ai/INF-MLLM/tree/main/Infinity-Parser"><img src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" height="16" width="16" style="display: inline"><b> Github </b></a> | 
