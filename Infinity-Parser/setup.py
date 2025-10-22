@@ -7,6 +7,7 @@ setup(
     install_requires=[
         "vllm>=0.10.1.1",
         "transformers>=4.49.0",
+        "qwen-vl-utils>=0.0.11",
         "Pillow",
     ],
     entry_points={

@@ -1,4 +1,6 @@
-# Infinity-Parser-7B
+# Infinity Parser: Layout Aware Reinforcement Learning for Scanned Document Parsing
+
+[![HuggingFace](https://img.shields.io/badge/HuggingFace%20Weights-black.svg?logo=HuggingFace)](https://huggingface.co/infly/Infinity-Parser-7B) ｜ [[Dataset (🤗Hugging Face)]](https://huggingface.co/datasets/infly/Infinity-Doc-55K)
 
 <a href="https://arxiv.org/pdf/2506.03197"><img src="assets/logo.png" height="16" width="16" style="display: inline"><b> Paper </b></a> | 
 <a href="https://github.com/infly-ai/INF-MLLM/tree/main/Infinity-Parser"><img src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" height="16" width="16" style="display: inline"><b> Github </b></a> | 
@@ -22,8 +24,19 @@ Overview of Infinity-Parser training framework. Our model is optimized via reinf
 
 ![image](assets/architecture.png)
 
+# Performance
+
+## OmniDocBench
+![image](assets/OmniDocBench.png)
+
+## olmOCR-bench
+![image](assets/olmocr.png)
+
+## Table Recognition
+![image](assets/table.png)
+
 # Quick Start
-### Download Model Weights
+### Download model weights
 
 ```shell
 git clone https://github.com/infly-ai/INF-MLLM.git
@@ -62,7 +75,7 @@ output_folders/
 ### Using transformers to inference
 
 <details>
-
+    <summary> Transformers Inference Example </summary>
 ```python
 import torch
 from transformers import Qwen2_5_VLForConditionalGeneration, AutoTokenizer, AutoProcessor
@@ -135,7 +148,7 @@ print(output_text)
 # Visualization
 
 ## Data Display
-![image](assets/case.jpg)
+![image](assets/case.jpeg)
 
 # Citation
 
@@ -151,16 +164,6 @@ print(output_text)
 }
 ```
 
-# License
-
-This model is licensed under apache-2.0.
-
-
-## Acknowledgments
-We would like to thank [Qwen2.5-VL](https://github.com/QwenLM/Qwen2.5-VL), [MinerU](https://github.com/opendatalab/MinerU), [MonkeyOCR](https://github.com/Yuliang-Liu/MonkeyOCR), 
-[OmniDocBench](https://github.com/opendatalab/OmniDocBench), [dots.ocr](https://github.com/rednote-hilab/dots.ocr), for providing code and models. 
-
-
 ## Limitation & Future Work
 
 ### Limitations
@@ -170,10 +173,17 @@ We would like to thank [Qwen2.5-VL](https://github.com/QwenLM/Qwen2.5-VL), [Mine
 ### Future Work
 
 We are dedicated to enabling our model to **read like humans**, and we firmly believe that **Vision-Language Models (VLMs)** can make this vision possible.  
-We have conducted **preliminary explorations of reinforcement learning (RL) for document parsing** and achieved promising initial results.  
-In future research, we will continue to deepen our efforts in the following directions:
+We have conducted **preliminary explorations of reinforcement learning (RL) for document parsing** and achieved promising initial results.  In future research, we will continue to deepen our efforts in the following directions:
 
 - **Chart & Figure Understanding**: Extend the model’s capability to handle chart detection, semantic interpretation, and structured data extraction from graphical elements.
 
 - **General-Purpose Perception**: Move toward a unified **Vision-Language perception model** that integrates detection, image captioning, OCR, layout analysis, and chart understanding into a single framework.
 
+## Acknowledgments
+We would like to thank [Qwen2.5-VL](https://github.com/QwenLM/Qwen2.5-VL), [MinerU](https://github.com/opendatalab/MinerU), [MonkeyOCR](https://github.com/Yuliang-Liu/MonkeyOCR), 
+[OmniDocBench](https://github.com/opendatalab/OmniDocBench), [dots.ocr](https://github.com/rednote-hilab/dots.ocr), for providing code and models. 
+
+
+# License
+
+This model is licensed under apache-2.0.

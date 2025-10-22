@@ -1,0 +1,13 @@
+accelerate
+transformers
+huggingface_hub
+modelscope
+vllm
+flash-attn
+pillow
+PyMuPDF
+pdf2image
+qwen_vl_utils
+gradio
+gradio_image_annotation
+openai
