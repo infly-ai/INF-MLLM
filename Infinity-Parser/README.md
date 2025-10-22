@@ -40,7 +40,7 @@ Overview of Infinity-Parser training framework. Our model is optimized via reinf
 ![image](assets/table.png)
 
 # Quick Start
-### Download Model Weights
+## Download Model Weights
 
 ```shell
 git clone https://github.com/infly-ai/INF-MLLM.git
@@ -50,7 +50,7 @@ pip install -r requirements.txt
 python3 tools/download_model.py
 ```
 
-### Vllm Inference
+## Vllm Inference
 We recommend using the vLLM backend for accelerated inference. 
 It supports image and PDF inputs, automatically parses the document content, and exports the results in Markdown format to a specified directory.
 
@@ -78,7 +78,7 @@ output_folders/
 </details>
 
 
-### Using Transformers to Inference
+## Using Transformers to Inference
 
 <details>
     <summary> Transformers Inference Example </summary>
@@ -157,6 +157,24 @@ print(output_text)
 ## Comparison Examples
 ![image](assets/case.jpeg)
 
+# Limitation & Future Work
+
+## Limitations
+ - **Layout / BBox**: The current model does not provide layout or bounding box (bbox) information, which limits its ability to support downstream tasks such as structured document reconstruction or reading order prediction.
+ - **Charts & Figures**: The model lacks perception and understanding of charts and figures, and therefore cannot perform visual reasoning or structured extraction for graphical elements.
+ 
+## Future Work
+
+We are dedicated to enabling our model to **read like humans**, and we firmly believe that **Vision-Language Models (VLMs)** can make this vision possible. We have conducted **preliminary explorations of reinforcement learning (RL) for document parsing** and achieved promising initial results.  In future research, we will continue to deepen our efforts in the following directions:
+
+- **Chart & Figure Understanding**: Extend the model’s capability to handle chart detection, semantic interpretation, and structured data extraction from graphical elements.
+
+- **General-Purpose Perception**: Move toward a unified **Vision-Language perception model** that integrates detection, image captioning, OCR, layout analysis, and chart understanding into a single framework.
+
+# Acknowledgments
+We would like to thank [Qwen2.5-VL](https://github.com/QwenLM/Qwen2.5-VL), [MinerU](https://github.com/opendatalab/MinerU), [MonkeyOCR](https://github.com/Yuliang-Liu/MonkeyOCR), [EasyR1](https://github.com/hiyouga/EasyR1), [LLaMA-Factory](https://github.com/hiyouga/LLaMA-Factory)
+[OmniDocBench](https://github.com/opendatalab/OmniDocBench), [dots.ocr](https://github.com/rednote-hilab/dots.ocr), for providing code and models. 
+
 # Citation
 
 ```
@@ -170,25 +188,6 @@ print(output_text)
       url={https://arxiv.org/abs/2506.03197}, 
 }
 ```
-
-## Limitation & Future Work
-
-### Limitations
- - **Layout / BBox**: The current model does not provide layout or bounding box (bbox) information, which limits its ability to support downstream tasks such as structured document reconstruction or reading order prediction.
- - **Charts & Figures**: The model lacks perception and understanding of charts and figures, and therefore cannot perform visual reasoning or structured extraction for graphical elements.
- 
-### Future Work
-
-We are dedicated to enabling our model to **read like humans**, and we firmly believe that **Vision-Language Models (VLMs)** can make this vision possible. We have conducted **preliminary explorations of reinforcement learning (RL) for document parsing** and achieved promising initial results.  In future research, we will continue to deepen our efforts in the following directions:
-
-- **Chart & Figure Understanding**: Extend the model’s capability to handle chart detection, semantic interpretation, and structured data extraction from graphical elements.
-
-- **General-Purpose Perception**: Move toward a unified **Vision-Language perception model** that integrates detection, image captioning, OCR, layout analysis, and chart understanding into a single framework.
-
-## Acknowledgments
-We would like to thank [Qwen2.5-VL](https://github.com/QwenLM/Qwen2.5-VL), [MinerU](https://github.com/opendatalab/MinerU), [MonkeyOCR](https://github.com/Yuliang-Liu/MonkeyOCR), [EasyR1](https://github.com/hiyouga/EasyR1), [LLaMA-Factory](https://github.com/hiyouga/LLaMA-Factory)
-[OmniDocBench](https://github.com/opendatalab/OmniDocBench), [dots.ocr](https://github.com/rednote-hilab/dots.ocr), for providing code and models. 
-
 
 # License
 
