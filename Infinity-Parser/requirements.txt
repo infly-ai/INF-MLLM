@@ -2,7 +2,7 @@ accelerate
 transformers
 huggingface_hub
 modelscope
-vllm
+vllm==0.10.1.1
 flash-attn
 pillow
 PyMuPDF

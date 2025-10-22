@@ -51,9 +51,10 @@ python3 tools/download_model.py
 ```
 
 ### Vllm Inference
-We recommend using the vLLM backend for accelerated inference.
- It supports image and PDF inputs, automatically parses the document content, and exports the results in Markdown format to a specified directory.
- 
+We recommend using the vLLM backend for accelerated inference. 
+It supports image and PDF inputs, automatically parses the document content, and exports the results in Markdown format to a specified directory.
+Before starting, make sure that **PyTorch** is correctly installed according to the official installation guide at [https://pytorch.org/](https://pytorch.org/).
+
 ```shell
 pip install .
 
