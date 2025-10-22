@@ -1,10 +1,12 @@
 # Infinity Parser: Layout Aware Reinforcement Learning for Scanned Document Parsing
 
-[[Model Weight (🤗Hugging Face)])](https://huggingface.co/infly/Infinity-Parser-7B) ｜ [[Dataset (🤗Hugging Face)]](https://huggingface.co/datasets/infly/Infinity-Doc-55K)
+<p align="center">
 
-<a href="https://arxiv.org/pdf/2506.03197"><img src="assets/logo.png" height="16" width="16" style="display: inline"><b> Paper </b></a> | 
-<a href="https://github.com/infly-ai/INF-MLLM/tree/main/Infinity-Parser"><img src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" height="16" width="16" style="display: inline"><b> Github </b></a> | 
-<a href="https://huggingface.co/spaces/infly/Infinity-Parser-Demo">💬<b> Web Demo </b></a>
+  &nbsp&nbsp 🤗 <a href="https://huggingface.co/infly/Infinity-Parser-7B">Model</a>&nbsp&nbsp | 
+  &nbsp&nbsp 📊 <a href="https://huggingface.co/datasets/infly/Infinity-Doc-55K">Dataset</a>&nbsp&nbsp | 
+  &nbsp&nbsp 📄<a href="https://arxiv.org/pdf/2506.03197">Paper</a>&nbsp&nbsp |
+  &nbsp&nbsp 🚀<a href="https://huggingface.co/spaces/infly/Infinity-Parser-Demo">Demo</a>&nbsp&nbsp
+</p>
 
 # Introduction
 
@@ -26,11 +28,11 @@ Overview of Infinity-Parser training framework. Our model is optimized via reinf
 
 # Performance
 
-## OmniDocBench
-![image](assets/OmniDocBench.png)
-
 ## olmOCR-bench
 ![image](assets/olmocr.png)
+
+## OmniDocBench
+![image](assets/OmniDocBench.png)
 
 ## Table Recognition
 ![image](assets/table.png)
