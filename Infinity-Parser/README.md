@@ -65,7 +65,7 @@ parser --model /path/model --input dir/PDF/Image --output output_folders --batch
 Adjust the tensor parallelism (tp) value — 1, 2, or 4 — and the batch size according to the number of GPUs and the available memory.
 
 <details>
-  <summary>【The information of result folder】</summary>
+  <summary> [The information of result folder] </summary>
 The result folder contains the following contents:
 
 ```
