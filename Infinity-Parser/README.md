@@ -81,6 +81,9 @@ output_folders/
 
 ### Online Serving
 
+<details>
+    <summary> Example </summary>
+
 - Launch the vLLM Server
 
 ```shell
@@ -173,7 +176,7 @@ if __name__ == "__main__":
     res = build_message(img_path, prompt)
     print(res) 
 ```
-
+</details>
 
 ## Using Transformers to Inference
 
