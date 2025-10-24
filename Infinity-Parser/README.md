@@ -288,7 +288,3 @@ We would like to thank [Qwen2.5-VL](https://github.com/QwenLM/Qwen2.5-VL), [Mine
       url={https://arxiv.org/abs/2506.03197}, 
 }
 ```
-
-# License
-
-This model is licensed under apache-2.0.
