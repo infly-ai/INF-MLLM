@@ -51,6 +51,8 @@ python3 tools/download_model.py
 ```
 
 ## Vllm Inference
+
+### 
 We recommend using the vLLM backend for accelerated inference. 
 It supports image and PDF inputs, automatically parses the document content, and exports the results in Markdown format to a specified directory.
 
@@ -77,6 +79,104 @@ output_folders/
 
 </details>
 
+### Online Serving
+
+<details>
+    <summary> Example </summary>
+
+- Launch the vLLM Server
+
+```shell
+vllm serve  /path/to/model --tensor-parallel-size=4 --served-model-name=Infinity_Parser
+```
+
+- Python Client Example
+
+```python
+import os
+import re
+import sys
+import json
+from PIL import Image                 
+from openai import OpenAI, AsyncOpenAI   
+import base64, pathlib
+
+prompt = r'''You are an AI assistant specialized in converting PDF images to Markdown format. Please follow these instructions for the conversion:
+
+        1. Text Processing:
+        - Accurately recognize all text content in the PDF image without guessing or inferring.
+        - Convert the recognized text into Markdown format.
+        - Maintain the original document structure, including headings, paragraphs, lists, etc.
+
+        2. Mathematical Formula Processing:
+        - Convert all mathematical formulas to LaTeX format.
+        - Enclose inline formulas with \( \). For example: This is an inline formula \( E = mc^2 \)
+        - Enclose block formulas with \\[ \\]. For example: \[ \frac{-b \pm \sqrt{b^2 - 4ac}}{2a} \]
+
+        3. Table Processing:
+        - Convert tables to HTML format.
+        - Wrap the entire table with <table> and </table>.
+
+        4. Figure Handling:
+        - Ignore figures content in the PDF image. Do not attempt to describe or convert images.
+
+        5. Output Format:
+        - Ensure the output Markdown document has a clear structure with appropriate line breaks between elements.
+        - For complex layouts, try to maintain the original document's structure and format as closely as possible.
+
+        Please strictly follow these guidelines to ensure accuracy and consistency in the conversion. Your task is to accurately convert the content of the PDF image into Markdown format without adding any extra explanations or comments.
+        '''
+
+def encode_image(image_path):
+    with open(image_path, "rb") as image_file:
+        return base64.b64encode(image_file.read()).decode("utf-8")
+
+    
+def build_message(image_path, prompt):
+    
+    content = [
+        {
+            "type": "image_url",
+            "image_url": {
+                "url": f"data:image/jpeg;base64,{encode_image(image_path)}"
+            }
+        },
+        {"type": "text", 'text': prompt}  
+    ]
+    messages = [
+        {"role": "system", "content": "You are a helpful assistant."},
+        {'role': 'user', 'content': content}   
+    ]
+    
+    return messages
+
+client = OpenAI(
+    api_key="EMPTY",
+    base_url="http://localhost:8000/v1",
+)
+
+
+def request(messages):
+    completion = client.chat.completions.create(
+        messages=messages,
+        extra_headers={
+            "Authorization": f"Bearer {Authorization}"
+        },
+        model="Infinity_Parser",
+        max_completion_tokens=8192,                              
+        temperature=0.0,
+        top_p=0.95
+    )
+    
+    return completion.choices[0].message.content
+
+
+if __name__ == "__main__":
+    img_path = "path/to/image.png"
+    res = build_message(img_path, prompt)
+    print(res) 
+```
+</details>
 
 ## Using Transformers to Inference
 
