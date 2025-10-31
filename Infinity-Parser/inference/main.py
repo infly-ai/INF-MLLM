@@ -65,8 +65,9 @@ def main():
     for i in tqdm(range(num_batches), desc="Batch inference"):
         batch_inputs = inputs[i * batch_size : (i + 1) * batch_size]
         outputs = vllm_backend.run(batch_inputs, args.output)
-        print(outputs)
-        all_outputs.extend(outputs)
+        if outputs:
+            print(outputs)
+            all_outputs.extend(outputs)
 
     print(f"✅ Done. Total processed: {len(all_outputs)} samples.")
 

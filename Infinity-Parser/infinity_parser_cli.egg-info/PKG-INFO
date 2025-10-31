@@ -2,8 +2,4 @@ Metadata-Version: 2.4
 Name: infinity_parser_cli
 Version: 0.1.0
 License-File: LICENSE
-Requires-Dist: vllm>=0.10.1.1
-Requires-Dist: transformers>=4.49.0
-Requires-Dist: Pillow
 Dynamic: license-file
-Dynamic: requires-dist

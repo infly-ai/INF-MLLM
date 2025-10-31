@@ -10,7 +10,6 @@ infinity_parser_cli.egg-info/PKG-INFO
 infinity_parser_cli.egg-info/SOURCES.txt
 infinity_parser_cli.egg-info/dependency_links.txt
 infinity_parser_cli.egg-info/entry_points.txt
-infinity_parser_cli.egg-info/requires.txt
 infinity_parser_cli.egg-info/top_level.txt
 infinity_parser_cli.egg-info/.ipynb_checkpoints/PKG-INFO-checkpoint
 infinity_parser_cli.egg-info/.ipynb_checkpoints/SOURCES-checkpoint.txt
