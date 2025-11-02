@@ -85,8 +85,8 @@ class VllmBackend:
             llm_inputs.append(
                 {
                     "prompt_token_ids": self.processor(text=entry)["input_ids"][0],
-                    "multi_modal_data": {"image": data},
-                    "multi_modal_uuids": {"image": uuid.uuid4()},
+                    "multi_modal_data": {"image": [data]},
+                    "multi_modal_uuids": {"image": [str(uuid.uuid4())]},
                 }
             )
 
@@ -96,12 +96,14 @@ class VllmBackend:
         )
         os.makedirs(output, exist_ok=True)
         result = []
-
+        print(len(outputs))
         for idx, o in enumerate(outputs):
             md = self.processor.tokenizer.decode(o.outputs[0].token_ids)
             os.makedirs(Path(output) / file_names[idx], exist_ok=True)
             with open(Path(output) / file_names[idx] / "output.md", "w") as file:
                 file.write(extract_markdown_content(md))
             result.append(md)
+            
+        import pdb; pdb.set_trace();
 
         return result

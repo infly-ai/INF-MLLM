@@ -40,27 +40,33 @@ Overview of Infinity-Parser training framework. Our model is optimized via reinf
 ![image](assets/table.png)
 
 # Quick Start
+
+## Install Infinity_Parser
+```shell
+conda create -n Infinity_Parser python=3.11
+conda activate Infinity_Parser
+
+git clone https://github.com/infly-ai/INF-MLLM.git
+cd INF-MLLM/Infinity-Parser
+# Install pytorch, see https://pytorch.org/get-started/previous-versions/ for your cuda version
+conda install pytorch==2.5.0 torchvision==0.20.0 torchaudio==2.5.0 pytorch-cuda=12.1 -c pytorch -c nvidia
+pip install .
+```
+Before starting, make sure that **PyTorch** is correctly installed according to the official installation guide at [https://pytorch.org/](https://pytorch.org/).
+
 ## Download Model Weights
 
 ```shell
-git clone https://github.com/infly-ai/INF-MLLM.git
-cd Infinity-Parser
 pip install -r requirements.txt
 
 python3 tools/download_model.py
 ```
 
 ## Vllm Inference
-
-### 
 We recommend using the vLLM backend for accelerated inference. 
 It supports image and PDF inputs, automatically parses the document content, and exports the results in Markdown format to a specified directory.
 
-Before starting, make sure that **PyTorch** is correctly installed according to the official installation guide at [https://pytorch.org/](https://pytorch.org/).
-
 ```shell
-pip install .
-
 parser --model /path/model --input dir/PDF/Image --output output_folders --batch_size 128 --tp 1
 ```
 
