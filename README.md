@@ -8,8 +8,9 @@ INF-MLLM is a series of open-source multimodal large language models developed b
 
 ## Updates
 
-- [2025/06/30] The [Infinity-Doc-55K dataset](https://huggingface.co/datasets/infly/Infinity-Doc-55K) and [Infinity-Parser web demo](https://huggingface.co/spaces/infly/Infinity-Parser-Demo) are now available.
-- [2025/05/27] We have added an introduction to our latest model, **Infinity-Parser**.
+- [2025/11/03] The [Infinity-Parser-7B](https://huggingface.co/infly/Infinity-Parser-7B), [Infinity-Doc-400K dataset](https://huggingface.co/datasets/infly/Infinity-Doc-400K), and synthetic data [generation code](https://github.com/infly-ai/INF-MLLM/tree/main/Infinity-Parser/Infinity-Synth) have been released.
+- [2025/09/19] VL-Rethinker has been accepted as a Spotlight paper at NeurIPS 2025!!
+- [2025/06/30] We have added an introduction to our latest model, **Infinity-Parser**. The [Infinity-Doc-55K dataset](https://huggingface.co/datasets/infly/Infinity-Doc-55K) and [Infinity-Parser web demo](https://huggingface.co/spaces/infly/Infinity-Parser-Demo) are now available.
 - [2025/04/22] VL-Rethinker models (7B & 72B) are released! They achieve new state-of-the-art results on MathVista, MathVerse, and MathVision benchmarks.
 - [2024/08/19] We have released **INF-MLLM2**, with the [INF-MLLM2-7B model](https://huggingface.co/QianYEee/InfMLLM2_7B_chat) and evaluation code now available.
 - [2023/12/06] The models and evaluation code for **INF-MLLM1** are now available.
@@ -25,7 +26,8 @@ Here is a brief overview of the models available in this repository. For more de
 
 - **Key Features:** Layout-aware, reinforcement learning, high-fidelity document parsing.
 - **Paper:** [Infinity Parser: Layout Aware Reinforcement Learning for Scanned Document Parsing](https://arxiv.org/abs/2506.03197)
-- **Dataset:** [Infinity-Doc-55K](https://huggingface.co/datasets/infly/Infinity-Doc-55K)
+- **Dataset:** [Infinity-Doc-55K](https://huggingface.co/datasets/infly/Infinity-Doc-55K), [Infinity-Doc-400K](https://huggingface.co/datasets/infly/Infinity-Doc-400K)
+- **Model:** [Infinity-Parser-7B](https://huggingface.co/infly/Infinity-Parser-7B)
 - **Web Demo:** [Infinity-Parser-Demo](https://huggingface.co/spaces/infly/Infinity-Parser-Demo)
 
 ### [VL-Rethinker](https://github.com/TIGER-AI-Lab/VL-Rethinker)

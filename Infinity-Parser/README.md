@@ -3,12 +3,11 @@
 <div align="center">
 
 🤗 <a href="https://huggingface.co/infly/Infinity-Parser-7B">Model</a> |
-📊 <a href="https://huggingface.co/datasets/infly/Infinity-Doc-55K">Dataset</a> |
+📊 <a href="https://huggingface.co/datasets/infly/Infinity-Doc-400K">Dataset</a> |
 📄 <a href="https://arxiv.org/pdf/2506.03197">Paper</a> |
 🚀 <a href="https://huggingface.co/spaces/infly/Infinity-Parser-Demo">Demo</a>
 
 </div>
-
 
 # Introduction
 
@@ -262,6 +261,10 @@ print(output_text)
 
 ## Comparison Examples
 ![image](assets/case.jpeg)
+
+# Synthetic Data Generation
+
+The generation code is available at <a href="https://github.com/infly-ai/INF-MLLM/tree/main/Infinity-Parser/Infinity-Synth">Infinity-Synth.</a>
 
 # Limitation & Future Work
 
