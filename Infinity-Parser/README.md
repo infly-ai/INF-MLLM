@@ -42,7 +42,6 @@ Overview of Infinity-Parser training framework. Our model is optimized via reinf
 ![image](assets/General.png)
 > **Note:** The baseline model is **Qwen2.5-VL-7B**, and all metrics are evaluated using the **LMMS-Eval** framework.
 
-
 # Quick Start
 
 ## Install Infinity_Parser
