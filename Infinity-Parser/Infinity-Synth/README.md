@@ -54,13 +54,13 @@ google-chrome --version
 
 #### 3. Please download Chromedriver, place it in the drive directory, name it chromedriver, and grant it execution permission.
     
-### 🚀 Then, Run Data Synthesis
+### 🚀 Run Data Synthesis
 
 ```shell
 python main.py --config=examples/three_columns.yaml
 ```
 
-### 🧩 Then, Convert Synthesized Data into Markdown
+### 🧩 Convert Synthesized Data into Markdown
 
 ```shell
 python main.py --config=examples/three_columns.yaml
