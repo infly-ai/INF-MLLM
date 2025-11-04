@@ -1,5 +1,4 @@
-# Infinity_Synth
-
+# Infinity-Synth: High-Quality Synthetic Document Data Generation
 
 ## Quick Started 
   
@@ -7,7 +6,7 @@
 
 This document provides instructions for checking, installing, and running Google Chrome in headless mode — useful for web automation, screenshots, PDF rendering, or server-side rendering tasks.
 
-- 1. Check Installed Chrome Version
+#### 1. Check Installed Chrome Version
 
 You can verify if Chrome (or Chromium) is already installed and check its version by running:
 
@@ -20,7 +19,7 @@ or
 chromium-browser --version
 ```
 
-- 2. Install Google Chrome (Ubuntu Example)
+#### 2. Install Google Chrome (Ubuntu Example)
     - Step 1: Update package index
     
         ```shell
@@ -51,11 +50,10 @@ chromium-browser --version
     ```shell
     google-chrome --version
     ```
+
+#### 3. Please download Chromedriver, place it in the drive directory, name it chromedriver, and grant it execution permission.
     
-- 3. Please download Chromedriver, place it in the drive directory, name it chromedriver, and grant it execution permission.
-
 ### 🚀 Then, Run Data Synthesis
-
 
 ```shell
 python main.py --config=examples/three_columns.yaml
@@ -89,10 +87,12 @@ work_path:
   template_path: "templates"
   template_file: "three_columns/document.html.jinja"
   template_get_data: "three_columns/getData"
-  html_path: "/home/ma-user/work/wbd/prepare_pub/SynthPDF2MD/Infinity_Synth/working/html/output_{i}.html"
+  html_path: "/path/to/Infinity_Synth/working/html/output_{i}.html"
   save_image_dir: "working/image/"
   output_gt_path: "working/ground_truth/result_of_id{i}.json"
 ```
+
+> Important: Always provide an absolute path for `html_path`
 
 - save_image_dir: Directory path where the final images of rendered HTML pages will be stored.
 
