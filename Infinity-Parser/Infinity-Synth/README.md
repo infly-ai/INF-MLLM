@@ -1,6 +1,6 @@
 # Infinity-Synth: High-Quality Synthetic Document Data Generation
 
-## Quick Started 
+## Quick Start
   
 ### 🧭 Step 1: Google Chrome Headless Setup
 
@@ -46,7 +46,7 @@ python main.py --config=examples/three_columns.yaml
 ### 🧩 Step 3: Convert Synthesized Data into Markdown
 
 ```shell
-python main.py --config=examples/three_columns.yaml
+python scripts/doc_parser.py --config=examples/three_columns.yaml
 ```
 📁 The synthesized data will be saved in `results.json`.  
 You can modify the save path by updating `work_path.result` in `examples/three_columns.yaml`.
@@ -83,7 +83,7 @@ work_path:
 ```
 defaults:
   save_path: "Temp"
-  work_path_template: "Temp_porcess_id{process_id}"
+  work_path_template: "Temp_process_id{process_id}"
   output_file_template: "result_of_id{process_id}.json"
   save_every_n: 40
 ```
