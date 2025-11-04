@@ -1,0 +1,279 @@
+.container h3 {
+  margin-bottom: {{styles.gap.h3p_gap}};
+  text-align: {{styles.h3location|default("left")}};
+}
+
+.container p {
+  margin-top: 0px;
+  line-height: {{ styles.line_height }};
+  text-indent: 2em;
+  margin-bottom: 0px;
+}
+
+body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+p {
+  word-break: break-all;
+}
+
+.a4-page {
+  width: 210mm;
+  height: 297mm;
+  border: 1px solid #ccc;
+  display: flex;
+  flex-direction: column;
+  padding: 20mm;
+  page-break-after: always;
+  box-sizing: border-box;
+  justify-content: space-between;
+  position: relative;
+}
+
+.main_content {
+  column-count: {{styles.columns}};
+  column-gap: 16px;
+}
+
+.header {
+  width: calc(100% - 20px);
+  height: 10mm;
+  background-color: {{styles.header.background_color}};
+  padding: 10px;
+  box-sizing: border-box;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: absolute;
+  top: 5px;
+  left: 5px;
+  right: 5px;
+  z-index: 1000;
+  font-family: 'Arial', sans-serif;
+  font-size: 12px;
+  font-weight: bold;
+  text-align: center;
+}
+
+.header-left,
+.header-mid,
+.header-right {
+  font-size: 10px;
+  text-align: center;
+}
+
+.header .page-number-container {
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
+.header .page-number {
+  font-family: 'Courier New', monospace;
+  font-size: 16px;
+  margin-right: 10px;
+}
+
+.header .rectangle {
+  width: 40px;
+  height: 4px;
+  background-color: #ff6347;
+}
+
+.hcentered-line {
+  position: absolute;
+  bottom: 0px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(80% - 20px);
+  border-bottom: 2px solid black;
+}
+
+.page-num {
+  flex: 1;
+  text-align: center;
+}
+
+.footer {
+  width: 100%;
+  height: 10mm;
+  border-top: 2px solid black;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+  box-sizing: border-box;
+  background-image: url('path/to/your/image.jpg');
+  background-size: cover;
+  background-position: center;
+  background-color: {{styles.header.background_color}};
+  position: absolute;
+  bottom: 5px;
+  left: 5px;
+  right: 5px;
+}
+
+.footer-left,
+.footer-mid,
+.footer-right {
+  flex: 1;
+  text-align: center;
+}
+
+.circle-background {
+  color: #b8311a;
+  width: 45px;
+  height: 15px;
+  background-color: {{ styles.page_num.background_color }};
+  border-radius: 50%;
+  top: -25px;
+  left: calc(50% - 75px);
+  z-index: -1;
+}
+
+.title {
+  font-size: {{ styles.title.font_size|default('10pt') }};
+  font-family: {{ styles.title.font_family|default('Arial, sans-serif') }};
+  color: {{ styles.title.color|default('#333') }};
+  background-color: {{ styles.title.background_color|default('#fff') }};
+  margin-bottom: {{styles.title_margin_bottom}};
+  text-align: {{ styles.title.center if styles.title.center else 'center' }};
+}
+
+.figure_caption {
+  text-align: justify;
+  font-size: 12px;
+  color: #333;
+}
+
+.formula-block {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.formula {
+  width: max-content;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.formula_caption {
+  width: max-content;
+  text-align: right;
+  font-size: 12px;
+}
+
+.table_outer {
+  width: 67%;
+  margin: 1px auto;
+}
+
+.table_caption {
+  width: max-content;
+  margin: 16px auto;
+  text-align: left;
+  font-size: 12px;
+}
+
+.table_footnote {
+  width: max-content;
+  text-align: left;
+  font-size: 11px;
+}
+
+.table-block {
+  width: 100%;
+  text-align: center;
+}
+
+.table-block table {
+  margin: 0;
+  font-size: 14px;
+  border-collapse: collapse;
+  width: 100%;
+  border: 1px solid #ffffff;
+}
+
+.table-block th,
+.table-block td {
+  padding: 2px 2px;
+  border: 1px solid #ddd;
+  font-size: 10px;
+  text-align: center;
+  border-left: none;
+  border-right: none;
+  border-top: 1px solid #ccc;
+  border-bottom: 1px solid #ccc;
+  font-weight: bold;
+}
+
+.table-block table thead tr:first-child th {
+  border-top: 2px solid #000;
+}
+
+h3 {
+  font-size: 16px;
+  margin-bottom: 4px;
+}
+
+.text {
+  font-size: 12px;
+  text-align: left;
+  text-indent: 4ch;
+  line-height: 1.2;
+  margin: 2px auto;
+}
+
+.MathJax,
+.mjx-tex-display,
+.MathJax_Display,
+.mjx-math {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.page_footnote {
+  position: relative;
+  font-size: 9px;
+  text-align: left;
+}
+
+.page_footnote::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 40%;
+  border-top: 1px solid black;
+}
+
+.page_footnote_p {
+  display: inline-block;
+}
+
+@page {
+  size: A4;
+  margin: 0;
+}
+
+@media print {
+  html, body {
+    margin: 0;
+    padding: 0;
+  }
+
+  .a4-page {
+    width: 210mm;
+    height: calc(297mm - 0.5mm);
+    box-sizing: border-box;
+    overflow: hidden;
+  }
+}
