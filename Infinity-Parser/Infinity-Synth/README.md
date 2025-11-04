@@ -1,6 +1,6 @@
 # Infinity-Synth: High-Quality Synthetic Document Data Generation
 
-## Quick Started 
+## Quick Start
   
 ### 🧭 Step 1: Google Chrome Headless Setup
 
