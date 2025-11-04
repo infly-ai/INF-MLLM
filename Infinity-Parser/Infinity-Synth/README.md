@@ -2,7 +2,7 @@
 
 ## Quick Started 
   
-### 🧭 Step 1: Google Chrome Headless Setup Guide
+### 🧭 Step 1: Google Chrome Headless Setup
 
 This document provides instructions for checking, installing, and running Google Chrome in headless mode — useful for web automation, screenshots, PDF rendering, or server-side rendering tasks.
 
