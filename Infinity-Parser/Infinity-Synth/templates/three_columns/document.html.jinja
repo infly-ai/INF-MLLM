@@ -1,0 +1,255 @@
+{# Copyright (c) Microsoft Corporation. All rights reserved. #}
+
+{% extends "base.html.jinja" %}
+{%- block style %}
+    {# Global Style #}
+    {% import "macro/dimension.css.jinja" as dimension %}
+        {{ dimension.a4_paper() }}
+    {% import "macro/text.css.jinja" as text %}
+        {{ text.set_font(font_family, font_size) }}
+        {{ text.set_hyphenation(hyphenate) }}
+        {{ text.set_text_align(text_align) }}
+    {% import "macro/page_layout.css.jinja" as layout %}
+        {{ layout.set_page_num() }}
+    {# Element-Specific Style #}
+    {%- include "three_columns/document.css.jinja" with context %}
+   
+    mjx-container[jax="CHTML"][display="false"] { display: inline-block; vertical-align: baseline; }
+    mjx-container[jax="CHTML"][display="true"]  { display: block; text-align: center; margin: .6em 0; }
+    pre, code { white-space: pre; }
+    
+{% endblock style %}
+
+{% block body %}
+
+
+<div class="a4-page">
+
+    {% set header = input_data.get('header', {}) %}
+    {% if header %}
+      <div class="header">
+        {% if header.left %}
+          <div class="header-left">{{ header.left }}</div>
+        {% endif %}
+        {% if header.mid %}
+          <div class="header-mid">{{ header.mid }}</div>
+        {% endif %}
+        {% if header.right %}
+          <div class="header-right">{{ header.right }}</div>
+        {% endif %}
+        {% if header.line %}
+          <div class="hcentered-line"></div>
+        {% endif %}
+      </div>
+    {% endif %}
+
+    <div class="main_content">
+
+        {% set ns = namespace(formula_idx=1, fig_idx=1, tab_idx=1) %}
+        {% for ele in input_data.get("body", None) %}
+            
+            {% if ele.type == "table" %}
+            
+                <div class="table_outer">
+                    <p class="table_caption"> {{ ele.caption }} </p>
+                    <div class="table-block">
+                        {{ ele.html | safe  }}
+                    </div>
+
+                    <p class="table_footnote"> {{ ele.footnote }} </p>
+                    
+                </div>
+                {% set ns.tab_idx = ns.tab_idx + 1 %}
+            {% elif ele.type == "figure" %}
+                <img src="{{ ele.path }}">
+
+                <p class="figure_caption">图{{ ns.fig_idx }}：{{ ele.caption }}</p>
+                
+                {% set ns.fig_idx = ns.fig_idx + 1 %}
+
+            {% elif ele.type == "title" %}
+                <h1>{{ ele.content }}</h1>
+
+            {% elif ele.type == "Body" %}
+            
+                <h3>{{ ele.heading }}</h3>
+            
+                {% for txt in ele.text %}
+                    <p class="text">{{ txt }}</p>
+                {% endfor %}
+
+            {% elif ele.type == "formula" %}
+            
+            <div class="formula-block">
+
+                <p class="formula" data-latex="{{ ele.latex }}">{{ ele.latex }}</p>
+                <p class="formula_caption">({{ ns.formula_idx }})</p>
+                
+            </div>
+                    
+            {% set ns.formula_idx = ns.formula_idx + 1 %}
+
+            {% endif %}
+            
+        {% endfor %}
+   
+        </div>
+
+
+         {% set page_footnote = input_data.get('page_footnote', None) %}
+         
+         <div class="page_bottom">
+ 
+         {% if page_footnote %}
+          <div class="page_footnote">
+            <p class="page_footnote_p"> {{page_footnote}} </p>
+          </div>
+        {% endif %}
+ 
+
+        {% set footer = input_data.get('footer', {}) %}
+        {% if footer %}
+          <div class="footer">
+          
+            {% if footer.left %}
+              <div class="footer-left">{{ footer.left }}</div>
+            {% endif %}
+            {% if footer.mid %}
+              <div class="footer-mid">{{ footer.mid }}</div>
+            {% endif %}
+            {% if footer.right %}
+              <div class="footer-right">{{ footer.right }}</div>
+            {% endif %}
+          </div>
+        {% endif %}
+        
+        </div>
+
+<script>
+(function () {
+  'use strict';
+
+  function setCellStyle(cell, cssObj) {
+  
+    const st = cell.style;
+    for (const k in cssObj) st[k] = cssObj[k];
+  }
+
+  function pickHeaderRow(tbl) {
+    const thead = tbl.querySelector('thead');
+    if (thead) {
+      const rows = thead.querySelectorAll('tr');
+      if (rows.length) return rows[rows.length - 1];
+    }
+    const tbody = tbl.querySelector('tbody');
+    if (tbody) {
+      const row = tbody.querySelector('tr');
+      if (row) return row;
+    }
+    return tbl.querySelector('tr');
+  }
+
+  function styleThreeLine(tbl) {
+    tbl.style.borderCollapse = 'collapse';
+    tbl.style.borderTop = '2px solid #000';
+    tbl.style.borderBottom = '2px solid #000';
+    tbl.style.borderLeft = 'none';
+    tbl.style.borderRight = 'none';
+
+    const cells = tbl.querySelectorAll('th, td');
+    cells.forEach(cell => {
+      setCellStyle(cell, {
+        border: 'none',
+        textAlign: 'center',
+        verticalAlign: 'middle',
+        padding: '6px 8px'
+      });
+    });
+
+    const headerRow = pickHeaderRow(tbl);
+    if (headerRow) {
+      headerRow.querySelectorAll('th, td').forEach(cell => {
+        cell.style.borderBottom = '1px solid #000';
+      });
+    }
+  }
+
+  function styleFullBorder(tbl) {
+    tbl.style.borderCollapse = 'collapse';
+    tbl.style.border = '1px solid #000';
+    const alignCenter = Math.random() < 0.5 ? 'center' : 'left';
+
+    const cells = tbl.querySelectorAll('th, td');
+    cells.forEach(cell => {
+      setCellStyle(cell, {
+        border: '1px solid #000',
+        textAlign: alignCenter,
+        verticalAlign: 'middle',
+        padding: '6px 8px'
+      });
+    });
+  }
+
+  function styleOneTable(tbl) {
+    if (tbl.dataset.styled === '1') return; 
+    const useThreeLine = Math.random() < 0.5;
+    if (useThreeLine) styleThreeLine(tbl);
+    else styleFullBorder(tbl);
+    tbl.dataset.styled = '1';
+  }
+
+  function styleTables(root) {
+    const scope = root || document;
+    scope.querySelectorAll('table:not([data-styled])').forEach(styleOneTable);
+  }
+
+  function run() {
+    styleTables(document);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', run, { once: true });
+  } else {
+    run();
+  }
+
+  const obs = new MutationObserver(mutations => {
+    for (const m of mutations) {
+      for (const node of m.addedNodes) {
+        if (node.nodeType !== 1) continue; 
+        if (node.tagName && node.tagName.toLowerCase() === 'table') {
+          styleOneTable(node);
+        } else {
+          styleTables(node);
+        }
+      }
+    }
+  });
+  obs.observe(document.documentElement, { childList: true, subtree: true });
+
+  window.styleTables = styleTables;
+})();
+</script>
+
+
+  <script>
+  window.MathJax = {
+    startup: { typeset: true },
+
+    tex: {
+      inlineMath: [['$', '$'], ['\\(', '\\)']],
+      displayMath: [['$$', '$$'], ['\\[', '\\]']],
+
+      processEscapes: true, 
+      tags: 'none'      
+    },
+
+    options: {
+      skipHtmlTags: ['script','noscript','style','textarea','pre','code']
+    }
+  };
+  </script>
+<script src="/home/ma-user/work/data_mllm/software/MathJax/es5/tex-mml-chtml.js">
+</script>
+
+{% endblock body %}

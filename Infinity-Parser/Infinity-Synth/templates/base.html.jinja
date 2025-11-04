@@ -1,0 +1,25 @@
+{# Copyright (c) Microsoft Corporation. All rights reserved. #}
+
+<!DOCTYPE html>
+<!-- setting language for hyphenation purpose -->
+{% if language %} 
+<html lang={{ language }}>
+{% else %}
+<html lang=en> <!-- defaults to English -->
+{% endif %}
+
+<head>
+    <meta charset="UTF-8">
+    {%- block head %}
+    <style>
+        {% import "macro/page_layout.css.jinja" as layout %}
+            {{ layout.set_page_bg() }}
+        {%- block style %} {% endblock style %}
+    </style>
+    {% endblock head %}
+</head>
+
+<body>
+    {% block body %} {% endblock body %}
+</body>
+</html>

@@ -1,0 +1,35 @@
+data_paths:
+  text: "/home/ma-user/work/wbd/06_tools/01_distill/inline_formul_v3.json"
+  image: "/home/ma-user/work/datasets/Simulation/data_source/source_figure.json"
+  #table: "/home/ma-user/work/datasets/Simulation/data_source/source_fintabnet.json"
+  table: "/home/ma-user/work/liweizhen/SynthPDF2MD/Infinity_Synth/scripts/tables/TableEval-test-processed.json"
+  formula: "/home/ma-user/work/datasets/ds4sd-synth-formula/process_data_formula_filtered.json"
+  title: ""
+work_path:
+  template_path: "templates/templates/"
+  template_file: "inlineformula_spec.html.jinja"
+  html_path: "/home/ma-user/work/renkexuan/SynthPDF2MD/Infinity_Synth/html_path/output_{i}.html"
+  save_image_dir: "/home/ma-user/work/renkexuan/SynthPDF2MD/Infinity_Synth/formula_ch_v7/"
+  output_gt_path: "/home/ma-user/work/renkexuan/SynthPDF2MD/Infinity_Synth/json4formula_7/result_of_id{i}.json"
+defaults:
+  save_path: "Temp2"
+  work_path_template: "Temp_porcess_id{process_id}"
+  output_file_template: "result_of_id{process_id}.json"
+  save_every_n: 1
+  
+
+layout_config:
+  element:
+    table: 0
+    figure: 0
+    title: 0
+    text: 1
+    formula: 0
+    header: 0
+    footer: 0
+    page_footnote: 0
+  columns: 1
+
+num_workers: 30
+nums: 1000
+

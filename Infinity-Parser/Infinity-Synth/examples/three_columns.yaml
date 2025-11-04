@@ -1,0 +1,34 @@
+data_paths:
+  text: "examples/data/text.json"
+  image: "examples/data/figure.json"
+  table: "examples/data/table.json"
+  formula: "examples/data/formula.json"
+  title: ""
+work_path:
+  template_path: "templates"
+  template_file: "three_columns/document.html.jinja"
+  template_get_data: "three_columns/getData"
+  html_path: "/home/ma-user/work/wbd/prepare_pub/SynthPDF2MD/Infinity_Synth/working/html/output_{i}.html"
+  save_image_dir: "working/image/"
+  output_gt_path: "working/ground_truth/result_of_id{i}.json"
+  result: "results.json"
+defaults:
+  save_path: "Temp"
+  save_every_n: 4
+  
+
+layout_config:
+  element:
+    table: 0
+    figure: 0
+    title: 0
+    text: 7
+    formula: 0
+    header: 0
+    footer: 0
+    page_footnote: 0
+  columns: 3
+
+num_workers: 30
+nums: 3000
+
