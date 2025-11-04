@@ -2,7 +2,7 @@
 
 ## Quick Started 
   
-### 🧭 Google Chrome Headless Setup Guide
+### 🧭 Step 1: Google Chrome Headless Setup Guide
 
 This document provides instructions for checking, installing, and running Google Chrome in headless mode — useful for web automation, screenshots, PDF rendering, or server-side rendering tasks.
 
@@ -21,46 +21,29 @@ chromium-browser --version
 
 #### 2. Install Google Chrome (Ubuntu Example)
 
-- Step 1: Update package index
-
-    ```shell
-    sudo apt-get update
-    ```
-
-- Step 2: Install dependencies
-
-    ```shell
-    sudo apt-get install -y libappindicator1 fonts-liberation
-    ```
-💡 Dependencies may vary slightly across distributions.
-
-- Step 3: Download Chrome
-
-    ```shell
-    wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-    ```
-- Step 4: Install the package
-
-    ```shell
-    sudo dpkg -i google-chrome-stable_current_amd64.deb
-    sudo apt --fix-broken install
-    ```
-
-- Step 5: Verify installation
-
 ```shell
+# Update package index
+sudo apt-get update
+# Install dependencies
+sudo apt-get install -y libappindicator1 fonts-liberation
+# Download Chrome
+wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+# Install the package
+sudo dpkg -i google-chrome-stable_current_amd64.deb
+sudo apt --fix-broken install
+# Verify installation
 google-chrome --version
 ```
 
 #### 3. Please download Chromedriver, place it in the drive directory, name it chromedriver, and grant it execution permission.
     
-### 🚀 Run Data Synthesis
+### 🚀 Step 2: Run Data Synthesis
 
 ```shell
 python main.py --config=examples/three_columns.yaml
 ```
 
-### 🧩 Convert Synthesized Data into Markdown
+### 🧩 Step 3: Convert Synthesized Data into Markdown
 
 ```shell
 python main.py --config=examples/three_columns.yaml
@@ -69,7 +52,7 @@ python main.py --config=examples/three_columns.yaml
 You can modify the save path by updating `work_path.result` in `examples/three_columns.yaml`.
 
 
-### 🛠️ Extending Template and Style Diversity
+### 🛠️ Optional: Extending Template and Style Diversity
 If you want to add new layout styles, modify the template specified by `work_path.template_file` and the corresponding data-filling function defined in `work_path.template_get_data`.  
 These control the structure and content generation logic of the synthetic samples.  
 For additional customization, please refer to the following parameters.
