@@ -69,7 +69,7 @@ python main.py --config=examples/three_columns.yaml
 You can modify the save path by updating `work_path.result` in `examples/three_columns.yaml`.
 
 
-#### Extending Template and Style Diversity
+### 🛠️ Extending Template and Style Diversity
 If you want to add new layout styles, modify the template specified by `work_path.template_file` and the corresponding data-filling function defined in `work_path.template_get_data`.  
 These control the structure and content generation logic of the synthetic samples.  
 For additional customization, please refer to the following parameters.
