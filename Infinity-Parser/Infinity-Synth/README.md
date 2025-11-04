@@ -46,7 +46,7 @@ python main.py --config=examples/three_columns.yaml
 ### 🧩 Step 3: Convert Synthesized Data into Markdown
 
 ```shell
-python script/doc_parser.py --config=examples/three_columns.yaml
+python scripts/doc_parser.py --config=examples/three_columns.yaml
 ```
 📁 The synthesized data will be saved in `results.json`.  
 You can modify the save path by updating `work_path.result` in `examples/three_columns.yaml`.
