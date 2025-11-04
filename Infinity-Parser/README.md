@@ -38,6 +38,9 @@ Overview of Infinity-Parser training framework. Our model is optimized via reinf
 ## Table Recognition
 ![image](assets/table.png)
 
+## General Multimodal Capability Evaluation
+![image](assets/General.png)
+
 # Quick Start
 
 ## Install Infinity_Parser
