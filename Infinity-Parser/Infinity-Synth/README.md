@@ -20,36 +20,37 @@ chromium-browser --version
 ```
 
 #### 2. Install Google Chrome (Ubuntu Example)
-    - Step 1: Update package index
-    
-        ```shell
-        sudo apt-get update
-        ```
 
-    - Step 2: Install dependencies
-    
-        ```shell
-        sudo apt-get install -y libappindicator1 fonts-liberation
-        ```
-    💡 Dependencies may vary slightly across distributions.
+- Step 1: Update package index
 
-    - Step 3: Download Chrome
-    
-        ```shell
-        wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-        ```
-    - Step 4: Install the package
-    
-        ```shell
-        sudo dpkg -i google-chrome-stable_current_amd64.deb
-        sudo apt --fix-broken install
-        ```
-
-    - Step 5: Verify installation
-    
     ```shell
-    google-chrome --version
+    sudo apt-get update
     ```
+
+- Step 2: Install dependencies
+
+    ```shell
+    sudo apt-get install -y libappindicator1 fonts-liberation
+    ```
+💡 Dependencies may vary slightly across distributions.
+
+- Step 3: Download Chrome
+
+    ```shell
+    wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+    ```
+- Step 4: Install the package
+
+    ```shell
+    sudo dpkg -i google-chrome-stable_current_amd64.deb
+    sudo apt --fix-broken install
+    ```
+
+- Step 5: Verify installation
+
+```shell
+google-chrome --version
+```
 
 #### 3. Please download Chromedriver, place it in the drive directory, name it chromedriver, and grant it execution permission.
     
