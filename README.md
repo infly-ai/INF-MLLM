@@ -1,6 +1,8 @@
-<div align="center">
-<a><h2><img src="Infinity-Parser/assets/logo.png" height="24" width="24" style="display: inline"> INF-MLLM: Multimodal Large Language Models from INF Tech </h2></a>
-</div>
+# INF-MLLM
+
+<p align="center">
+    <img src="Infinity-Parser/assets/logo.png" width="400"/>
+<p>
 
 ## Introduction
 
