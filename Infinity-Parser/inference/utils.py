@@ -4,6 +4,7 @@ from PIL import Image
 from typing import Optional, List, Tuple
 from pathlib import Path
 import traceback
+from pdf2image import convert_from_path
 
 
 def extract_markdown_content(text):
