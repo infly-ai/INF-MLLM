@@ -103,5 +103,5 @@ class VllmBackend:
             with open(Path(output) / file_names[idx] / "output.md", "w") as file:
                 file.write(extract_markdown_content(md))
             result.append(md)
-        
+
         return result
