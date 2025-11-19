@@ -4,6 +4,7 @@ from PIL import Image
 from typing import Optional, List, Tuple
 from pathlib import Path
 import traceback
+from pdf2image import convert_from_path
 
 
 def extract_markdown_content(text):
@@ -73,10 +74,13 @@ def load_inputs(input_path: str, prompt: str) -> List[Tuple[str, Image.Image]]:
                                 (Path(file_path).stem + f"page_{idx+1}", prompt, img)
                             )
                     elif file_path.lower().endswith(
-                        (".jpg", ".jpeg", ".png", ".bmp", ".webp")):
-                        inputs.append((Path(file_path).stem, prompt, Image.open(file_path) ))
+                        (".jpg", ".jpeg", ".png", ".bmp", ".webp")
+                    ):
+                        inputs.append(
+                            (Path(file_path).stem, prompt, Image.open(file_path))
+                        )
         except Exception as e:
-            traceback.print_exc() 
+            traceback.print_exc()
             print(e)
 
     else:

@@ -75,6 +75,8 @@ It supports image and PDF inputs, automatically parses the document content, and
 parser --model /path/model --input dir/PDF/Image --output output_folders --batch_size 128 --tp 1
 ```
 
+> **Note:** If you want to process PDF input files, you must first install poppler-utils.
+
 Adjust the tensor parallelism (tp) value — 1, 2, or 4 — and the batch size according to the number of GPUs and the available memory.
 
 <details>
