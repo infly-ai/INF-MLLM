@@ -22,13 +22,13 @@ layout_config:
     table: 0
     figure: 0
     title: 0
-    text: 7
+    text: 20
     formula: 0
     header: 0
     footer: 0
     page_footnote: 0
   columns: 3
 
-num_workers: 30
+num_workers: 3
 nums: 3000
 

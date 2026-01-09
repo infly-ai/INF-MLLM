@@ -1,0 +1,63 @@
+[
+  {
+    "type": "figure",
+    "path": "/home/ma-user/figures/overview_pipeline.png",
+    "caption": "整体多模态模型处理流程示意图。",
+    "footnote": "流程简化展示。"
+  },
+  {
+    "type": "figure",
+    "path": "/home/ma-user/figures/model_architecture.png",
+    "caption": "多模态模型的整体网络结构。",
+    "footnote": "未绘制细节层。"
+  },
+  {
+    "type": "figure",
+    "path": "/home/ma-user/figures/feature_fusion.png",
+    "caption": "视觉与文本特征融合机制示意。",
+    "footnote": "基于注意力。"
+  },
+  {
+    "type": "figure",
+    "path": "/home/ma-user/figures/training_strategy.png",
+    "caption": "模型训练与优化策略流程图。",
+    "footnote": "统一训练框架。"
+  },
+  {
+    "type": "figure",
+    "path": "/home/ma-user/figures/ablation_results.png",
+    "caption": "不同模块消融实验的性能对比。",
+    "footnote": "指标为示例。"
+  },
+  {
+    "type": "figure",
+    "path": "/home/ma-user/figures/data_distribution.png",
+    "caption": "实验数据集中各类别的分布情况。",
+    "footnote": "已做归一化。"
+  },
+  {
+    "type": "figure",
+    "path": "/home/ma-user/figures/attention_visualization.png",
+    "caption": "跨模态注意力权重的可视化结果。",
+    "footnote": "随机样本。"
+  },
+  {
+    "type": "figure",
+    "path": "/home/ma-user/figures/inference_latency.png",
+    "caption": "不同配置下模型推理延迟对比。",
+    "footnote": "单卡测试。"
+  },
+  {
+    "type": "figure",
+    "path": "/home/ma-user/figures/error_analysis.png",
+    "caption": "模型预测错误样本的定性分析示例。",
+    "footnote": "仅展示部分。"
+  },
+  {
+    "type": "figure",
+    "path": "/home/ma-user/figures/case_study.png",
+    "caption": "典型样例的多模态推理过程展示。",
+    "footnote": "人工挑选。"
+  }
+]
+
