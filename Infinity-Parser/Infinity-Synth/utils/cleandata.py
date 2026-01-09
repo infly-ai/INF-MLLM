@@ -1,19 +1,20 @@
 import re
 import random
 
+
 def remove_non_zh_en_characters(text: str) -> str:
     """
     Remove characters that are not Chinese, English, digits, or common punctuation.
     Keeps Chinese/English punctuation and whitespace.
     """
     # Remove newline first
-    text = text.replace('\n', '')
+    text = text.replace("\n", "")
 
     # Regex: keep Chinese, English, digits, Chinese punctuation, basic punctuation, whitespace
     pattern = re.compile(
-        r'[^\u4e00-\u9fa5a-zA-Z0-9\u3000-\u303f\uff00-\uffef.,!?;:()\[\]{}“”‘’\'\"\-\—\s]'
+        r"[^\u4e00-\u9fa5a-zA-Z0-9\u3000-\u303f\uff00-\uffef.,!?;:()\[\]{}“”‘’\'\"\-\—\s]"
     )
-    return re.sub(pattern, '', text)
+    return re.sub(pattern, "", text)
 
 
 def clean_dictionary_parts(parts: dict) -> dict:
@@ -41,7 +42,7 @@ def split_text_into_paragraphs(text: str, min_length: int = 200, max_length: int
     """
     Randomly split text into paragraphs based on sentence boundaries.
     This split does NOT preserve semantic meaning; it is purely random.
-    
+
     Args:
         text: input text
         min_length: minimum characters per paragraph
@@ -50,8 +51,8 @@ def split_text_into_paragraphs(text: str, min_length: int = 200, max_length: int
     Returns:
         list of paragraph strings
     """
-    
-    sentence_endings = re.compile(r'[。！？\.\!\?]+')
+
+    sentence_endings = re.compile(r"[。！？\.\!\?]+")
     paragraphs = []
     last_end = 0
 

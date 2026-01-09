@@ -1,6 +1,7 @@
 import re
 from typing import Pattern
 
+
 class LatexError(Exception):
     pass
 
@@ -23,6 +24,7 @@ class InvalidCharacterError(LatexValidationError):
 
 class LatexSimplificationError(LatexError):
     pass
+
 
 class LatexValidator:
     _invalid_unicode_re: Pattern[str] = re.compile(r"[\u0000-\u001F\u007F]")
@@ -104,7 +106,6 @@ class LatexValidator:
         return False
 
 
-
 class LatexSimplifier:
     _whitespace_re: Pattern[str] = re.compile(r"\s+")
     _operator_spacing_re: Pattern[str] = re.compile(r"\s*([=+\-*/<>])\s*")
@@ -152,8 +153,6 @@ class LatexSimplifier:
 
         latex = latex.replace("␣", " ")
         return latex
-
-
 
 
 class LatexNormalizer:

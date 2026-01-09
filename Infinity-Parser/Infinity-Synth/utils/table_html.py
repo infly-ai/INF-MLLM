@@ -10,12 +10,12 @@ def df_to_custom_html(df):
     """
     html = '<table border="1">\n'
     for _, row in df.iterrows():
-        html += '  <tr>\n'
+        html += "  <tr>\n"
         for j, val in enumerate(row):
-            class_name = f'cols{j + 1}'  # assign a class to each column
+            class_name = f"cols{j + 1}"  # assign a class to each column
             html += f'    <td class="{class_name}">{val}</td>\n'
-        html += '  </tr>\n'
-    html += '</table>'
+        html += "  </tr>\n"
+    html += "</table>"
     return html
 
 
@@ -28,7 +28,7 @@ def get_random_chars_from_string(s: str) -> str:
         length = random.randint(4, 8)
     else:
         length = random.randint(25, 45)
-    return ''.join(random.sample(s, length))
+    return "".join(random.sample(s, length))
 
 
 def get_random_chars_from_string_short(s: str) -> str:
@@ -36,7 +36,7 @@ def get_random_chars_from_string_short(s: str) -> str:
     Get short random characters (2–4) from string.
     """
     length = random.randint(2, 4)
-    return ''.join(random.sample(s, length))
+    return "".join(random.sample(s, length))
 
 
 def get_random_float() -> float:
@@ -52,7 +52,7 @@ def get_random_chars_from_26char() -> str:
     """
     letters = string.ascii_lowercase
     length = random.randint(3, 8)
-    return ''.join(random.sample(letters, length))
+    return "".join(random.sample(letters, length))
 
 
 def create_random_table(rows: int, cols: int, given_string: str) -> pd.DataFrame:
@@ -69,11 +69,11 @@ def create_random_table(rows: int, cols: int, given_string: str) -> pd.DataFrame
         # First two columns have structure patterns
         if row_idx < rows / 2:
             row_data.append(get_random_chars_from_string(given_string))  # text
-            row_data.append('')  # blank
+            row_data.append("")  # blank
         else:
             if row_idx % 2 == 1:
-                row_data.append('yoy')
-                row_data.append(get_random_float() if random.random() > 1.0 else '')
+                row_data.append("yoy")
+                row_data.append(get_random_float() if random.random() > 1.0 else "")
             else:
                 row_data.append(get_random_chars_from_string(given_string))
                 row_data.append(get_random_float())
@@ -81,13 +81,13 @@ def create_random_table(rows: int, cols: int, given_string: str) -> pd.DataFrame
         # Fill remaining columns
         for col in range(2, cols):
             if row_idx == 0:  # first row: hidden content in some positions
-                invisible_chars = '&nbsp' * random.randint(1, 10)
+                invisible_chars = "&nbsp" * random.randint(1, 10)
                 row_data.append(invisible_chars)
             else:
                 if row_idx < rows / 2 and col < cols / 2:
-                    row_data.append('')  # blank zone region
+                    row_data.append("")  # blank zone region
                 else:
-                    row_data.append('' if random.random() > 0.8 else get_random_float())
+                    row_data.append("" if random.random() > 0.8 else get_random_float())
 
         table_data.append(row_data)
 

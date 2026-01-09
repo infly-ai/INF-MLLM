@@ -6,17 +6,17 @@ def generate_random_page_num(probability: float = 0.5) -> str:
     """
     Randomly generate a page number HTML block (1–1200).
     With a given probability, use class 'circle-background', otherwise 'page-num'.
-    
+
     Args:
         probability (float): Probability to select class 'circle-background'. Must be between 0 and 1.
 
     Returns:
         str: HTML string containing a random page number div.
     """
-    
+
     if not 0 <= probability <= 1:
         raise ValueError("Probability must be between 0 and 1.")
-    
+
     class_name = "circle-background" if random.random() < probability else "page-num"
     page_number = random.randint(1, 1200)
 
@@ -26,11 +26,11 @@ def generate_random_page_num(probability: float = 0.5) -> str:
 def fill_strings_into_dicts(
     strings: List[str],
     single_string: Optional[str] = None,
-    specific_string: Optional[str] = None
+    specific_string: Optional[str] = None,
 ) -> Dict[str, Dict[str, Any]]:
     """
     Randomly place strings into header/footer regions.
-    
+
     Header & Footer each contain: left, mid, right (and optionally "line").
     - `single_string`: placed ONLY in header, random position.
     - `specific_string`: placed in header (random pos) AND MAY also fill header/footer right.
@@ -47,15 +47,15 @@ def fill_strings_into_dicts(
             "footer": {"left": "", "mid": "", "right": "", "line": "line"}
         }
     """
-    
+
     result = {
         "header": {"left": None, "mid": None, "right": None},
-        "footer": {"left": None, "mid": None, "right": None}
+        "footer": {"left": None, "mid": None, "right": None},
     }
 
     available_positions = {
         "header": ["left", "mid", "right"],
-        "footer": ["left", "mid", "right"]
+        "footer": ["left", "mid", "right"],
     }
 
     # Place single_string only in header
@@ -93,7 +93,7 @@ def fill_strings_into_dicts(
         result["header"]["line"] = "line"
     if random.random() > 0.5:
         result["footer"]["line"] = "line"
-    
+
     return result
 
 
@@ -113,7 +113,5 @@ def produce_header_footer(text: Optional[str] = None) -> Dict[str, Dict[str, Any
     title = text if random.random() > 0.5 else None
 
     return fill_strings_into_dicts(
-        strings=[page_num_html],
-        single_string=title,
-        specific_string=rectangle_html
+        strings=[page_num_html], single_string=title, specific_string=rectangle_html
     )
