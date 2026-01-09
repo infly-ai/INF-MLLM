@@ -1,0 +1,63 @@
+[
+  {
+    "type": "table",
+    "html": "<table><thead><tr><th>方法</th><th>模型</th><th>Acc</th><th>F1</th></tr></thead><tbody><tr><td>Baseline</td><td>Qwen2.5-VL-7B</td><td>0.742</td><td>0.701</td></tr><tr><td>+OCR</td><td>Qwen2.5-VL-7B</td><td>0.771</td><td>0.728</td></tr></tbody></table>",
+    "caption": "不同方法在多模态分类任务上的性能对比。",
+    "footnote": "Acc 为准确率，F1 为宏平均。"
+  },
+  {
+    "type": "table",
+    "html": "<table><thead><tr><th>数据集</th><th>样本数</th><th>类别数</th></tr></thead><tbody><tr><td>MMSD</td><td>9,190</td><td>3</td></tr><tr><td>MSED</td><td>15,000</td><td>5</td></tr></tbody></table>",
+    "caption": "实验中使用的数据集统计信息。",
+    "footnote": "仅统计训练与验证集。"
+  },
+  {
+    "type": "table",
+    "html": "<table><thead><tr><th>模块</th><th>输入</th><th>输出</th></tr></thead><tbody><tr><td>视觉编码器</td><td>图像</td><td>视觉特征</td></tr><tr><td>文本编码器</td><td>文本</td><td>语义向量</td></tr></tbody></table>",
+    "caption": "模型各功能模块的输入与输出。",
+    "footnote": "省略中间投影层。"
+  },
+  {
+    "type": "table",
+    "html": "<table><thead><tr><th>训练策略</th><th>学习率</th><th>Epoch</th></tr></thead><tbody><tr><td>全参微调</td><td>2e-5</td><td>10</td></tr><tr><td>冻结视觉</td><td>1e-4</td><td>8</td></tr></tbody></table>",
+    "caption": "不同训练策略下的超参数设置。",
+    "footnote": "均使用余弦退火。"
+  },
+  {
+    "type": "table",
+    "html": "<table><thead><tr><th>损失函数</th><th>权重</th></tr></thead><tbody><tr><td>交叉熵</td><td>1.0</td></tr><tr><td>对齐损失</td><td>0.3</td></tr></tbody></table>",
+    "caption": "多任务训练中的损失函数组合。",
+    "footnote": "权重经验证集调优。"
+  },
+  {
+    "type": "table",
+    "html": "<table><thead><tr><th>模态</th><th>维度</th><th>长度</th></tr></thead><tbody><tr><td>图像</td><td>1024</td><td>256</td></tr><tr><td>文本</td><td>768</td><td>128</td></tr></tbody></table>",
+    "caption": "不同模态特征的维度与序列长度。",
+    "footnote": "长度为最大值。"
+  },
+  {
+    "type": "table",
+    "html": "<table><thead><tr><th>评估指标</th><th>含义</th></tr></thead><tbody><tr><td>Acc</td><td>整体正确率</td></tr><tr><td>Macro-F1</td><td>类别平均</td></tr></tbody></table>",
+    "caption": "实验中采用的主要评估指标说明。",
+    "footnote": "不含加权指标。"
+  },
+  {
+    "type": "table",
+    "html": "<table><thead><tr><th>消融设置</th><th>是否启用</th></tr></thead><tbody><tr><td>OCR信息</td><td>是</td></tr><tr><td>结构化特征</td><td>否</td></tr></tbody></table>",
+    "caption": "模型消融实验的配置示例。",
+    "footnote": "单变量控制。"
+  },
+  {
+    "type": "table",
+    "html": "<table><thead><tr><th>硬件</th><th>显存</th><th>数量</th></tr></thead><tbody><tr><td>A800</td><td>80GB</td><td>4</td></tr><tr><td>H800</td><td>80GB</td><td>8</td></tr></tbody></table>",
+    "caption": "实验所使用的主要计算资源。",
+    "footnote": "混合精度训练。"
+  },
+  {
+    "type": "table",
+    "html": "<table><thead><tr><th>阶段</th><th>耗时(min)</th></tr></thead><tbody><tr><td>训练</td><td>180</td></tr><tr><td>评估</td><td>25</td></tr></tbody></table>",
+    "caption": "模型训练与评估阶段的时间开销。",
+    "footnote": "单次完整实验。"
+  }
+]
+

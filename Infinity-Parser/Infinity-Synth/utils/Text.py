@@ -1,7 +1,7 @@
 from collections import OrderedDict
 import random
 import json
-from bs4 import BeautifulSoup   # required for check_merged_cells()
+from bs4 import BeautifulSoup  # required for check_merged_cells()
 
 
 def add_html_header(text: str, level: int, serial_num: str) -> str:
@@ -20,11 +20,11 @@ def add_html_header(text: str, level: int, serial_num: str) -> str:
 
 def generate_next_headings(levels: list, start: str) -> list:
     """
-    Given a list of hierarchical levels and a starting heading number, 
+    Given a list of hierarchical levels and a starting heading number,
     generate the subsequent hierarchical numbering.
     Example: levels=[2,3,2], start="2.1" → ["2.1.1", "2.2"]
     """
-    current = list(map(int, start.split('.')))
+    current = list(map(int, start.split(".")))
     results = [start]
 
     for level in levels:
@@ -36,7 +36,7 @@ def generate_next_headings(levels: list, start: str) -> list:
             current = current[:level]
             current[-1] += 1
 
-        results.append('.'.join(map(str, current)))
+        results.append(".".join(map(str, current)))
 
     return results[1:]
 
@@ -110,8 +110,8 @@ def generate_random_list_only_2(length: int) -> tuple:
     """
     Randomly generate a level list using only {1,2} or {2,3}.
     """
-    mode = random.choice(['1,2', '2,3'])
-    choices = [1, 2] if mode == '1,2' else [2, 3]
+    mode = random.choice(["1,2", "2,3"])
+    choices = [1, 2] if mode == "1,2" else [2, 3]
     return random.choices(choices, k=length), mode
 
 
@@ -126,9 +126,36 @@ def generate_title_numbers(levels, mode):
 
     counters = {lvl: 1 for lvl in range(1, max(levels) + 1)}
     chinese = [
-        '一', '二', '三', '四', '五', '六', '七', '八', '九', '十',
-        '十一', '十二', '十三', '十四', '十五', '十六', '十七', '十八', '十九', '二十',
-        '二十一', '二十二', '二十三', '二十四', '二十五', '二十六', '二十七', '二十八', '二十九', '三十'
+        "一",
+        "二",
+        "三",
+        "四",
+        "五",
+        "六",
+        "七",
+        "八",
+        "九",
+        "十",
+        "十一",
+        "十二",
+        "十三",
+        "十四",
+        "十五",
+        "十六",
+        "十七",
+        "十八",
+        "十九",
+        "二十",
+        "二十一",
+        "二十二",
+        "二十三",
+        "二十四",
+        "二十五",
+        "二十六",
+        "二十七",
+        "二十八",
+        "二十九",
+        "三十",
     ]
     chinese_b = [f"（{c}）" for c in chinese]
     arabic = [f"第{x}节" for x in range(1, 51)]
@@ -139,7 +166,7 @@ def generate_title_numbers(levels, mode):
         3: [lambda x: chinese[x - 1], lambda x: chinese_b[x - 1]],
     }
 
-    available_levels = [1, 2] if mode == '1,2' else [2, 3]
+    available_levels = [1, 2] if mode == "1,2" else [2, 3]
     used = set()
     level_styles = {}
 
@@ -198,9 +225,9 @@ def check_merged_cells(html_content: str) -> bool:
     """
     Detect if HTML tables contain colspan or rowspan (merged cells).
     """
-    soup = BeautifulSoup(html_content, 'html.parser')
-    for table in soup.find_all('table'):
-        for cell in table.find_all(['td', 'th']):
-            if cell.has_attr('colspan') or cell.has_attr('rowspan'):
+    soup = BeautifulSoup(html_content, "html.parser")
+    for table in soup.find_all("table"):
+        for cell in table.find_all(["td", "th"]):
+            if cell.has_attr("colspan") or cell.has_attr("rowspan"):
                 return True
     return False

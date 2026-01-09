@@ -1,0 +1,43 @@
+[
+  {
+    "type": "formula",
+    "latex": "$$\\mathcal{L}_{ce} = -\\sum_{i=1}^{N} y_i \\log(\\hat{y}_i)$$"
+  },
+  {
+    "type": "formula",
+    "latex": "$$\\mathcal{L}_{total} = \\mathcal{L}_{ce} + \\lambda \\mathcal{L}_{align}$$"
+  },
+  {
+    "type": "formula",
+    "latex": "$$\\mathbf{h} = \\mathrm{Transformer}(\\mathbf{x})$$"
+  },
+  {
+    "type": "formula",
+    "latex": "$$\\mathrm{Attention}(Q,K,V) = \\mathrm{softmax}\\left(\\frac{QK^\\top}{\\sqrt{d}}\\right)V$$"
+  },
+  {
+    "type": "formula",
+    "latex": "$$\\mathbf{z} = \\alpha \\mathbf{z}_{img} + (1-\\alpha) \\mathbf{z}_{text}$$"
+  },
+  {
+    "type": "formula",
+    "latex": "$$\\hat{y} = \\arg\\max_k \\; p(y=k\\mid x)$$"
+  },
+  {
+    "type": "formula",
+    "latex": "$$\\mathcal{L}_{contrast} = -\\log \\frac{\\exp(\\mathrm{sim}(u,v^+)/\\tau)}{\\sum_j \\exp(\\mathrm{sim}(u,v_j)/\\tau)}$$"
+  },
+  {
+    "type": "formula",
+    "latex": "$$\\mathrm{sim}(u,v) = \\frac{u^\\top v}{\\|u\\|\\|v\\|}$$"
+  },
+  {
+    "type": "formula",
+    "latex": "$$\\theta \\leftarrow \\theta - \\eta \\nabla_\\theta \\mathcal{L}$$"
+  },
+  {
+    "type": "formula",
+    "latex": "$$\\mathbb{E}_{(x,y)\\sim \\mathcal{D}}[\\mathcal{L}(f(x),y)]$$"
+  }
+]
+
