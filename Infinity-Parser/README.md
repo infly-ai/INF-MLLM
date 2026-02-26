@@ -54,7 +54,7 @@ conda activate Infinity_Parser
 git clone https://github.com/infly-ai/INF-MLLM.git
 cd INF-MLLM/Infinity-Parser
 # Install pytorch, see https://pytorch.org/get-started/previous-versions/ for your cuda version
-conda install pytorch==2.5.0 torchvision==0.20.0 torchaudio==2.5.0 pytorch-cuda=12.1 -c pytorch -c nvidia
+pip install torch==2.8.0 torchvision==0.23.0 torchaudio==2.8.0 --index-url https://download.pytorch.org/whl/cu128
 pip install .
 ```
 Before starting, make sure that **PyTorch** is correctly installed according to the official installation guide at [https://pytorch.org/](https://pytorch.org/).
@@ -64,6 +64,12 @@ Before starting, make sure that **PyTorch** is correctly installed according to 
 ```shell
 pip install -r requirements.txt
 
+# This command builds flash-attn from source, which can take 10 to 30 minutes.
+pip install flash-attn==2.7.3 --no-build-isolation
+
+# You can change HF_ENDPOINT if the connection to huggingface.co times out.
+# export HF_ENDPOINT=https://hf-mirror.com
+
 python3 tools/download_model.py
 ```
 
@@ -72,7 +78,7 @@ We recommend using the vLLM backend for accelerated inference.
 It supports image and PDF inputs, automatically parses the document content, and exports the results in Markdown format to a specified directory.
 
 ```shell
-parser --model /path/model --input dir/PDF/Image --output output_folders --batch_size 128 --tp 1
+parser --model /path/to/model --input dir/PDF/Image --output output_folders --batch_size 128 --tp 1
 ```
 
 > **Note:** If you want to process PDF input files, you must first install poppler-utils.
