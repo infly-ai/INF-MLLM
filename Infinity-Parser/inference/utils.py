@@ -54,7 +54,7 @@ def load_inputs(input_path: str, prompt: str) -> List[Tuple[str, Image.Image]]:
         print(f"📄 Converting PDF to images: {input_path}")
         images = convert_from_path(input_path, dpi=200)
         for idx, img in enumerate(images):
-            inputs.append((Path(input_path).stem + f"page_{idx+1}", prompt, img))
+            inputs.append((Path(input_path).stem + f"_page_{idx+1}", prompt, img))
 
     elif os.path.isfile(input_path) and input_path.lower().endswith(
         (".jpg", ".jpeg", ".png", ".bmp", ".webp")
@@ -64,14 +64,14 @@ def load_inputs(input_path: str, prompt: str) -> List[Tuple[str, Image.Image]]:
     elif os.path.isdir(input_path):
         print(f"📁 Scanning directory: {input_path}")
         try:
-            for files in os.listdir(input_path):
-                for name in sorted(files):
-                    file_path = os.path.join(input_path, files)
+            for root, dirs, files in os.walk(input_path):
+                for filename in sorted(files):
+                    file_path = os.path.join(root, filename)
                     if file_path.lower().endswith(".pdf"):
                         images = convert_from_path(file_path, dpi=200)
                         for idx, img in enumerate(images):
                             inputs.append(
-                                (Path(file_path).stem + f"page_{idx+1}", prompt, img)
+                                (Path(file_path).stem + f"_page_{idx+1}", prompt, img)
                             )
                     elif file_path.lower().endswith(
                         (".jpg", ".jpeg", ".png", ".bmp", ".webp")

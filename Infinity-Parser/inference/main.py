@@ -66,10 +66,9 @@ def main():
         batch_inputs = inputs[i * batch_size : (i + 1) * batch_size]
         outputs = vllm_backend.run(batch_inputs, args.output)
         if outputs:
-            print(outputs)
             all_outputs.extend(outputs)
 
-    print(f"✅ Done. Total processed: {len(all_outputs)} samples.")
+    print(f"✅ Done. Saving {len(all_outputs)} samples to {args.output}")
 
 
 if __name__ == "__main__":
