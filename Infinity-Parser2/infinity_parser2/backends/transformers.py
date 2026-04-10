@@ -29,7 +29,7 @@ class TransformersBackend(BaseBackend):
         """Initialize Transformers backend.
 
         Args:
-            model_name: Model name or local path.
+            model_name: Model name on HuggingFace Hub or local path.
             device: Device type, "cuda" or "cpu".
             torch_dtype: Data type for model weights, "float16" or "bfloat16".
             min_pixels: Minimum number of pixels for image input.
@@ -44,6 +44,7 @@ class TransformersBackend(BaseBackend):
 
     def init(self) -> None:
         """Initialize the model and processor."""
+        # model_name 可以是 HuggingFace 模型 ID 或本地路径
         self._model = AutoModelForCausalLM.from_pretrained(
             self.model_name,
             torch_dtype=self.torch_dtype,

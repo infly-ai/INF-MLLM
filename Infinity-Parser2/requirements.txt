@@ -16,3 +16,6 @@ pymupdf>=1.20.0
 
 # Utilities
 requests>=2.25.0
+
+# Model downloading and caching
+huggingface-hub>=0.24.0

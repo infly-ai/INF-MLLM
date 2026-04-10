@@ -21,7 +21,7 @@ class BaseBackend(ABC):
         """Initialize backend.
 
         Args:
-            model_name: Model name or local path.
+            model_name: Model name on HuggingFace Hub or local path to the model.
             device: Device type, "cuda" or "cpu".
             **kwargs: Additional backend-specific arguments.
         """

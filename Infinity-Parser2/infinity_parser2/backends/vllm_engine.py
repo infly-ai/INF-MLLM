@@ -31,7 +31,7 @@ class VLLMEngineBackend(BaseBackend):
         """Initialize vLLM Engine backend.
 
         Args:
-            model_name: Model name or local path.
+            model_name: Model name on HuggingFace Hub or local path.
             device: Device type, "cuda" or "cpu".
             tensor_parallel_size: Number of GPUs for tensor parallelism.
             **kwargs: Additional arguments for vllm.LLM.
@@ -44,6 +44,7 @@ class VLLMEngineBackend(BaseBackend):
 
     def init(self) -> None:
         """Initialize the vLLM LLM instance."""
+        # model_name 可以是 HuggingFace 模型 ID 或本地路径
         self._llm = LLM(
             model=self.model_name,
             tensor_parallel_size=self.tensor_parallel_size,

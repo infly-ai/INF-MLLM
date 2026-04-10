@@ -41,7 +41,7 @@ results = parser.parse([
 ])
 
 # Parse an entire directory
-results = parser.parse("/path/to/documents/")
+results = parser.parse("demo_data")
 ```
 
 #### 2. vLLM Server (Online HTTP API)
@@ -75,6 +75,7 @@ print(result)
 from infinity_parser2 import InfinityParser2
 
 parser = InfinityParser2(
+    model_name="infly/Infinity-Parser2-Pro",
     backend="transformers",
     device="cuda"
 )
@@ -92,5 +93,6 @@ print(result)
 - qwen-vl-utils
 - Pillow >= 9.0.0
 - pypdf >= 3.0.0
+- huggingface-hub >= 0.24.0
 
 See `requirements.txt` for full dependency list.

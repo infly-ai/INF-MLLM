@@ -3,7 +3,7 @@
 Uses vLLM OpenAI-Compatible Server for online inference.
 """
 
-from concurrent.futures import as_completed, ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Union
 
 import requests

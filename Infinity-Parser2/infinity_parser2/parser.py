@@ -13,7 +13,7 @@ from .backends import (
     VLLMEngineBackend,
     VLLMServerBackend,
 )
-from .utils.pdf import convert_pdf_to_images
+from .utils import convert_pdf_to_images
 
 
 BACKEND_REGISTRY = {
@@ -29,7 +29,8 @@ class InfinityParser2:
     Supports parsing of PDF files and images (PNG, JPG, etc.) into structured text.
 
     Args:
-        model_name: Model name or local path. Defaults to "infly/Infinity-Parser2-Pro".
+        model_name: Model name on HuggingFace Hub (e.g., "infly/Infinity-Parser2-Pro")
+            or local path to a downloaded model. Defaults to "infly/Infinity-Parser2-Pro".
         backend: Inference backend. Options:
             - "transformers": HuggingFace transformers (local inference)
             - "vllm-engine": vLLM Engine (local batch inference via LLM class)
@@ -47,9 +48,8 @@ class InfinityParser2:
 
     Example:
         >>> from infinity_parser2 import InfinityParser2
-        >>> parser = InfinityParser2()
+        >>> parser = InfinityParser2(model_name="infly/Infinity-Parser2-Pro")
         >>> result = parser.parse("document.pdf")
-        >>> print(result)
     """
 
     SUPPORTED_IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".bmp", ".tiff", ".webp"}
