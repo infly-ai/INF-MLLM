@@ -1,0 +1,17 @@
+# Python package dependencies (verified with Python 3.12+)
+# Core dependencies (verified with current environment)
+torch>=2.10.0
+transformers>=5.3.0
+vllm>=0.17.1
+
+# For Qwen VL utils (vision processing)
+qwen-vl-utils
+
+# Image processing
+Pillow>=9.0.0
+
+# PDF processing
+pypdf>=3.0.0
+
+# Utilities
+requests>=2.25.0
