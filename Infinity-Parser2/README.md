@@ -5,7 +5,7 @@
 #### Install via pip (Recommended)
 
 ```bash
-pip install infinity-parser2
+pip install infinity_parser2
 ```
 
 #### Install from Source

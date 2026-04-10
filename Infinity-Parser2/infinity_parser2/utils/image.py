@@ -9,7 +9,14 @@ from PIL import Image
 
 from qwen_vl_utils.vision_process import smart_resize
 
-from importlib import metadata
+try:
+    from importlib import metadata
+    _qwen_vl_utils_version = metadata.version("qwen-vl-utils")
+    if _qwen_vl_utils_version < "0.0.14":
+        raise ImportError("qwen-vl-utils version 0.0.14 or higher is required")
+except metadata.PackageNotFoundError:
+    raise ImportError("qwen-vl-utils is not installed. Install it with: pip install qwen-vl-utils")
+
 
 # MIME type mapping for common image formats
 IMAGE_MIME_TYPES = {
@@ -22,8 +29,6 @@ IMAGE_MIME_TYPES = {
     ".tiff": "image/tiff",
     ".tif": "image/tiff",
 }
-if metadata.version("qwen-vl-utils") < "0.0.14":
-    raise ImportError("qwen-vl-utils version 0.0.14 or higher is required")
 
 
 def load_image(
@@ -90,3 +95,24 @@ def encode_file_to_base64(
 
     base64_str = base64.b64encode(byte_data).decode("utf-8")
     return base64_str, mime_type
+
+
+def encode_file_to_data_url(
+    image_obj: Union[Image.Image, str],
+    min_pixels: int = 2048,
+    max_pixels: int = 16777216,
+) -> str:
+    """Encode image to a data URL string.
+
+    Args:
+        image_obj: File path or PIL Image.
+        min_pixels: Minimum number of pixels for resizing.
+        max_pixels: Maximum number of pixels for resizing.
+
+    Returns:
+        Data URL string (e.g., "data:image/png;base64,...").
+    """
+    base64_str, mime_type = encode_file_to_base64(
+        image_obj, min_pixels=min_pixels, max_pixels=max_pixels
+    )
+    return f"data:{mime_type};base64,{base64_str}"

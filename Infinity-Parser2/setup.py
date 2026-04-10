@@ -1,9 +1,9 @@
-"""Setup configuration for infinity-parser2 package."""
+"""Setup configuration for infinity_parser2 package."""
 
 from setuptools import setup, find_packages
 
 setup(
-    name="infinity-parser2",
+    name="infinity_parser2",
     version="0.1.0",
     description="Document parsing Python package supporting PDF and image parsing using Infinity-Parser2-Pro model.",
     long_description=open("README.md", "r", encoding="utf-8").read(),
@@ -20,6 +20,7 @@ setup(
         "qwen-vl-utils",
         "Pillow>=9.0.0",
         "pypdf>=3.0.0",
+        "pymupdf>=1.20.0",
         "requests>=2.25.0",
     ],
     classifiers=[

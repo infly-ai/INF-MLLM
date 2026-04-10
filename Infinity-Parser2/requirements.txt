@@ -12,6 +12,7 @@ Pillow>=9.0.0
 
 # PDF processing
 pypdf>=3.0.0
+pymupdf>=1.20.0
 
 # Utilities
 requests>=2.25.0
