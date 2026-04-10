@@ -90,16 +90,34 @@ class InfinityParser2:
         """Get or create the backend instance (lazy initialization)."""
         if self._backend is None:
             backend_cls = BACKEND_REGISTRY[self.backend_name]
-            backend_kwargs = {
-                "model_name": self.model_name,
-                "device": self.device,
-                "tensor_parallel_size": self.tensor_parallel_size,
-                "api_url": self.api_url,
-                "api_key": self.api_key,
-                "min_pixels": self.min_pixels,
-                "max_pixels": self.max_pixels,
-                **self.kwargs,
-            }
+            # Pass different initialization parameters based on backend type
+            if self.backend_name == "vllm-server":
+                backend_kwargs = {
+                    "model_name": self.model_name,
+                    "device": self.device,
+                    "api_url": self.api_url,
+                    "api_key": self.api_key,
+                    "min_pixels": self.min_pixels,
+                    "max_pixels": self.max_pixels,
+                    **self.kwargs,
+                }
+            elif self.backend_name == "vllm-engine":
+                backend_kwargs = {
+                    "model_name": self.model_name,
+                    "device": self.device,
+                    "tensor_parallel_size": self.tensor_parallel_size,
+                    "min_pixels": self.min_pixels,
+                    "max_pixels": self.max_pixels,
+                    **self.kwargs,
+                }
+            else:  # transformers
+                backend_kwargs = {
+                    "model_name": self.model_name,
+                    "device": self.device,
+                    "min_pixels": self.min_pixels,
+                    "max_pixels": self.max_pixels,
+                    **self.kwargs,
+                }
             self._backend = backend_cls(**backend_kwargs)
         return self._backend
 
@@ -233,7 +251,7 @@ class InfinityParser2:
         if not batch_entries:
             return [] if len(inputs) > 1 else ""
 
-        # 标记哪些 batch entry 来自 PDF（通过检查原始 input 是否为 PDF 路径）
+        # Track which batch entries come from PDF (by checking if original input is PDF path)
         pdf_page_batch_indices = [
             entry_idx for entry_idx, (orig_idx, item) in enumerate(batch_entries)
             if isinstance(item, Image.Image) and isinstance(inputs[orig_idx], str)
@@ -247,7 +265,7 @@ class InfinityParser2:
         for entry_idx, (_, input_item) in enumerate(batch_entries):
             page_file_idx = batch_entries[entry_idx][0]
             if entry_idx in pdf_page_batch_indices:
-                # PDF 页面合并
+                # Merge PDF pages
                 if file_results[page_file_idx]:
                     file_results[page_file_idx] += "\n\n"
                 file_results[page_file_idx] += batch_results[entry_idx]
@@ -274,8 +292,8 @@ class InfinityParser2:
         """Save parsing results to output directory.
 
         Creates a subdirectory for each entry and writes result.md inside it.
-        For file paths, the folder name is the filename; for UUIDs, the folder
-        name is the UUID itself (no prefix).
+        For file paths, the folder name is the filename (basename); for UUIDs,
+        the folder name is the UUID itself.
 
         Args:
             keys: Identifiers (file paths or UUIDs).
@@ -289,7 +307,10 @@ class InfinityParser2:
         saved_paths: Dict[str, str] = {}
 
         for key, result in zip(keys, results):
-            file_dir = os.path.join(output_dir, key)
+            # Use Path(key).name to get filename, avoiding issues with os.path.join when key is absolute
+            # os.path.join('/output', '/tmp/file.png') returns '/tmp/file.png' instead of '/output/tmp/file.png'
+            folder_name = Path(key).name
+            file_dir = os.path.join(output_dir, folder_name)
             os.makedirs(file_dir, exist_ok=True)
             result_path = os.path.join(file_dir, "result.md")
             with open(result_path, "w", encoding="utf-8") as f:

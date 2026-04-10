@@ -73,9 +73,11 @@ def encode_file_to_base64(
         ext = Path(image_obj).suffix.lower()
         mime_type = IMAGE_MIME_TYPES.get(ext, "image/jpeg")
     else:
+        # Note: image.copy() loses the format attribute, so get it before copying
+        original_format = image_obj.format
         image = image_obj.copy()
-        # Try to get format from PIL Image, default to jpeg
-        mime_type = IMAGE_MIME_TYPES.get(f".{image.format}".lower(), "image/jpeg") if image.format else "image/jpeg"
+        # Try to get format from original PIL Image, default to jpeg
+        mime_type = IMAGE_MIME_TYPES.get(f".{original_format}".lower(), "image/jpeg") if original_format else "image/jpeg"
 
     resized_height, resized_width = smart_resize(
         height=image.size[1],

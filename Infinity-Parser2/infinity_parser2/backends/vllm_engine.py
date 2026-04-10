@@ -44,7 +44,7 @@ class VLLMEngineBackend(BaseBackend):
 
     def init(self) -> None:
         """Initialize the vLLM LLM instance."""
-        # model_name 可以是 HuggingFace 模型 ID 或本地路径
+        # model_name can be a HuggingFace model ID or local path
         self._llm = LLM(
             model=self.model_name,
             tensor_parallel_size=self.tensor_parallel_size,
