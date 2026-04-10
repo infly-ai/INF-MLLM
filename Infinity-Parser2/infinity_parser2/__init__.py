@@ -9,6 +9,7 @@ from .backends import (
     VLLMEngineBackend,
     VLLMServerBackend,
 )
+from .utils.pdf import convert_pdf_to_images
 
 __all__ = [
     "InfinityParser2",
@@ -16,5 +17,6 @@ __all__ = [
     "TransformersBackend",
     "VLLMEngineBackend",
     "VLLMServerBackend",
+    "convert_pdf_to_images",
     "__version__",
 ]

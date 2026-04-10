@@ -3,14 +3,13 @@
 Uses vLLM's LLM class for offline batch inference.
 """
 
-import base64
-import io
-from pathlib import Path
 from typing import Union
 
 from PIL import Image
+from vllm import LLM, SamplingParams
 
 from .base import BaseBackend
+from ..utils import encode_file_to_base64
 
 
 class VLLMEngineBackend(BaseBackend):
@@ -37,41 +36,15 @@ class VLLMEngineBackend(BaseBackend):
         """
         super().__init__(model_name, device, **kwargs)
         self.tensor_parallel_size = tensor_parallel_size
-        self._llm = None
+        self.init()
 
     def init(self) -> None:
         """Initialize the vLLM LLM instance."""
-        if self._llm is not None:
-            return
-
-        from vllm import LLM
-
         self._llm = LLM(
             model=self.model_name,
             tensor_parallel_size=self.tensor_parallel_size,
             **self.kwargs,
         )
-
-    def _encode_file(self, input_data: Union[str, bytes]) -> tuple[str, str]:
-        """Encode file to base64 and determine MIME type.
-
-        Returns:
-            Tuple of (base64_data, mime_type).
-        """
-        if isinstance(input_data, str):
-            with open(input_data, "rb") as f:
-                file_bytes = f.read()
-        else:
-            file_bytes = input_data
-
-        ext = Path(input_data).suffix.lower() if isinstance(input_data, str) else ""
-        if ext == ".pdf":
-            mime_type = "application/pdf"
-        else:
-            mime_type = f"image/{ext[1:]}" if ext else "image/png"
-
-        base64_data = base64.b64encode(file_bytes).decode()
-        return base64_data, mime_type
 
     def _build_messages(self, base64_data: str, mime_type: str, prompt: str) -> list:
         """Build chat messages with base64-encoded image.
@@ -89,70 +62,44 @@ class VLLMEngineBackend(BaseBackend):
             }
         ]
 
-    def _load_image(self, input_data: Union[str, bytes]) -> Image.Image:
-        """Load image from file path or bytes."""
-        if isinstance(input_data, str):
-            return Image.open(input_data).convert("RGB")
-        elif isinstance(input_data, bytes):
-            return Image.open(io.BytesIO(input_data)).convert("RGB")
-        elif isinstance(input_data, Image.Image):
-            return input_data.convert("RGB")
-        else:
-            raise TypeError(f"Unsupported input type: {type(input_data)}")
-
-    def parse(
+    def parse_batch(
         self,
-        input_data: Union[str, Image.Image, bytes],
+        input_data: list[Union[str, Image.Image]],
         prompt: str,
+        batch_size: int = 1,
         **kwargs,
-    ) -> str:
-        """Parse a single document.
+    ) -> list[str]:
+        """Parse multiple documents with batched inference.
 
         Args:
-            input_data: File path, PIL Image, or bytes.
+            input_data: List of file paths or PIL Images.
             prompt: Prompt text for the model.
-            **kwargs: Additional arguments (max_new_tokens, temperature, etc.).
+            batch_size: Maximum number of images to process in one batch.
+            **kwargs: Additional arguments.
 
         Returns:
-            Parsed text content.
+            List of parsed text content (one per input in the same order).
         """
-        self.init()
-
-        from vllm import SamplingParams
-
-        if isinstance(input_data, (str, bytes)):
-            base64_data, mime_type = self._encode_file(input_data)
-        else:
-            image = self._load_image(input_data)
-            img_byte_arr = io.BytesIO()
-            image.save(img_byte_arr, format="PNG")
-            base64_data = base64.b64encode(img_byte_arr.getvalue()).decode()
-            mime_type = "image/png"
-
-        messages = self._build_messages(base64_data, mime_type, prompt)
 
         sampling_params = SamplingParams(
             max_tokens=kwargs.get("max_new_tokens", 1024),
             temperature=kwargs.get("temperature", 0.0),
         )
 
-        outputs = self._llm.chat([messages], sampling_params=sampling_params, use_tqdm=False)
-        return outputs[0].outputs[0].text
+        all_messages = []
+        for item in input_data:
+            base64_data, mime_type = encode_file_to_base64(item)
+            all_messages.append(self._build_messages(base64_data, mime_type, prompt))
 
-    def parse_batch(
-        self,
-        input_data: list[Union[str, Image.Image, bytes]],
-        prompt: str,
-        **kwargs,
-    ) -> list[str]:
-        """Parse multiple documents.
+        results = [None] * len(input_data)
+        for i in range(0, len(all_messages), batch_size):
+            batch_messages = all_messages[i : i + batch_size]
+            outputs = self._llm.chat(
+                [batch_messages],
+                sampling_params=sampling_params,
+                use_tqdm=False,
+            )
+            for j, output in enumerate(outputs[0].outputs):
+                results[i + j] = output.text
 
-        Args:
-            input_data: List of file paths, PIL Images, or bytes.
-            prompt: Prompt text for the model.
-            **kwargs: Additional arguments.
-
-        Returns:
-            List of parsed text content.
-        """
-        return [self.parse(item, prompt, **kwargs) for item in input_data]
+        return results

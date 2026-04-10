@@ -1,12 +1,13 @@
 """Transformers backend for Infinity-Parser2."""
 
-import io
-from pathlib import Path
 from typing import Union
 
 from PIL import Image
 import torch
+from qwen_vl_utils import process_vision_info
+from transformers import AutoModelForCausalLM, AutoProcessor
 
+from ..utils import convert_pdf_to_images, load_image
 from .base import BaseBackend
 
 
@@ -33,16 +34,10 @@ class TransformersBackend(BaseBackend):
         """
         super().__init__(model_name, device, **kwargs)
         self.torch_dtype = getattr(torch, torch_dtype, torch.bfloat16)
-        self._model = None
-        self._processor = None
+        self.init()
 
     def init(self) -> None:
         """Initialize the model and processor."""
-        if self._model is not None:
-            return
-
-        from transformers import AutoModelForCausalLM, AutoProcessor
-
         self._model = AutoModelForCausalLM.from_pretrained(
             self.model_name,
             torch_dtype=self.torch_dtype,
@@ -51,30 +46,9 @@ class TransformersBackend(BaseBackend):
         )
         self._processor = AutoProcessor.from_pretrained(self.model_name)
 
-    def _load_image(self, input_data: Union[str, bytes]) -> Image.Image:
-        """Load image from file path or bytes."""
-        if isinstance(input_data, str):
-            ext = Path(input_data).suffix.lower()
-            if ext == ".pdf":
-                from pypdf import PdfReader
-
-                reader = PdfReader(input_data)
-                page = reader.pages[0]
-                raise NotImplementedError(
-                    "PDF rendering requires additional setup. "
-                    "Please convert PDF to images first."
-                )
-            return Image.open(input_data).convert("RGB")
-        elif isinstance(input_data, bytes):
-            return Image.open(io.BytesIO(input_data)).convert("RGB")
-        elif isinstance(input_data, Image.Image):
-            return input_data.convert("RGB")
-        else:
-            raise TypeError(f"Unsupported input type: {type(input_data)}")
-
     def _process_inputs(
         self,
-        inputs: list[Union[str, Image.Image, bytes]],
+        inputs: list[Union[str, Image.Image]],
         prompt: str,
     ) -> tuple[list[str], list[Image.Image], list]:
         """Process inputs into messages, images, and video lists.
@@ -82,9 +56,7 @@ class TransformersBackend(BaseBackend):
         Returns:
             Tuple of (texts, image_inputs, video_inputs).
         """
-        from qwen_vl_utils import process_vision_info
-
-        images = [self._load_image(item) for item in inputs]
+        images = [load_image(item) for item in inputs]
 
         messages = [
             {
@@ -148,43 +120,33 @@ class TransformersBackend(BaseBackend):
             results.append(output_text)
         return results
 
-    def parse(
-        self,
-        input_data: Union[str, Image.Image, bytes],
-        prompt: str,
-        **kwargs,
-    ) -> str:
-        """Parse a single document.
-
-        Args:
-            input_data: File path, PIL Image, or bytes.
-            prompt: Prompt text for the model.
-            **kwargs: Additional arguments (max_new_tokens, temperature, etc.).
-
-        Returns:
-            Parsed text content.
-        """
-        self.init()
-        texts, image_inputs, video_inputs = self._process_inputs([input_data], prompt)
-        results = self._generate(texts, image_inputs, video_inputs, **kwargs)
-        return results[0]
-
     def parse_batch(
         self,
-        input_data: list[Union[str, Image.Image, bytes]],
+        input_data: list[Union[str, Image.Image]],
         prompt: str,
+        batch_size: int = 1,
         **kwargs,
     ) -> list[str]:
-        """Parse multiple documents.
+        """Parse multiple documents with batched inference.
 
         Args:
-            input_data: List of file paths, PIL Images, or bytes.
+            input_data: List of file paths or PIL Images.
             prompt: Prompt text for the model.
+            batch_size: Maximum number of images to process in one batch.
             **kwargs: Additional arguments.
 
         Returns:
-            List of parsed text content.
+            List of parsed text content (one per input in the same order).
         """
-        self.init()
-        texts, image_inputs, video_inputs = self._process_inputs(input_data, prompt)
-        return self._generate(texts, image_inputs, video_inputs, **kwargs)
+        results = [None] * len(input_data)
+        indices = list(range(len(input_data)))
+
+        for i in range(0, len(input_data), batch_size):
+            batch = input_data[i : i + batch_size]
+            batch_indices = indices[i : i + batch_size]
+            texts, image_inputs, video_inputs = self._process_inputs(batch, prompt)
+            batch_results = self._generate(texts, image_inputs, video_inputs, **kwargs)
+            for idx, result in zip(batch_indices, batch_results):
+                results[idx] = result
+
+        return results

@@ -3,12 +3,14 @@
 Uses vLLM OpenAI-Compatible Server for online inference.
 """
 
-import base64
+from concurrent.futures import as_completed, ThreadPoolExecutor
 from typing import Union
 
+import requests
 from PIL import Image
 
 from .base import BaseBackend
+from ..utils import encode_file_to_base64
 
 
 class VLLMServerBackend(BaseBackend):
@@ -39,6 +41,7 @@ class VLLMServerBackend(BaseBackend):
         self.api_url = api_url
         self.api_key = api_key
         self.timeout = timeout
+        self.init()
 
     def init(self) -> None:
         """Validate server connection.
@@ -46,8 +49,6 @@ class VLLMServerBackend(BaseBackend):
         Note: This is a no-op as the server is started separately.
         Call this to verify connectivity.
         """
-        import requests
-
         health_url = self.api_url.replace("/v1/chat/completions", "/health")
         try:
             response = requests.get(health_url, timeout=5)
@@ -58,131 +59,51 @@ class VLLMServerBackend(BaseBackend):
                 f"Please ensure the server is running. Error: {e}"
             )
 
-    def _prepare_image_content(
-        self, input_data: Union[str, Image.Image, bytes]
-    ) -> dict:
-        """Prepare image content for API request.
-
-        Returns:
-            Dictionary with image_url or image data.
-        """
-        import io
-
-        if isinstance(input_data, str):
-            with open(input_data, "rb") as f:
-                file_bytes = f.read()
-            ext = input_data.split(".")[-1].lower()
-            if ext == "pdf":
-                mime_type = "application/pdf"
-            else:
-                mime_type = f"image/{ext}"
-        elif isinstance(input_data, bytes):
-            file_bytes = input_data
-            mime_type = "image/png"
-        elif isinstance(input_data, Image.Image):
-            buf = io.BytesIO()
-            input_data.save(buf, format="PNG")
-            file_bytes = buf.getvalue()
-            mime_type = "image/png"
-        else:
-            raise TypeError(f"Unsupported input type: {type(input_data)}")
-
-        base64_data = base64.b64encode(file_bytes).decode()
-        return {"type": "image_url", "image_url": {"url": f"data:{mime_type};base64,{base64_data}"}}
-
-    def parse(
-        self,
-        input_data: Union[str, Image.Image, bytes],
-        prompt: str,
-        **kwargs,
-    ) -> str:
-        """Parse a single document via HTTP API.
-
-        Args:
-            input_data: File path, PIL Image, or bytes.
-            prompt: Prompt text for the model.
-            **kwargs: Additional arguments (max_tokens, temperature, etc.).
-
-        Returns:
-            Parsed text content.
-        """
-        import requests
-
-        headers = {
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {self.api_key}",
-        }
-
-        image_content = self._prepare_image_content(input_data)
-
-        payload = {
-            "model": self.model_name,
-            "messages": [
-                {
-                    "role": "user",
-                    "content": [
-                        image_content,
-                        {"type": "text", "text": prompt},
-                    ],
-                }
-            ],
-            "max_tokens": kwargs.get("max_new_tokens", kwargs.get("max_tokens", 1024)),
-            "temperature": kwargs.get("temperature", 0.0),
-        }
-
-        response = requests.post(
-            self.api_url,
-            json=payload,
-            headers=headers,
-            timeout=self.timeout,
-        )
-        response.raise_for_status()
-
-        result = response.json()
-        return result["choices"][0]["message"]["content"]
-
     def parse_batch(
         self,
-        input_data: list[Union[str, Image.Image, bytes]],
+        input_data: list[Union[str, Image.Image]],
         prompt: str,
+        batch_size: int = 1,
         **kwargs,
     ) -> list[str]:
-        """Parse multiple documents via HTTP API.
+        """Parse multiple documents via HTTP API with batched requests.
 
         Args:
-            input_data: List of file paths, PIL Images, or bytes.
+            input_data: List of file paths or PIL Images.
             prompt: Prompt text for the model.
+            batch_size: Maximum number of images to process in one batch.
             **kwargs: Additional arguments.
 
         Returns:
-            List of parsed text content.
+            List of parsed text content (one per input in the same order).
         """
-        import requests
+        if not input_data:
+            return []
 
         headers = {
             "Content-Type": "application/json",
             "Authorization": f"Bearer {self.api_key}",
         }
 
-        results = []
-        for item in input_data:
-            image_content = self._prepare_image_content(item)
+        max_tokens = kwargs.get("max_new_tokens", kwargs.get("max_tokens", 1024))
+        temperature = kwargs.get("temperature", 0.0)
 
+        def parse_one(item: Union[str, Image.Image]) -> str:
+            base64_data, mime_type = encode_file_to_base64(item)
             payload = {
                 "model": self.model_name,
                 "messages": [
                     {
                         "role": "user",
                         "content": [
-                            image_content,
+                            {"type": "image_url", "image_url": {"url": f"data:{mime_type};base64,{base64_data}"}},
                             {"type": "text", "text": prompt},
                         ],
                     }
                 ],
-                "max_tokens": kwargs.get("max_new_tokens", kwargs.get("max_tokens", 1024)),
-                "temperature": kwargs.get("temperature", 0.0),
+                "max_tokens": max_tokens,
+                "temperature": temperature,
             }
-
             response = requests.post(
                 self.api_url,
                 json=payload,
@@ -190,7 +111,24 @@ class VLLMServerBackend(BaseBackend):
                 timeout=self.timeout,
             )
             response.raise_for_status()
-            result = response.json()
-            results.append(result["choices"][0]["message"]["content"])
+            return response.json()["choices"][0]["message"]["content"]
+
+        results: list[str] = [None] * len(input_data)
+        max_workers = max(1, batch_size)
+
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            future_to_index = {
+                executor.submit(parse_one, item): idx
+                for idx, item in enumerate(input_data)
+            }
+
+            for future in as_completed(future_to_index):
+                idx = future_to_index[future]
+                try:
+                    results[idx] = future.result()
+                except Exception as e:
+                    raise RuntimeError(
+                        f"Failed to parse input at index {idx}: {e}"
+                    ) from e
 
         return results

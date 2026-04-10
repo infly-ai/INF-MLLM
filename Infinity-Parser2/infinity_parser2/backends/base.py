@@ -9,7 +9,7 @@ from PIL import Image
 class BaseBackend(ABC):
     """Abstract base class for inference backends.
 
-    All backends must implement init() and parse() methods.
+    All backends must implement init() and parse_batch() methods.
     """
 
     def __init__(
@@ -33,47 +33,29 @@ class BaseBackend(ABC):
     def init(self) -> None:
         """Initialize the model and processor.
 
-        This method should be called before parse().
-        """
-        pass
-
-    @abstractmethod
-    def parse(
-        self,
-        input_data: Union[str, Image.Image, bytes],
-        prompt: str,
-        **kwargs,
-    ) -> str:
-        """Parse document and extract text content.
-
-        Args:
-            input_data: Input can be:
-                - str: File path
-                - PIL.Image.Image: Image object
-                - bytes: Image bytes
-            prompt: Prompt text for the model.
-            **kwargs: Additional arguments passed to the model.
-
-        Returns:
-            Parsed text content.
+        This method should be called before parse_batch().
         """
         pass
 
     @abstractmethod
     def parse_batch(
         self,
-        input_data: list[Union[str, Image.Image, bytes]],
+        input_data: list[Union[str, Image.Image]],
         prompt: str,
+        batch_size: int = 1,
         **kwargs,
     ) -> list[str]:
         """Parse multiple documents.
 
         Args:
-            input_data: List of inputs.
+            input_data: List of inputs, each can be:
+                - str: File path (image or PDF)
+                - PIL.Image.Image: Image object
             prompt: Prompt text for the model.
+            batch_size: Maximum number of images to process in one batch.
             **kwargs: Additional arguments passed to the model.
 
         Returns:
-            List of parsed text content.
+            List of parsed text content (one per input in the same order).
         """
         pass
