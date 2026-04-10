@@ -24,6 +24,8 @@ class VLLMEngineBackend(BaseBackend):
         model_name: str = "infly/Infinity-Parser2-Pro",
         device: str = "cuda",
         tensor_parallel_size: int = 1,
+        min_pixels: int = 2048,
+        max_pixels: int = 16777216,
         **kwargs,
     ):
         """Initialize vLLM Engine backend.
@@ -36,6 +38,8 @@ class VLLMEngineBackend(BaseBackend):
         """
         super().__init__(model_name, device, **kwargs)
         self.tensor_parallel_size = tensor_parallel_size
+        self.min_pixels = min_pixels
+        self.max_pixels = max_pixels
         self.init()
 
     def init(self) -> None:
@@ -82,13 +86,14 @@ class VLLMEngineBackend(BaseBackend):
         """
 
         sampling_params = SamplingParams(
-            max_tokens=kwargs.get("max_new_tokens", 1024),
-            temperature=kwargs.get("temperature", 0.0),
+            max_tokens=kwargs.get("max_new_tokens", 32768),
+            temperature=kwargs.get("temperature", 0.01),
+            top_p=kwargs.get("top_p", 0.95),
         )
 
         all_messages = []
         for item in input_data:
-            base64_data, mime_type = encode_file_to_base64(item)
+            base64_data, mime_type = encode_file_to_base64(item, min_pixels=self.min_pixels, max_pixels=self.max_pixels)
             all_messages.append(self._build_messages(base64_data, mime_type, prompt))
 
         results = [None] * len(input_data)

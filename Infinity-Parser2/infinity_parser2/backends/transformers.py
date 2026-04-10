@@ -22,6 +22,8 @@ class TransformersBackend(BaseBackend):
         model_name: str = "infly/Infinity-Parser2-Pro",
         device: str = "cuda",
         torch_dtype: str = "bfloat16",
+        min_pixels: int = 2048,
+        max_pixels: int = 16777216,
         **kwargs,
     ):
         """Initialize Transformers backend.
@@ -30,10 +32,14 @@ class TransformersBackend(BaseBackend):
             model_name: Model name or local path.
             device: Device type, "cuda" or "cpu".
             torch_dtype: Data type for model weights, "float16" or "bfloat16".
+            min_pixels: Minimum number of pixels for image input.
+            max_pixels: Maximum number of pixels for image input.
             **kwargs: Additional arguments for AutoModelForCausalLM.from_pretrained.
         """
         super().__init__(model_name, device, **kwargs)
         self.torch_dtype = getattr(torch, torch_dtype, torch.bfloat16)
+        self.min_pixels = min_pixels
+        self.max_pixels = max_pixels
         self.init()
 
     def init(self) -> None:
@@ -62,7 +68,7 @@ class TransformersBackend(BaseBackend):
             {
                 "role": "user",
                 "content": [
-                    {"type": "image", "image": img},
+                    {"type": "image", "image": img, "min_pixels": self.min_pixels, "max_pixels": self.max_pixels},
                     {"type": "text", "text": prompt},
                 ],
             }
@@ -107,7 +113,10 @@ class TransformersBackend(BaseBackend):
         }
 
         generated_ids = self._model.generate(
-            **inputs, max_new_tokens=kwargs.get("max_new_tokens", 1024)
+            **inputs,
+            max_new_tokens=kwargs.get("max_new_tokens", 32768),
+            temperature=kwargs.get("temperature", 0.01),
+            top_p=kwargs.get("top_p", 0.95),
         )
 
         results = []

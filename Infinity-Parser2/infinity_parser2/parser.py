@@ -34,11 +34,15 @@ class InfinityParser2:
             - "transformers": HuggingFace transformers (local inference)
             - "vllm-engine": vLLM Engine (local batch inference via LLM class)
             - "vllm-server": vLLM OpenAI-Compatible Server (HTTP API)
-            Defaults to "vllm-engine".
+          Defaults to "vllm-engine".
         tensor_parallel_size: Tensor parallel size for vllm-engine. Defaults to 1.
         device: Device type, "cuda" or "cpu". Defaults to "cuda".
         api_url: API URL for vllm-server backend.
         api_key: API key for vllm-server backend.
+        min_pixels: Minimum number of pixels for image input (transformers backend only).
+            Defaults to 2048.
+        max_pixels: Maximum number of pixels for image input (transformers backend only).
+            Defaults to 16777216 (~4096x4096).
         **kwargs: Additional arguments passed to the backend.
 
     Example:
@@ -59,6 +63,8 @@ class InfinityParser2:
         device: str = "cuda",
         api_url: str = "http://localhost:8000/v1/chat/completions",
         api_key: str = "EMPTY",
+        min_pixels: int = 2048,
+        max_pixels: int = 16777216,
         **kwargs,
     ):
         self.model_name = model_name
@@ -67,6 +73,8 @@ class InfinityParser2:
         self.device = device
         self.api_url = api_url
         self.api_key = api_key
+        self.min_pixels = min_pixels
+        self.max_pixels = max_pixels
         self.kwargs = kwargs
 
         if self.backend_name not in BACKEND_REGISTRY:
@@ -82,14 +90,17 @@ class InfinityParser2:
         """Get or create the backend instance (lazy initialization)."""
         if self._backend is None:
             backend_cls = BACKEND_REGISTRY[self.backend_name]
-            self._backend = backend_cls(
-                model_name=self.model_name,
-                device=self.device,
-                tensor_parallel_size=self.tensor_parallel_size,
-                api_url=self.api_url,
-                api_key=self.api_key,
+            backend_kwargs = {
+                "model_name": self.model_name,
+                "device": self.device,
+                "tensor_parallel_size": self.tensor_parallel_size,
+                "api_url": self.api_url,
+                "api_key": self.api_key,
+                "min_pixels": self.min_pixels,
+                "max_pixels": self.max_pixels,
                 **self.kwargs,
-            )
+            }
+            self._backend = backend_cls(**backend_kwargs)
         return self._backend
 
     def _is_supported_file(self, file_path: str) -> bool:

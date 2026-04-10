@@ -1,22 +1,3 @@
-# Infinity-Parser2
-
-A document parsing Python package that converts PDFs and images into structured text content.
-
-## Features
-
-- **Multi-format Support**: Parse PDF files and images (PNG, JPG, etc.)
-- **Batch Processing**: Handle single files, file lists, or entire directories
-- **Multiple Inference Backends**: Support for transformers, vLLM Engine, and vLLM Server
-- **Flexible Deployment**: Offline batch inference and online API service
-- **Extensible Backend System**: Easy to add new inference backends
-
-## Model Information
-
-- **Model Name**: Infinity-Parser2-Pro
-- **Model Hub**: [infly/Infinity-Parser2-Pro](https://huggingface.co/infly/Infinity-Parser2-Pro)
-- **Architecture**: Qwen3.5 MoE, 35B parameters
-- **Benchmark Performance**: 86.7% on olmOCR-Bench
-
 ## Quick Start
 
 ### Installation
@@ -106,28 +87,3 @@ print(result)
 - pypdf >= 3.0.0
 
 See `requirements.txt` for full dependency list.
-
-## Benchmark Results
-
-Evaluation results on olmOCR-Bench:
-
-| Task | Score |
-|------|-------|
-| Overall | 86.7% |
-| Arxiv Math | 88.3% |
-| Old Scans Math | 90.8% |
-| Table Tests | 89.4% |
-| Long Tiny Text | 91.6% |
-| Headers Footers | 93.9% |
-
-## License
-
-This project is licensed under the Apache-2.0 License.
-
-## Citation
-
-If you use Infinity-Parser2-Pro in your research, please cite:
-
-```bibtex
-Coming soon...
-```

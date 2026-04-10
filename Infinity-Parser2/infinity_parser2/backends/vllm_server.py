@@ -26,6 +26,8 @@ class VLLMServerBackend(BaseBackend):
         api_url: str = "http://localhost:8000/v1/chat/completions",
         api_key: str = "EMPTY",
         timeout: int = 300,
+        min_pixels: int = 2048,
+        max_pixels: int = 16777216,
         **kwargs,
     ):
         """Initialize vLLM Server backend.
@@ -41,6 +43,8 @@ class VLLMServerBackend(BaseBackend):
         self.api_url = api_url
         self.api_key = api_key
         self.timeout = timeout
+        self.min_pixels = min_pixels
+        self.max_pixels = max_pixels
         self.init()
 
     def init(self) -> None:
@@ -85,11 +89,12 @@ class VLLMServerBackend(BaseBackend):
             "Authorization": f"Bearer {self.api_key}",
         }
 
-        max_tokens = kwargs.get("max_new_tokens", kwargs.get("max_tokens", 1024))
-        temperature = kwargs.get("temperature", 0.0)
+        max_tokens = kwargs.get("max_new_tokens", kwargs.get("max_tokens", 32768))
+        temperature = kwargs.get("temperature", 0.01)
+        top_p = kwargs.get("top_p", 0.95)
 
         def parse_one(item: Union[str, Image.Image]) -> str:
-            base64_data, mime_type = encode_file_to_base64(item)
+            base64_data, mime_type = encode_file_to_base64(item, min_pixels=self.min_pixels, max_pixels=self.max_pixels)
             payload = {
                 "model": self.model_name,
                 "messages": [
@@ -103,6 +108,7 @@ class VLLMServerBackend(BaseBackend):
                 ],
                 "max_tokens": max_tokens,
                 "temperature": temperature,
+                "top_p": top_p,
             }
             response = requests.post(
                 self.api_url,
