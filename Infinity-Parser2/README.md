@@ -26,12 +26,19 @@ from infinity_parser2 import InfinityParser2
 # Initialize parser (default backend)
 parser = InfinityParser2(model_name="infly/Infinity-Parser2-Pro")
 
-# Parse a single file
-result = parser.parse("document.pdf")
+# Parse a single PDF file
+result = parser.parse("demo_data/demo.pdf")
+print(result)
+
+# Parse a single image file
+result = parser.parse("demo_data/demo.png")
 print(result)
 
 # Parse multiple files
-results = parser.parse(["doc1.pdf", "doc2.png", "image.jpg"])
+results = parser.parse([
+    "demo_data/demo.pdf",
+    "demo_data/demo.png"
+])
 
 # Parse an entire directory
 results = parser.parse("/path/to/documents/")
@@ -58,7 +65,7 @@ parser = InfinityParser2(
     api_url="http://localhost:8000/v1/chat/completions"
 )
 
-result = parser.parse("document.pdf")
+result = parser.parse("demo_data/demo.pdf")
 print(result)
 ```
 
@@ -72,7 +79,7 @@ parser = InfinityParser2(
     device="cuda"
 )
 
-result = parser.parse("document.pdf")
+result = parser.parse("demo_data/demo.png")
 print(result)
 ```
 
