@@ -96,3 +96,70 @@ print(result)
 - huggingface-hub >= 0.24.0
 
 See `requirements.txt` for full dependency list.
+
+## API Reference
+
+### InfinityParser2 Initialization Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `model_name` | `str` | `"infly/Infinity-Parser2-Pro"` | Model name on HuggingFace Hub or local path |
+| `backend` | `str` | `"vllm-engine"` | Inference backend: `"transformers"`, `"vllm-engine"`, or `"vllm-server"` |
+| `tensor_parallel_size` | `Optional[int]` | `None` | Tensor parallel size for vLLM Engine (defaults to GPU count) |
+| `device` | `str` | `"cuda"` | Device type, currently only `"cuda"` is supported |
+| `api_url` | `str` | `"http://localhost:8000/v1/chat/completions"` | API URL for vLLM Server (used only with vllm-server backend) |
+| `api_key` | `str` | `"EMPTY"` | API key for vLLM Server (used only with vllm-server backend) |
+| `min_pixels` | `int` | `2048` | Minimum pixel count for input images (transformers backend only) |
+| `max_pixels` | `int` | `16777216` | Maximum pixel count for input images (~4096x4096, transformers backend only) |
+| `**kwargs` | - | - | Additional arguments passed to the backend |
+
+### parse() Method Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `input_data` | `str \| List[str] \| PIL.Image.Image` | **Required** | File path(s), directory path, or PIL Image object |
+| `prompt` | `str` | `"Please parse this document and extract all text content."` | Prompt text sent to the model |
+| `batch_size` | `int` | `4` | Number of images to process per batch |
+| `output_dir` | `Optional[str]` | `None` | If provided, results are saved to this directory |
+| `**kwargs` | - | - | Additional arguments passed to the model |
+
+### Advanced Usage Examples
+
+```python
+from infinity_parser2 import InfinityParser2
+
+# Use transformers backend (local inference)
+parser = InfinityParser2(
+    model_name="infly/Infinity-Parser2-Pro",
+    backend="transformers",
+    device="cuda",
+    min_pixels=2048,       # Minimum pixel count
+    max_pixels=16777216,   # Maximum pixel count (~4096x4096)
+)
+
+# Use custom prompt
+result = parser.parse(
+    "document.pdf",
+    prompt="Please extract all table content from this document in Markdown format."
+)
+
+# Batch process multiple files
+results = parser.parse(
+    ["doc1.pdf", "doc2.png", "doc3.jpg"],
+    batch_size=4  # Process 4 images per batch
+)
+
+# Save results to specified directory
+saved_paths = parser.parse(
+    "documents_folder",
+    batch_size=8,
+    output_dir="./parsed_output"
+)
+
+# Use vLLM Server backend (remote inference)
+parser = InfinityParser2(
+    backend="vllm-server",
+    api_url="http://your-server:8000/v1/chat/completions",
+    api_key="your-api-key"
+)
+```

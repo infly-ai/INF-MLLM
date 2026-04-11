@@ -17,11 +17,11 @@ setup(
         "torch>=2.10.0",
         "transformers>=5.3.0",
         "vllm>=0.17.1",
-        "qwen-vl-utils",
+        "qwen-vl-utils>=0.0.14",
         "Pillow>=9.0.0",
         "pypdf>=3.0.0",
         "pymupdf>=1.20.0",
-        "requests>=2.25.0",
+        "openai>=1.0.0",
     ],
     classifiers=[
         "Development Status :: 3 - Alpha",

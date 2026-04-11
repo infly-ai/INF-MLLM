@@ -136,7 +136,7 @@ class InfinityParser2:
         self,
         input_data: Union[str, List[str], Image.Image],
         prompt: str = "Please parse this document and extract all text content.",
-        batch_size: int = 1,
+        batch_size: int = 4,
         output_dir: Optional[str] = None,
         **kwargs,
     ) -> Union[str, List[str], Dict[str, str]]:
