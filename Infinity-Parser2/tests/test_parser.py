@@ -81,48 +81,6 @@ class TestInfinityParser2Initialization(unittest.TestCase):
         self.assertEqual(set(BACKEND_REGISTRY.keys()), expected_backends)
 
 
-class TestInfinityParser2SupportedFormats(unittest.TestCase):
-    """Tests for supported file format detection."""
-
-    def test_supported_image_extensions(self):
-        """Test that all expected image extensions are supported."""
-        parser = InfinityParser2()
-        expected_extensions = {".png", ".jpg", ".jpeg", ".bmp", ".tiff", ".webp"}
-        self.assertEqual(parser.SUPPORTED_IMAGE_EXTENSIONS, expected_extensions)
-
-    def test_supported_doc_extensions(self):
-        """Test that PDF extension is supported."""
-        parser = InfinityParser2()
-        expected_extensions = {".pdf"}
-        self.assertEqual(parser.SUPPORTED_DOC_EXTENSIONS, expected_extensions)
-
-    def test_is_supported_file_with_image(self):
-        """Test supported file detection for image files."""
-        parser = InfinityParser2()
-        for ext in parser.SUPPORTED_IMAGE_EXTENSIONS:
-            self.assertTrue(parser._is_supported_file(f"test/file{ext}"))
-
-    def test_is_supported_file_with_pdf(self):
-        """Test supported file detection for PDF files."""
-        parser = InfinityParser2()
-        self.assertTrue(parser._is_supported_file("test/file.pdf"))
-        self.assertTrue(parser._is_supported_file("test/file.PDF"))
-
-    def test_is_supported_file_case_insensitive(self):
-        """Test that file extension check is case-insensitive."""
-        parser = InfinityParser2()
-        self.assertTrue(parser._is_supported_file("test/file.PNG"))
-        self.assertTrue(parser._is_supported_file("test/file.JPEG"))
-        self.assertTrue(parser._is_supported_file("test/file.TIFF"))
-
-    def test_is_supported_file_unsupported(self):
-        """Test supported file detection for unsupported files."""
-        parser = InfinityParser2()
-        self.assertFalse(parser._is_supported_file("test/file.txt"))
-        self.assertFalse(parser._is_supported_file("test/file.doc"))
-        self.assertFalse(parser._is_supported_file("test/file.xlsx"))
-
-
 class TestInfinityParser2BackendProperty(unittest.TestCase):
     """Tests for backend lazy initialization."""
 
@@ -152,58 +110,6 @@ class TestInfinityParser2BackendProperty(unittest.TestCase):
         backend1 = self.parser.backend
         backend2 = self.parser.backend
         self.assertIs(backend1, backend2)
-
-
-class TestInfinityParser2DirectoryScanning(unittest.TestCase):
-    """Tests for directory scanning functionality."""
-
-    def setUp(self):
-        """Set up temporary test directory with test files."""
-        self.test_dir = tempfile.mkdtemp()
-        self.test_files = []
-        for ext in [".pdf", ".png", ".jpg", ".txt"]:
-            filepath = os.path.join(self.test_dir, f"test{ext}")
-            Path(filepath).touch()
-            self.test_files.append(filepath)
-
-    def tearDown(self):
-        """Clean up temporary test directory."""
-        shutil.rmtree(self.test_dir, ignore_errors=True)
-
-    def test_get_files_from_directory(self):
-        """Test getting supported files from directory."""
-        parser = InfinityParser2()
-        files = parser._get_files_from_directory(self.test_dir)
-        self.assertEqual(len(files), 3)  # .pdf, .png, .jpg (not .txt)
-        for f in files:
-            self.assertTrue(f.endswith((".pdf", ".png", ".jpg")))
-
-    def test_get_files_sorted(self):
-        """Test that files are returned in sorted order."""
-        parser = InfinityParser2()
-        files = parser._get_files_from_directory(self.test_dir)
-        self.assertEqual(files, sorted(files))
-
-    def test_get_files_empty_directory(self):
-        """Test getting files from empty directory."""
-        empty_dir = tempfile.mkdtemp()
-        try:
-            parser = InfinityParser2()
-            files = parser._get_files_from_directory(empty_dir)
-            self.assertEqual(len(files), 0)
-        finally:
-            shutil.rmtree(empty_dir, ignore_errors=True)
-
-    def test_get_files_nested_directory(self):
-        """Test getting files from nested directories."""
-        nested_dir = os.path.join(self.test_dir, "nested")
-        os.makedirs(nested_dir)
-        nested_file = os.path.join(nested_dir, "nested.pdf")
-        Path(nested_file).touch()
-
-        parser = InfinityParser2()
-        files = parser._get_files_from_directory(self.test_dir)
-        self.assertTrue(any(f.endswith("nested.pdf") for f in files))
 
 
 class TestInfinityParser2ParseInputValidation(unittest.TestCase):
@@ -267,62 +173,6 @@ class TestInfinityParser2ParseInputValidation(unittest.TestCase):
             self.assertIn("No supported files found", str(context.exception))
         finally:
             shutil.rmtree(empty_dir, ignore_errors=True)
-
-
-class TestInfinityParser2SaveResults(unittest.TestCase):
-    """Tests for result saving functionality."""
-
-    def setUp(self):
-        """Set up test fixtures."""
-        self.parser = InfinityParser2(backend="vllm-engine")
-        self.output_dir = tempfile.mkdtemp()
-
-    def tearDown(self):
-        """Clean up temporary files."""
-        shutil.rmtree(self.output_dir, ignore_errors=True)
-
-    def test_save_results_creates_directory(self):
-        """Test that save_results creates output directory."""
-        keys = ["test_key"]
-        results = ["Test result content"]
-        saved_paths = self.parser._save_results(keys, results, self.output_dir)
-        self.assertIn("test_key", saved_paths)
-        self.assertTrue(os.path.exists(saved_paths["test_key"]))
-
-    def test_save_results_writes_content(self):
-        """Test that save_results writes correct content to file."""
-        keys = ["test_key"]
-        results = ["Test result content"]
-        saved_paths = self.parser._save_results(keys, results, self.output_dir)
-        with open(saved_paths["test_key"], "r") as f:
-            content = f.read()
-        self.assertEqual(content, "Test result content")
-
-    def test_save_results_creates_subdirectory(self):
-        """Test that save_results creates subdirectory for each key."""
-        keys = ["key1", "key2"]
-        results = ["Result 1", "Result 2"]
-        saved_paths = self.parser._save_results(keys, results, self.output_dir)
-        for key in keys:
-            self.assertTrue(os.path.isdir(os.path.join(self.output_dir, key)))
-
-    def test_save_results_handles_multiple_keys(self):
-        """Test saving multiple results."""
-        keys = ["key1", "key2", "key3"]
-        results = ["Result 1", "Result 2", "Result 3"]
-        saved_paths = self.parser._save_results(keys, results, self.output_dir)
-        self.assertEqual(len(saved_paths), 3)
-        for key, result in zip(keys, results):
-            with open(saved_paths[key], "r") as f:
-                self.assertEqual(f.read(), result)
-
-    def test_save_results_output_dir_already_exists(self):
-        """Test that save_results works when output dir already exists."""
-        os.makedirs(self.output_dir, exist_ok=True)
-        keys = ["test_key"]
-        results = ["Test content"]
-        saved_paths = self.parser._save_results(keys, results, self.output_dir)
-        self.assertTrue(os.path.exists(saved_paths["test_key"]))
 
 
 class TestInfinityParser2MockedParse(unittest.TestCase):

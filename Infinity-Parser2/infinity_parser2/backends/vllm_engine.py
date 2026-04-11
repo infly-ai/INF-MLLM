@@ -91,6 +91,8 @@ class VLLMEngineBackend(BaseBackend):
             temperature=kwargs.get("temperature", 0.01),
             top_p=kwargs.get("top_p", 0.95),
         )
+        enable_thinking = kwargs.get("enable_thinking", False)
+        chat_template_kwargs = {"enable_thinking": enable_thinking} if enable_thinking else None
 
         all_messages = []
         for item in input_data:
@@ -104,6 +106,7 @@ class VLLMEngineBackend(BaseBackend):
                 [batch_messages],
                 sampling_params=sampling_params,
                 use_tqdm=False,
+                chat_template_kwargs=chat_template_kwargs,
             )
             for j, output in enumerate(outputs[0].outputs):
                 results[i + j] = output.text

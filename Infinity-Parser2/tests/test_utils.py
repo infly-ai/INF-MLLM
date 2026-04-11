@@ -339,5 +339,152 @@ class TestImageMimeTypes(unittest.TestCase):
         self.assertEqual(IMAGE_MIME_TYPES, expected_types)
 
 
+class TestIsSupportedFile(unittest.TestCase):
+    """Tests for is_supported_file utility function."""
+
+    def test_supported_image_extensions(self):
+        """Test that all expected image extensions are supported."""
+        from infinity_parser2.utils import is_supported_file
+        expected_extensions = {".png", ".jpg", ".jpeg", ".bmp", ".tiff", ".webp"}
+        for ext in expected_extensions:
+            self.assertTrue(is_supported_file(f"test/file{ext}"))
+
+    def test_supported_pdf(self):
+        """Test that PDF extension is supported."""
+        from infinity_parser2.utils import is_supported_file
+        self.assertTrue(is_supported_file("test/file.pdf"))
+        self.assertTrue(is_supported_file("test/file.PDF"))
+
+    def test_case_insensitive(self):
+        """Test that file extension check is case-insensitive."""
+        from infinity_parser2.utils import is_supported_file
+        self.assertTrue(is_supported_file("test/file.PNG"))
+        self.assertTrue(is_supported_file("test/file.JPEG"))
+        self.assertTrue(is_supported_file("test/file.TIFF"))
+
+    def test_unsupported_files(self):
+        """Test that unsupported files return False."""
+        from infinity_parser2.utils import is_supported_file
+        self.assertFalse(is_supported_file("test/file.txt"))
+        self.assertFalse(is_supported_file("test/file.doc"))
+        self.assertFalse(is_supported_file("test/file.xlsx"))
+
+
+class TestGetFilesFromDirectory(unittest.TestCase):
+    """Tests for get_files_from_directory utility function."""
+
+    def setUp(self):
+        """Set up temporary test directory with test files."""
+        import shutil
+        self.temp_dir = tempfile.mkdtemp()
+        self.test_files = []
+        for ext in [".pdf", ".png", ".jpg", ".txt"]:
+            filepath = os.path.join(self.temp_dir, f"test{ext}")
+            Path(filepath).touch()
+            self.test_files.append(filepath)
+
+    def tearDown(self):
+        """Clean up temporary test directory."""
+        import shutil
+        shutil.rmtree(self.temp_dir, ignore_errors=True)
+
+    def test_get_files_from_directory(self):
+        """Test getting supported files from directory."""
+        from infinity_parser2.utils import get_files_from_directory
+        files = get_files_from_directory(self.temp_dir)
+        self.assertEqual(len(files), 3)  # .pdf, .png, .jpg (not .txt)
+        for f in files:
+            self.assertTrue(f.endswith((".pdf", ".png", ".jpg")))
+
+    def test_files_sorted(self):
+        """Test that files are returned in sorted order."""
+        from infinity_parser2.utils import get_files_from_directory
+        files = get_files_from_directory(self.temp_dir)
+        self.assertEqual(files, sorted(files))
+
+    def test_empty_directory(self):
+        """Test getting files from empty directory."""
+        from infinity_parser2.utils import get_files_from_directory
+        empty_dir = tempfile.mkdtemp()
+        try:
+            files = get_files_from_directory(empty_dir)
+            self.assertEqual(len(files), 0)
+        finally:
+            import shutil
+            shutil.rmtree(empty_dir, ignore_errors=True)
+
+    def test_nested_directory(self):
+        """Test getting files from nested directories."""
+        from infinity_parser2.utils import get_files_from_directory
+        nested_dir = os.path.join(self.temp_dir, "nested")
+        os.makedirs(nested_dir)
+        nested_file = os.path.join(nested_dir, "nested.pdf")
+        Path(nested_file).touch()
+
+        files = get_files_from_directory(self.temp_dir)
+        self.assertTrue(any(f.endswith("nested.pdf") for f in files))
+
+
+class TestSaveResults(unittest.TestCase):
+    """Tests for save_results utility function."""
+
+    def setUp(self):
+        """Set up test fixtures."""
+        self.temp_dir = tempfile.mkdtemp()
+
+    def tearDown(self):
+        """Clean up temporary files."""
+        import shutil
+        shutil.rmtree(self.temp_dir, ignore_errors=True)
+
+    def test_save_results_creates_directory(self):
+        """Test that save_results creates output directory."""
+        from infinity_parser2.utils import save_results
+        keys = ["test_key"]
+        results = ["Test result content"]
+        saved_paths = save_results(keys, results, self.temp_dir)
+        self.assertIn("test_key", saved_paths)
+        self.assertTrue(os.path.exists(saved_paths["test_key"]))
+
+    def test_save_results_writes_content(self):
+        """Test that save_results writes correct content to file."""
+        from infinity_parser2.utils import save_results
+        keys = ["test_key"]
+        results = ["Test result content"]
+        saved_paths = save_results(keys, results, self.temp_dir)
+        with open(saved_paths["test_key"], "r") as f:
+            content = f.read()
+        self.assertEqual(content, "Test result content")
+
+    def test_save_results_creates_subdirectory(self):
+        """Test that save_results creates subdirectory for each key."""
+        from infinity_parser2.utils import save_results
+        keys = ["key1", "key2"]
+        results = ["Result 1", "Result 2"]
+        saved_paths = save_results(keys, results, self.temp_dir)
+        for key in keys:
+            self.assertTrue(os.path.isdir(os.path.join(self.temp_dir, key)))
+
+    def test_save_results_handles_multiple_keys(self):
+        """Test saving multiple results."""
+        from infinity_parser2.utils import save_results
+        keys = ["key1", "key2", "key3"]
+        results = ["Result 1", "Result 2", "Result 3"]
+        saved_paths = save_results(keys, results, self.temp_dir)
+        self.assertEqual(len(saved_paths), 3)
+        for key, result in zip(keys, results):
+            with open(saved_paths[key], "r") as f:
+                self.assertEqual(f.read(), result)
+
+    def test_save_results_output_dir_already_exists(self):
+        """Test that save_results works when output dir already exists."""
+        from infinity_parser2.utils import save_results
+        os.makedirs(self.temp_dir, exist_ok=True)
+        keys = ["test_key"]
+        results = ["Test content"]
+        saved_paths = save_results(keys, results, self.temp_dir)
+        self.assertTrue(os.path.exists(saved_paths["test_key"]))
+
+
 if __name__ == "__main__":
     unittest.main()

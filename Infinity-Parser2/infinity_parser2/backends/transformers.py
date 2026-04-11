@@ -57,6 +57,7 @@ class TransformersBackend(BaseBackend):
         self,
         inputs: list[Union[str, Image.Image]],
         prompt: str,
+        **kwargs,
     ) -> tuple[list[str], list[Image.Image], list]:
         """Process inputs into messages, images, and video lists.
 
@@ -64,6 +65,9 @@ class TransformersBackend(BaseBackend):
             Tuple of (texts, image_inputs, video_inputs).
         """
         images = [load_image(item) for item in inputs]
+
+        enable_thinking = kwargs.get("enable_thinking", False)
+        chat_template_kwargs = {"enable_thinking": enable_thinking} if enable_thinking else {}
 
         messages = [
             {
@@ -77,7 +81,7 @@ class TransformersBackend(BaseBackend):
         ]
 
         texts = [
-            self._processor.apply_chat_template([msg], tokenize=False, add_generation_prompt=True)
+            self._processor.apply_chat_template([msg], tokenize=False, add_generation_prompt=True, **chat_template_kwargs)
             for msg in messages
         ]
 
@@ -154,7 +158,7 @@ class TransformersBackend(BaseBackend):
         for i in range(0, len(input_data), batch_size):
             batch = input_data[i : i + batch_size]
             batch_indices = indices[i : i + batch_size]
-            texts, image_inputs, video_inputs = self._process_inputs(batch, prompt)
+            texts, image_inputs, video_inputs = self._process_inputs(batch, prompt, **kwargs)
             batch_results = self._generate(texts, image_inputs, video_inputs, **kwargs)
             for idx, result in zip(batch_indices, batch_results):
                 results[idx] = result

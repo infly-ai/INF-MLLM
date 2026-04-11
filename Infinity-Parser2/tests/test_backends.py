@@ -251,10 +251,9 @@ class TestVLLMServerBackend(unittest.TestCase):
 
     def test_vllm_server_backend_initialization(self):
         """Test VLLMServerBackend initialization parameters."""
-        with patch("infinity_parser2.backends.vllm_server.requests") as mock_requests:
-            mock_response = MagicMock()
-            mock_response.raise_for_status = MagicMock()
-            mock_requests.get.return_value = mock_response
+        with patch("infinity_parser2.backends.vllm_server.OpenAI") as mock_openai:
+            mock_client_instance = MagicMock()
+            mock_openai.return_value = mock_client_instance
 
             backend = VLLMServerBackend(
                 model_name="test/model",
@@ -271,25 +270,23 @@ class TestVLLMServerBackend(unittest.TestCase):
             self.assertEqual(backend.timeout, 60)
             self.assertEqual(backend.min_pixels, 1024)
             self.assertEqual(backend.max_pixels, 4096)
+            self.assertIsNotNone(backend.client)
 
     def test_vllm_server_connection_check(self):
         """Test server connection validation on init."""
-        with patch("infinity_parser2.backends.vllm_server.requests") as mock_requests:
-            mock_response = MagicMock()
-            mock_response.raise_for_status = MagicMock()
-            mock_requests.get.return_value = mock_response
+        with patch("infinity_parser2.backends.vllm_server.OpenAI") as mock_openai:
+            mock_client_instance = MagicMock()
+            mock_openai.return_value = mock_client_instance
 
-            # Should not raise if server is reachable
             backend = VLLMServerBackend(api_url="http://localhost:8000/v1/chat/completions")
-            mock_requests.get.assert_called_once()
+            mock_client_instance.chat.completions.create.assert_called_once()
 
     def test_vllm_server_connection_failure(self):
         """Test RuntimeError on connection failure."""
-        import requests as req
-
-        with patch("infinity_parser2.backends.vllm_server.requests") as mock_requests:
-            mock_requests.exceptions.RequestException = req.exceptions.RequestException
-            mock_requests.get.side_effect = req.exceptions.RequestException("Connection refused")
+        with patch("infinity_parser2.backends.vllm_server.OpenAI") as mock_openai:
+            mock_client_instance = MagicMock()
+            mock_client_instance.chat.completions.create.side_effect = Exception("Connection refused")
+            mock_openai.return_value = mock_client_instance
 
             with self.assertRaises(RuntimeError) as context:
                 VLLMServerBackend(api_url="http://localhost:8000/v1/chat/completions")
@@ -298,10 +295,9 @@ class TestVLLMServerBackend(unittest.TestCase):
 
     def test_vllm_server_parse_batch_empty_input(self):
         """Test parse_batch with empty input returns empty list."""
-        with patch("infinity_parser2.backends.vllm_server.requests") as mock_requests:
-            mock_response = MagicMock()
-            mock_response.raise_for_status = MagicMock()
-            mock_requests.get.return_value = mock_response
+        with patch("infinity_parser2.backends.vllm_server.OpenAI") as mock_openai:
+            mock_client_instance = MagicMock()
+            mock_openai.return_value = mock_client_instance
 
             backend = VLLMServerBackend(api_url="http://localhost:8000/v1/chat/completions")
             results = backend.parse_batch([], "Test prompt")
@@ -309,14 +305,15 @@ class TestVLLMServerBackend(unittest.TestCase):
 
     def test_vllm_server_parse_batch_success(self):
         """Test successful parse_batch call."""
-        with patch("infinity_parser2.backends.vllm_server.requests") as mock_requests:
-            mock_response = MagicMock()
-            mock_response.raise_for_status = MagicMock()
-            mock_response.json.return_value = {
-                "choices": [{"message": {"content": "Parsed content"}}]
-            }
-            mock_requests.get.return_value = mock_response
-            mock_requests.post.return_value = mock_response
+        with patch("infinity_parser2.backends.vllm_server.OpenAI") as mock_openai:
+            mock_client_instance = MagicMock()
+            mock_openai.return_value = mock_client_instance
+
+            mock_chat_response = MagicMock()
+            mock_message = MagicMock()
+            mock_message.content = "Parsed content"
+            mock_chat_response.choices = [MagicMock(message=mock_message)]
+            mock_client_instance.chat.completions.create.return_value = mock_chat_response
 
             backend = VLLMServerBackend(api_url="http://localhost:8000/v1/chat/completions")
 
@@ -334,16 +331,17 @@ class TestVLLMServerBackend(unittest.TestCase):
                 import os
                 os.unlink(temp_file.name)
 
-    def test_vllm_server_headers(self):
-        """Test that correct headers are set for API requests."""
-        with patch("infinity_parser2.backends.vllm_server.requests") as mock_requests:
-            mock_response = MagicMock()
-            mock_response.raise_for_status = MagicMock()
-            mock_response.json.return_value = {
-                "choices": [{"message": {"content": "Result"}}]
-            }
-            mock_requests.get.return_value = mock_response
-            mock_requests.post.return_value = mock_response
+    def test_vllm_server_extra_body_with_enable_thinking(self):
+        """Test that OpenAI client is called with correct parameters."""
+        with patch("infinity_parser2.backends.vllm_server.OpenAI") as mock_openai:
+            mock_client_instance = MagicMock()
+            mock_openai.return_value = mock_client_instance
+
+            mock_chat_response = MagicMock()
+            mock_message = MagicMock()
+            mock_message.content = "Result"
+            mock_chat_response.choices = [MagicMock(message=mock_message)]
+            mock_client_instance.chat.completions.create.return_value = mock_chat_response
 
             backend = VLLMServerBackend(
                 api_url="http://localhost:8000/v1/chat/completions",
@@ -356,11 +354,14 @@ class TestVLLMServerBackend(unittest.TestCase):
             temp_file.close()
 
             try:
-                backend.parse_batch([temp_file.name], "Test prompt")
-                call_args = mock_requests.post.call_args
-                headers = call_args[1]["headers"]
-                self.assertEqual(headers["Content-Type"], "application/json")
-                self.assertEqual(headers["Authorization"], "Bearer my-secret-key")
+                backend.parse_batch([temp_file.name], "Test prompt", enable_thinking=True)
+                call_kwargs = mock_client_instance.chat.completions.create.call_args[1]
+                self.assertEqual(call_kwargs["model"], "infly/Infinity-Parser2-Pro")
+                self.assertIn("messages", call_kwargs)
+                self.assertEqual(call_kwargs["max_tokens"], 32768)
+                self.assertEqual(call_kwargs["temperature"], 0.01)
+                self.assertEqual(call_kwargs["top_p"], 0.95)
+                self.assertEqual(call_kwargs["extra_body"], {"chat_template_kwargs": {"enable_thinking": True}})
             finally:
                 import os
                 os.unlink(temp_file.name)

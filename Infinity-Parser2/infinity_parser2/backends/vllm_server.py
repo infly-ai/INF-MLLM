@@ -6,7 +6,7 @@ Uses vLLM OpenAI-Compatible Server for online inference.
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Union
 
-import requests
+from openai import OpenAI
 from PIL import Image
 
 from .base import BaseBackend
@@ -45,6 +45,7 @@ class VLLMServerBackend(BaseBackend):
         self.timeout = timeout
         self.min_pixels = min_pixels
         self.max_pixels = max_pixels
+        self.client = OpenAI(api_key=self.api_key, base_url=self.api_url.rsplit("/v1", 1)[0])
         self.init()
 
     def init(self) -> None:
@@ -53,11 +54,14 @@ class VLLMServerBackend(BaseBackend):
         Note: This is a no-op as the server is started separately.
         Call this to verify connectivity.
         """
-        health_url = self.api_url.replace("/v1/chat/completions", "/health")
         try:
-            response = requests.get(health_url, timeout=5)
-            response.raise_for_status()
-        except requests.exceptions.RequestException as e:
+            self.client.chat.completions.create(
+                model=self.model_name,
+                messages=[{"role": "user", "content": "ping"}],
+                max_tokens=1,
+                timeout=5,
+            )
+        except Exception as e:
             raise RuntimeError(
                 f"Cannot connect to vLLM server at {self.api_url}. "
                 f"Please ensure the server is running. Error: {e}"
@@ -84,40 +88,37 @@ class VLLMServerBackend(BaseBackend):
         if not input_data:
             return []
 
-        headers = {
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {self.api_key}",
-        }
-
         max_tokens = kwargs.get("max_new_tokens", kwargs.get("max_tokens", 32768))
         temperature = kwargs.get("temperature", 0.01)
         top_p = kwargs.get("top_p", 0.95)
+        enable_thinking = kwargs.get("enable_thinking", False)
+        extra_body = {
+            "chat_template_kwargs": {
+                "enable_thinking": enable_thinking
+            }
+        }
 
         def parse_one(item: Union[str, Image.Image]) -> str:
             base64_data, mime_type = encode_file_to_base64(item, min_pixels=self.min_pixels, max_pixels=self.max_pixels)
-            payload = {
-                "model": self.model_name,
-                "messages": [
-                    {
-                        "role": "user",
-                        "content": [
-                            {"type": "image_url", "image_url": {"url": f"data:{mime_type};base64,{base64_data}"}},
-                            {"type": "text", "text": prompt},
-                        ],
-                    }
-                ],
-                "max_tokens": max_tokens,
-                "temperature": temperature,
-                "top_p": top_p,
-            }
-            response = requests.post(
-                self.api_url,
-                json=payload,
-                headers=headers,
+            messages = [
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "image_url", "image_url": {"url": f"data:{mime_type};base64,{base64_data}"}},
+                        {"type": "text", "text": prompt},
+                    ],
+                }
+            ]
+            response = self.client.chat.completions.create(
+                model=self.model_name,
+                messages=messages,
+                max_tokens=max_tokens,
+                temperature=temperature,
+                top_p=top_p,
                 timeout=self.timeout,
+                extra_body=extra_body,
             )
-            response.raise_for_status()
-            return response.json()["choices"][0]["message"]["content"]
+            return response.choices[0].message.content
 
         results: list[str] = [None] * len(input_data)
         max_workers = max(1, batch_size)

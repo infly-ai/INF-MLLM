@@ -14,7 +14,12 @@ from .backends import (
     VLLMEngineBackend,
     VLLMServerBackend,
 )
-from .utils import convert_pdf_to_images
+from .utils import (
+    convert_pdf_to_images,
+    get_files_from_directory,
+    is_supported_file,
+    save_results,
+)
 
 
 BACKEND_REGISTRY = {
@@ -53,9 +58,6 @@ class InfinityParser2:
         >>> parser = InfinityParser2(model_name="infly/Infinity-Parser2-Pro")
         >>> result = parser.parse("document.pdf")
     """
-
-    SUPPORTED_IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".bmp", ".tiff", ".webp"}
-    SUPPORTED_DOC_EXTENSIONS = {".pdf"}
 
     def __init__(
         self,
@@ -130,21 +132,6 @@ class InfinityParser2:
             self._backend = backend_cls(**backend_kwargs)
         return self._backend
 
-    def _is_supported_file(self, file_path: str) -> bool:
-        """Check if file is supported."""
-        ext = Path(file_path).suffix.lower()
-        return ext in self.SUPPORTED_IMAGE_EXTENSIONS or ext in self.SUPPORTED_DOC_EXTENSIONS
-
-    def _get_files_from_directory(self, directory: str) -> List[str]:
-        """Get all supported files from a directory."""
-        files = []
-        for root, _, filenames in os.walk(directory):
-            for filename in filenames:
-                file_path = os.path.join(root, filename)
-                if self._is_supported_file(file_path):
-                    files.append(file_path)
-        return sorted(files)
-
     def parse(
         self,
         input_data: Union[str, List[str], Image.Image],
@@ -186,12 +173,12 @@ class InfinityParser2:
         """
         if isinstance(input_data, str):
             if os.path.isdir(input_data):
-                file_paths = self._get_files_from_directory(input_data)
+                file_paths = get_files_from_directory(input_data)
                 if not file_paths:
                     raise ValueError(f"No supported files found in directory: {input_data}")
                 return self._parse_files(file_paths, prompt, batch_size, output_dir, **kwargs)
             elif os.path.isfile(input_data):
-                if not self._is_supported_file(input_data):
+                if not is_supported_file(input_data):
                     raise ValueError(f"Unsupported file type: {input_data}")
                 return self._parse_files([input_data], prompt, batch_size, output_dir, **kwargs)
             else:
@@ -203,7 +190,7 @@ class InfinityParser2:
                     raise TypeError(f"Expected str in list, got {type(item)}")
                 if not os.path.isfile(item):
                     raise FileNotFoundError(f"File not found: {item}")
-                if not self._is_supported_file(item):
+                if not is_supported_file(item):
                     raise ValueError(f"Unsupported file type: {item}")
                 file_paths.append(item)
             return self._parse_files(file_paths, prompt, batch_size, output_dir, **kwargs)
@@ -286,44 +273,8 @@ class InfinityParser2:
                 uuid.uuid4().hex[:8] if isinstance(inp, Image.Image) else inp
                 for inp in inputs
             ]
-            return self._save_results(keys, file_results, output_dir)
+            return save_results(keys, file_results, output_dir)
 
         if len(inputs) == 1:
             return file_results[0]
         return file_results
-
-    def _save_results(
-        self,
-        keys: List[str],
-        results: List[str],
-        output_dir: str,
-    ) -> Dict[str, str]:
-        """Save parsing results to output directory.
-
-        Creates a subdirectory for each entry and writes result.md inside it.
-        For file paths, the folder name is the filename (basename); for UUIDs,
-        the folder name is the UUID itself.
-
-        Args:
-            keys: Identifiers (file paths or UUIDs).
-            results: Parsed text results (same order as keys).
-            output_dir: Base output directory.
-
-        Returns:
-            Dict mapping each key to its saved result path.
-        """
-        os.makedirs(output_dir, exist_ok=True)
-        saved_paths: Dict[str, str] = {}
-
-        for key, result in zip(keys, results):
-            # Use Path(key).name to get filename, avoiding issues with os.path.join when key is absolute
-            # os.path.join('/output', '/tmp/file.png') returns '/tmp/file.png' instead of '/output/tmp/file.png'
-            folder_name = Path(key).name
-            file_dir = os.path.join(output_dir, folder_name)
-            os.makedirs(file_dir, exist_ok=True)
-            result_path = os.path.join(file_dir, "result.md")
-            with open(result_path, "w", encoding="utf-8") as f:
-                f.write(result)
-            saved_paths[key] = result_path
-
-        return saved_paths
