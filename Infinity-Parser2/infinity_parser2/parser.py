@@ -5,6 +5,7 @@ import uuid
 from pathlib import Path
 from typing import Dict, List, Optional, Union
 
+import torch
 from PIL import Image
 
 from .backends import (
@@ -36,8 +37,9 @@ class InfinityParser2:
             - "vllm-engine": vLLM Engine (local batch inference via LLM class)
             - "vllm-server": vLLM OpenAI-Compatible Server (HTTP API)
           Defaults to "vllm-engine".
-        tensor_parallel_size: Tensor parallel size for vllm-engine. Defaults to 1.
-        device: Device type, "cuda" or "cpu". Defaults to "cuda".
+        tensor_parallel_size: Tensor parallel size for vllm-engine.
+            Defaults to the number of available GPUs (via torch.cuda.device_count()).
+        device: Device type, must be "cuda". Raises ValueError if set to anything else.
         api_url: API URL for vllm-server backend.
         api_key: API key for vllm-server backend.
         min_pixels: Minimum number of pixels for image input (transformers backend only).
@@ -59,7 +61,7 @@ class InfinityParser2:
         self,
         model_name: str = "infly/Infinity-Parser2-Pro",
         backend: str = "vllm-engine",
-        tensor_parallel_size: int = 1,
+        tensor_parallel_size: Optional[int] = None,
         device: str = "cuda",
         api_url: str = "http://localhost:8000/v1/chat/completions",
         api_key: str = "EMPTY",
@@ -67,9 +69,16 @@ class InfinityParser2:
         max_pixels: int = 16777216,
         **kwargs,
     ):
+        if device != "cuda":
+            raise ValueError("device must be 'cuda' for Infinity-Parser2-Pro.")
+
         self.model_name = model_name
         self.backend_name = backend.lower()
-        self.tensor_parallel_size = tensor_parallel_size
+        self.tensor_parallel_size = (
+            tensor_parallel_size
+            if tensor_parallel_size is not None
+            else torch.cuda.device_count()
+        )
         self.device = device
         self.api_url = api_url
         self.api_key = api_key

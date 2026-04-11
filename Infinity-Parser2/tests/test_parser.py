@@ -20,12 +20,13 @@ class TestInfinityParser2Initialization(unittest.TestCase):
         parser = InfinityParser2()
         self.assertEqual(parser.model_name, "infly/Infinity-Parser2-Pro")
         self.assertEqual(parser.backend_name, "vllm-engine")
-        self.assertEqual(parser.tensor_parallel_size, 1)
         self.assertEqual(parser.device, "cuda")
         self.assertEqual(parser.api_url, "http://localhost:8000/v1/chat/completions")
         self.assertEqual(parser.api_key, "EMPTY")
         self.assertEqual(parser.min_pixels, 2048)
         self.assertEqual(parser.max_pixels, 16777216)
+        # tensor_parallel_size defaults to number of available GPUs
+        self.assertIsInstance(parser.tensor_parallel_size, int)
 
     def test_custom_initialization(self):
         """Test initialization with custom parameters."""
@@ -33,7 +34,6 @@ class TestInfinityParser2Initialization(unittest.TestCase):
             model_name="custom/model",
             backend="transformers",
             tensor_parallel_size=2,
-            device="cpu",
             api_url="http://custom:8000/v1",
             api_key="test-key",
             min_pixels=1024,
@@ -42,11 +42,17 @@ class TestInfinityParser2Initialization(unittest.TestCase):
         self.assertEqual(parser.model_name, "custom/model")
         self.assertEqual(parser.backend_name, "transformers")
         self.assertEqual(parser.tensor_parallel_size, 2)
-        self.assertEqual(parser.device, "cpu")
+        self.assertEqual(parser.device, "cuda")
         self.assertEqual(parser.api_url, "http://custom:8000/v1")
         self.assertEqual(parser.api_key, "test-key")
         self.assertEqual(parser.min_pixels, 1024)
         self.assertEqual(parser.max_pixels, 8192)
+
+    def test_device_must_be_cuda(self):
+        """Test that device must be 'cuda', raising ValueError otherwise."""
+        with self.assertRaises(ValueError) as context:
+            InfinityParser2(device="cpu")
+        self.assertIn("cuda", str(context.exception))
 
     def test_backend_case_insensitive(self):
         """Test that backend name is case-insensitive."""
