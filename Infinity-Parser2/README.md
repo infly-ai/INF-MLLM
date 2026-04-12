@@ -16,42 +16,6 @@ cd INF-MLLM/Infinity-Parser2
 pip install -e .
 ```
 
-### Automatic Model Download
-
-<details>
-<summary>Click to expand</summary>
-
-Infinity-Parser2 features automatic model downloading and caching. When you first initialize the parser:
-
-1. **First Use**: If the model is not found locally, it will automatically download from HuggingFace Hub and cache it at `~/.cache/infinity_parser2/`.
-
-2. **Subsequent Uses**: The cached model will be detected and loaded directly without re-downloading.
-
-```python
-from infinity_parser2 import InfinityParser2
-
-# First time: downloads model automatically if not cached
-parser = InfinityParser2(model_name="infly/Infinity-Parser2-Pro")
-# Output: [Infinity-Parser2] Model 'infly/Infinity-Parser2-Pro' not found locally.
-#         Starting download to: ~/.cache/infinity_parser2/infly_Infinity-Parser2-Pro
-#         ...
-
-# Second time: uses cached model
-parser = InfinityParser2(model_name="infly/Infinity-Parser2-Pro")
-# Output: [Infinity-Parser2] Found cached model at: ~/.cache/infinity_parser2/infly_Infinity-Parser2-Pro
-```
-
-You can also customize the cache directory:
-
-```python
-parser = InfinityParser2(
-    model_name="infly/Infinity-Parser2-Pro",
-    model_cache_dir="/path/to/your/cache"
-)
-```
-
-</details>
-
 ### Model Inference
 
 #### 1. vLLM Engine (Offline Batch Inference)
@@ -150,6 +114,37 @@ See `requirements.txt` for full dependency list.
 | `batch_size` | `int` | `4` | Number of images to process per batch |
 | `output_dir` | `Optional[str]` | `None` | If provided, results are saved to this directory |
 | `**kwargs` | - | - | Additional arguments passed to the model |
+
+### Automatic Model Download
+
+Infinity-Parser2 features automatic model downloading and caching. When you first initialize the parser:
+
+1. **First Use**: If the model is not found locally, it will automatically download from HuggingFace Hub and cache it at `~/.cache/infinity_parser2/`.
+
+2. **Subsequent Uses**: The cached model will be detected and loaded directly without re-downloading.
+
+```python
+from infinity_parser2 import InfinityParser2
+
+# First time: downloads model automatically if not cached
+parser = InfinityParser2(model_name="infly/Infinity-Parser2-Pro")
+# Output: [Infinity-Parser2] Model 'infly/Infinity-Parser2-Pro' not found locally.
+#         Starting download to: ~/.cache/infinity_parser2/infly_Infinity-Parser2-Pro
+#         ...
+
+# Second time: uses cached model
+parser = InfinityParser2(model_name="infly/Infinity-Parser2-Pro")
+# Output: [Infinity-Parser2] Found cached model at: ~/.cache/infinity_parser2/infly_Infinity-Parser2-Pro
+```
+
+You can also customize the cache directory:
+
+```python
+parser = InfinityParser2(
+    model_name="infly/Infinity-Parser2-Pro",
+    model_cache_dir="/path/to/your/cache"
+)
+```
 
 ### Advanced Usage Examples
 

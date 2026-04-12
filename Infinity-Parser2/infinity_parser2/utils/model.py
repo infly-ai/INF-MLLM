@@ -2,12 +2,68 @@
 
 import json
 import os
+import socket
+import ssl
+import urllib.request
+import urllib.error
 from typing import Optional
 
 from huggingface_hub import snapshot_download
 
 # Default cache directory
 DEFAULT_CACHE_DIR = os.path.expanduser("~/.cache/infinity_parser2")
+
+# HuggingFace endpoints
+HF_ENDPOINT_DEFAULT = "https://huggingface.co"
+HF_ENDPOINT_MIRROR = "https://hf-mirror.com"
+# Timeout for connectivity check (seconds)
+_HF_CONNECT_TIMEOUT = 5.0
+
+
+def _check_endpoint_reachable(url: str, timeout: float = _HF_CONNECT_TIMEOUT) -> bool:
+    """Check if an HTTP endpoint is reachable.
+
+    Args:
+        url: The URL to check.
+        timeout: Connection timeout in seconds.
+
+    Returns:
+        True if the endpoint responds within the timeout, False otherwise.
+    """
+    try:
+        req = urllib.request.Request(
+            url,
+            method="HEAD",
+            headers={"User-Agent": "Mozilla/5.0 (compatible; Infinity-Parser2)"},
+        )
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            return resp.status == 200
+    except (
+        urllib.error.URLError,
+        socket.timeout,
+        ConnectionError,
+        ssl.SSLError,
+        OSError,
+    ):
+        return False
+
+
+def _resolve_hf_endpoint() -> str:
+    """Resolve the best HuggingFace endpoint based on connectivity.
+
+    Checks if the default HuggingFace endpoint (https://huggingface.co) is reachable.
+    If not, falls back to the mirror (https://hf-mirror.com/).
+
+    Returns:
+        The URL string of the reachable endpoint.
+    """
+    if _check_endpoint_reachable(HF_ENDPOINT_DEFAULT):
+        return HF_ENDPOINT_DEFAULT
+    print(
+        f"[Infinity-Parser2] Default HF endpoint ({HF_ENDPOINT_DEFAULT}) is not reachable. "
+        f"Falling back to mirror: {HF_ENDPOINT_MIRROR}"
+    )
+    return HF_ENDPOINT_MIRROR
 
 
 class ModelCache:
@@ -123,12 +179,17 @@ class ModelCache:
         print(f"[Infinity-Parser2] Starting download to: {target_dir}")
         print("[Infinity-Parser2] This may take a few minutes depending on model size and network...")
 
+        # Resolve the best HF endpoint (cached per session)
+        resolved_endpoint = _resolve_hf_endpoint()
+        print(f"[Infinity-Parser2] Using endpoint: {resolved_endpoint}")
+
         os.makedirs(target_dir, exist_ok=True)
 
         snapshot_download(
             repo_id=model_name,
             local_dir=target_dir,
             local_dir_use_symlinks=False,
+            endpoint=resolved_endpoint,
         )
 
         self.cache_model(model_name, target_dir)
