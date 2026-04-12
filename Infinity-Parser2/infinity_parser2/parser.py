@@ -19,6 +19,8 @@ from .utils import (
     get_files_from_directory,
     is_supported_file,
     save_results,
+    ModelCache,
+    get_model_cache,
 )
 
 
@@ -69,6 +71,7 @@ class InfinityParser2:
         api_key: str = "EMPTY",
         min_pixels: int = 2048,
         max_pixels: int = 16777216,
+        model_cache_dir: Optional[str] = None,
         **kwargs,
     ):
         if device != "cuda":
@@ -88,49 +91,48 @@ class InfinityParser2:
         self.max_pixels = max_pixels
         self.kwargs = kwargs
 
+        # Initialize model cache and resolve model path
+        cache = get_model_cache(model_cache_dir)
+        self.model_name = cache.resolve_model_path(self.model_name)
+
+        self._backend: BaseBackend = self._init_backend()
+
+    def _init_backend(self) -> BaseBackend:
+        """Initialize and return the backend instance."""
         if self.backend_name not in BACKEND_REGISTRY:
             raise ValueError(
-                f"Unsupported backend: {backend}. "
+                f"Unsupported backend: {self.backend_name}. "
                 f"Supported backends: {list(BACKEND_REGISTRY.keys())}"
             )
-
-        self._backend: BaseBackend = None
-
-    @property
-    def backend(self) -> BaseBackend:
-        """Get or create the backend instance (lazy initialization)."""
-        if self._backend is None:
-            backend_cls = BACKEND_REGISTRY[self.backend_name]
-            # Pass different initialization parameters based on backend type
-            if self.backend_name == "vllm-server":
-                backend_kwargs = {
-                    "model_name": self.model_name,
-                    "device": self.device,
-                    "api_url": self.api_url,
-                    "api_key": self.api_key,
-                    "min_pixels": self.min_pixels,
-                    "max_pixels": self.max_pixels,
-                    **self.kwargs,
-                }
-            elif self.backend_name == "vllm-engine":
-                backend_kwargs = {
-                    "model_name": self.model_name,
-                    "device": self.device,
-                    "tensor_parallel_size": self.tensor_parallel_size,
-                    "min_pixels": self.min_pixels,
-                    "max_pixels": self.max_pixels,
-                    **self.kwargs,
-                }
-            else:  # transformers
-                backend_kwargs = {
-                    "model_name": self.model_name,
-                    "device": self.device,
-                    "min_pixels": self.min_pixels,
-                    "max_pixels": self.max_pixels,
-                    **self.kwargs,
-                }
-            self._backend = backend_cls(**backend_kwargs)
-        return self._backend
+        backend_cls = BACKEND_REGISTRY[self.backend_name]
+        if self.backend_name == "vllm-server":
+            backend_kwargs = {
+                "model_name": self.model_name,
+                "device": self.device,
+                "api_url": self.api_url,
+                "api_key": self.api_key,
+                "min_pixels": self.min_pixels,
+                "max_pixels": self.max_pixels,
+                **self.kwargs,
+            }
+        elif self.backend_name == "vllm-engine":
+            backend_kwargs = {
+                "model_name": self.model_name,
+                "device": self.device,
+                "tensor_parallel_size": self.tensor_parallel_size,
+                "min_pixels": self.min_pixels,
+                "max_pixels": self.max_pixels,
+                **self.kwargs,
+            }
+        else:  # transformers
+            backend_kwargs = {
+                "model_name": self.model_name,
+                "device": self.device,
+                "min_pixels": self.min_pixels,
+                "max_pixels": self.max_pixels,
+                **self.kwargs,
+            }
+        return backend_cls(**backend_kwargs)
 
     def parse(
         self,
@@ -255,7 +257,7 @@ class InfinityParser2:
         ]
 
         raw_inputs = [entry[1] for entry in batch_entries]
-        batch_results = self.backend.parse_batch(raw_inputs, prompt, batch_size=batch_size, **kwargs)
+        batch_results = self._backend.parse_batch(raw_inputs, prompt, batch_size=batch_size, **kwargs)
 
         file_results: List[str] = ["" for _ in inputs]
         for entry_idx, (_, input_item) in enumerate(batch_entries):

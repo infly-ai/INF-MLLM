@@ -1,8 +1,8 @@
 # Python package dependencies (verified with Python 3.12+)
 # Core dependencies
-torch>=2.10.0
-transformers>=5.3.0
-vllm>=0.17.1
+torch==2.10.0
+transformers==5.3.0
+vllm==0.17.1
 
 # Vision processing
 qwen-vl-utils>=0.0.14

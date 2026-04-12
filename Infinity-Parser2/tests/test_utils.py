@@ -12,7 +12,6 @@ from PIL import Image
 from infinity_parser2.utils import (
     convert_pdf_to_images,
     encode_file_to_base64,
-    get_model_info,
     load_image,
 )
 
@@ -260,64 +259,6 @@ class TestConvertPdfToImages(unittest.TestCase):
             return pdf_path
         except ImportError:
             self.skipTest("PyMuPDF not available for creating test PDF")
-
-
-class TestGetModelInfo(unittest.TestCase):
-    """Tests for get_model_info utility function."""
-
-    def setUp(self):
-        """Set up test fixtures."""
-        self.temp_dir = tempfile.mkdtemp()
-
-    def tearDown(self):
-        """Clean up temporary files."""
-        import shutil
-        shutil.rmtree(self.temp_dir, ignore_errors=True)
-
-    def test_get_model_info_not_found(self):
-        """Test get_model_info for nonexistent path."""
-        result = get_model_info("/nonexistent/path")
-        self.assertEqual(result["status"], "not_found")
-        self.assertEqual(result["path"], "/nonexistent/path")
-
-    def test_get_model_info_found(self):
-        """Test get_model_info for existing directory."""
-        # Create some test files with sufficient size (>= 1KB to get non-zero size_mb)
-        model_dir = os.path.join(self.temp_dir, "model")
-        os.makedirs(model_dir)
-        for i in range(3):
-            with open(os.path.join(model_dir, f"file{i}.bin"), "w") as f:
-                # Write enough bytes to get size_mb > 0 after rounding
-                # 1024 * 100 bytes = 100KB
-                f.write("x" * (1024 * 100))
-
-        result = get_model_info(model_dir)
-        self.assertEqual(result["status"], "found")
-        self.assertEqual(result["path"], model_dir)
-        self.assertIn("size_mb", result)
-        self.assertGreater(result["size_mb"], 0)
-
-    def test_get_model_info_empty_directory(self):
-        """Test get_model_info for empty directory."""
-        empty_dir = os.path.join(self.temp_dir, "empty")
-        os.makedirs(empty_dir)
-        result = get_model_info(empty_dir)
-        self.assertEqual(result["status"], "found")
-        self.assertEqual(result["size_mb"], 0)
-
-    def test_get_model_info_nested_directories(self):
-        """Test get_model_info with nested directories."""
-        model_dir = os.path.join(self.temp_dir, "model")
-        nested_dir = os.path.join(model_dir, "nested")
-        os.makedirs(nested_dir)
-        for i in range(2):
-            with open(os.path.join(nested_dir, f"nested{i}.bin"), "w") as f:
-                # Write enough bytes to get non-zero size_mb
-                f.write("y" * (1024 * 100))
-
-        result = get_model_info(model_dir)
-        self.assertEqual(result["status"], "found")
-        self.assertGreater(result["size_mb"], 0)
 
 
 class TestImageMimeTypes(unittest.TestCase):

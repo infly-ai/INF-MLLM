@@ -10,6 +10,7 @@ from unittest.mock import MagicMock, patch
 from PIL import Image
 
 from infinity_parser2 import InfinityParser2
+from infinity_parser2.backends import TransformersBackend
 
 
 class TestInfinityParser2Initialization(unittest.TestCase):
@@ -82,33 +83,31 @@ class TestInfinityParser2Initialization(unittest.TestCase):
 
 
 class TestInfinityParser2BackendProperty(unittest.TestCase):
-    """Tests for backend lazy initialization."""
+    """Tests for backend property."""
 
-    def setUp(self):
-        """Set up test fixtures with mocked backend."""
-        self.parser = InfinityParser2(backend="vllm-engine")
-        # Mock the backend to avoid actual model loading
-        self.mock_backend = MagicMock()
-        self.parser._backend = self.mock_backend
-
-    def test_backend_lazy_initialization(self):
-        """Test that backend is not initialized until accessed."""
-        # Create new parser to test lazy loading behavior
+    @patch("infinity_parser2.backends.vllm_engine.LLM")
+    def test_backend_is_initialized_on_init(self, mock_llm):
+        """Test that backend is initialized during __init__."""
+        mock_llm.return_value = MagicMock()
         parser = InfinityParser2(backend="vllm-engine")
-        self.assertIsNone(parser._backend)
-        # Directly set mock backend to simulate state after lazy loading
-        parser._backend = MagicMock()
         self.assertIsNotNone(parser._backend)
 
-    def test_backend_returns_correct_type(self):
-        """Test that backend property returns correct backend instance."""
-        # Verify parser._backend is the mock backend we set
-        self.assertIs(self.parser.backend, self.mock_backend)
+    @patch("infinity_parser2.backends.transformers.AutoModelForCausalLM")
+    @patch("infinity_parser2.backends.transformers.AutoProcessor")
+    def test_backend_returns_correct_type(self, mock_processor, mock_model):
+        """Test that backend returns correct backend instance."""
+        mock_model.from_pretrained.return_value = MagicMock()
+        mock_processor.from_pretrained.return_value = MagicMock()
+        parser = InfinityParser2(backend="transformers")
+        self.assertIsInstance(parser._backend, TransformersBackend)
 
-    def test_backend_cached_after_first_access(self):
-        """Test that backend is cached after first access."""
-        backend1 = self.parser.backend
-        backend2 = self.parser.backend
+    @patch("infinity_parser2.backends.vllm_engine.LLM")
+    def test_backend_same_instance_on_multiple_accesses(self, mock_llm):
+        """Test that backend returns the same instance."""
+        mock_llm.return_value = MagicMock()
+        parser = InfinityParser2(backend="vllm-engine")
+        backend1 = parser._backend
+        backend2 = parser._backend
         self.assertIs(backend1, backend2)
 
 
@@ -117,7 +116,6 @@ class TestInfinityParser2ParseInputValidation(unittest.TestCase):
 
     def setUp(self):
         """Set up test fixtures."""
-        self.parser = InfinityParser2(backend="vllm-engine")
         self.temp_dir = tempfile.mkdtemp()
         self.temp_file = os.path.join(self.temp_dir, "test.png")
         Image.new("RGB", (100, 100), color="white").save(self.temp_file)
@@ -126,40 +124,52 @@ class TestInfinityParser2ParseInputValidation(unittest.TestCase):
         """Clean up temporary files."""
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
+    def _make_parser(self):
+        """Create parser with mocked backend."""
+        parser = InfinityParser2(backend="vllm-engine")
+        parser._backend = MagicMock()
+        return parser
+
     def test_parse_nonexistent_file_raises_error(self):
         """Test that parsing nonexistent file raises FileNotFoundError."""
+        parser = self._make_parser()
         with self.assertRaises(FileNotFoundError):
-            self.parser.parse("nonexistent_file.pdf")
+            parser.parse("nonexistent_file.pdf")
 
     def test_parse_unsupported_file_raises_error(self):
         """Test that parsing unsupported file type raises ValueError."""
         txt_file = os.path.join(self.temp_dir, "test.txt")
         Path(txt_file).touch()
+        parser = self._make_parser()
         with self.assertRaises(ValueError) as context:
-            self.parser.parse(txt_file)
+            parser.parse(txt_file)
         self.assertIn("Unsupported file type", str(context.exception))
 
     def test_parse_list_with_invalid_item_raises_error(self):
         """Test that parsing list with invalid item raises TypeError."""
+        parser = self._make_parser()
         with self.assertRaises(TypeError):
-            self.parser.parse([123, "not_a_string"])
+            parser.parse([123, "not_a_string"])
 
     def test_parse_list_with_nonexistent_file_raises_error(self):
         """Test that parsing list with nonexistent file raises FileNotFoundError."""
+        parser = self._make_parser()
         with self.assertRaises(FileNotFoundError):
-            self.parser.parse([self.temp_file, "nonexistent.pdf"])
+            parser.parse([self.temp_file, "nonexistent.pdf"])
 
     def test_parse_list_with_unsupported_file_raises_error(self):
         """Test that parsing list with unsupported file raises ValueError."""
         txt_file = os.path.join(self.temp_dir, "test.txt")
         Path(txt_file).touch()
+        parser = self._make_parser()
         with self.assertRaises(ValueError):
-            self.parser.parse([self.temp_file, txt_file])
+            parser.parse([self.temp_file, txt_file])
 
     def test_parse_unsupported_input_type_raises_error(self):
         """Test that parsing unsupported input type raises TypeError."""
+        parser = self._make_parser()
         with self.assertRaises(TypeError) as context:
-            self.parser.parse(12345)
+            parser.parse(12345)
         self.assertIn("Unsupported input type", str(context.exception))
 
     def test_parse_directory_with_no_supported_files_raises_error(self):
@@ -168,8 +178,9 @@ class TestInfinityParser2ParseInputValidation(unittest.TestCase):
         txt_file = os.path.join(empty_dir, "test.txt")
         Path(txt_file).touch()
         try:
+            parser = self._make_parser()
             with self.assertRaises(ValueError) as context:
-                self.parser.parse(empty_dir)
+                parser.parse(empty_dir)
             self.assertIn("No supported files found", str(context.exception))
         finally:
             shutil.rmtree(empty_dir, ignore_errors=True)
@@ -180,21 +191,25 @@ class TestInfinityParser2MockedParse(unittest.TestCase):
 
     def setUp(self):
         """Set up test fixtures with mocked backend."""
-        self.parser = InfinityParser2(backend="vllm-engine")
-        self.mock_backend = MagicMock()
-        self.parser._backend = self.mock_backend
         self.temp_dir = tempfile.mkdtemp()
 
     def tearDown(self):
         """Clean up temporary files."""
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
+    def _make_parser(self):
+        """Create parser with mocked backend."""
+        parser = InfinityParser2(backend="vllm-engine")
+        parser._backend = MagicMock()
+        return parser
+
     def test_parse_single_file_returns_string(self):
         """Test that parsing single file returns string."""
-        self.mock_backend.parse_batch.return_value = ["Parsed content"]
+        parser = self._make_parser()
+        parser._backend.parse_batch.return_value = ["Parsed content"]
         temp_file = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
         try:
-            result = self.parser.parse(temp_file.name)
+            result = parser.parse(temp_file.name)
             self.assertIsInstance(result, str)
             self.assertEqual(result, "Parsed content")
         finally:
@@ -202,13 +217,14 @@ class TestInfinityParser2MockedParse(unittest.TestCase):
 
     def test_parse_list_returns_list(self):
         """Test that parsing list returns list of strings."""
-        self.mock_backend.parse_batch.return_value = ["Result 1", "Result 2"]
+        parser = self._make_parser()
+        parser._backend.parse_batch.return_value = ["Result 1", "Result 2"]
         temp_files = []
         for i in range(2):
             f = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
             temp_files.append(f.name)
         try:
-            result = self.parser.parse(temp_files)
+            result = parser.parse(temp_files)
             self.assertIsInstance(result, list)
             self.assertEqual(len(result), 2)
         finally:
@@ -217,22 +233,22 @@ class TestInfinityParser2MockedParse(unittest.TestCase):
 
     def test_parse_pil_image(self):
         """Test parsing PIL Image object."""
-        self.mock_backend.parse_batch.return_value = ["Image content"]
+        parser = self._make_parser()
+        parser._backend.parse_batch.return_value = ["Image content"]
         img = Image.new("RGB", (100, 100), color="white")
-        result = self.parser.parse(img)
+        result = parser.parse(img)
         self.assertIsInstance(result, str)
         self.assertEqual(result, "Image content")
 
     def test_parse_with_output_dir_returns_dict(self):
         """Test that parsing with output_dir returns dict."""
-        self.mock_backend.parse_batch.return_value = ["Result content"]
-        # Use real temp directory file instead of NamedTemporaryFile
-        # because output_dir uses file path as subdirectory name
+        parser = self._make_parser()
+        parser._backend.parse_batch.return_value = ["Result content"]
         temp_file = os.path.join(self.temp_dir, "test.png")
         Image.new("RGB", (100, 100), color="white").save(temp_file)
         output_dir = tempfile.mkdtemp()
         try:
-            result = self.parser.parse(temp_file, output_dir=output_dir)
+            result = parser.parse(temp_file, output_dir=output_dir)
             self.assertIsInstance(result, dict)
             self.assertIn(temp_file, result)
         finally:
@@ -240,12 +256,13 @@ class TestInfinityParser2MockedParse(unittest.TestCase):
 
     def test_parse_batch_size_passed_to_backend(self):
         """Test that batch_size is passed to backend correctly."""
-        self.mock_backend.parse_batch.return_value = ["Result"]
+        parser = self._make_parser()
+        parser._backend.parse_batch.return_value = ["Result"]
         temp_file = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
         try:
-            self.parser.parse(temp_file.name, batch_size=4)
-            self.mock_backend.parse_batch.assert_called_once()
-            call_kwargs = self.mock_backend.parse_batch.call_args[1]
+            parser.parse(temp_file.name, batch_size=4)
+            parser._backend.parse_batch.assert_called_once()
+            call_kwargs = parser._backend.parse_batch.call_args[1]
             self.assertEqual(call_kwargs["batch_size"], 4)
         finally:
             os.unlink(temp_file.name)

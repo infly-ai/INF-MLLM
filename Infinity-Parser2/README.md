@@ -16,6 +16,42 @@ cd INF-MLLM/Infinity-Parser2
 pip install -e .
 ```
 
+### Automatic Model Download
+
+<details>
+<summary>Click to expand</summary>
+
+Infinity-Parser2 features automatic model downloading and caching. When you first initialize the parser:
+
+1. **First Use**: If the model is not found locally, it will automatically download from HuggingFace Hub and cache it at `~/.cache/infinity_parser2/`.
+
+2. **Subsequent Uses**: The cached model will be detected and loaded directly without re-downloading.
+
+```python
+from infinity_parser2 import InfinityParser2
+
+# First time: downloads model automatically if not cached
+parser = InfinityParser2(model_name="infly/Infinity-Parser2-Pro")
+# Output: [Infinity-Parser2] Model 'infly/Infinity-Parser2-Pro' not found locally.
+#         Starting download to: ~/.cache/infinity_parser2/infly_Infinity-Parser2-Pro
+#         ...
+
+# Second time: uses cached model
+parser = InfinityParser2(model_name="infly/Infinity-Parser2-Pro")
+# Output: [Infinity-Parser2] Found cached model at: ~/.cache/infinity_parser2/infly_Infinity-Parser2-Pro
+```
+
+You can also customize the cache directory:
+
+```python
+parser = InfinityParser2(
+    model_name="infly/Infinity-Parser2-Pro",
+    model_cache_dir="/path/to/your/cache"
+)
+```
+
+</details>
+
 ### Model Inference
 
 #### 1. vLLM Engine (Offline Batch Inference)
@@ -86,15 +122,6 @@ print(result)
 
 ## Requirements
 
-- Python >= 3.12
-- torch >= 2.10.0
-- transformers >= 5.3.0
-- vllm >= 0.17.1
-- qwen-vl-utils
-- Pillow >= 9.0.0
-- pypdf >= 3.0.0
-- huggingface-hub >= 0.24.0
-
 See `requirements.txt` for full dependency list.
 
 ## API Reference
@@ -104,6 +131,7 @@ See `requirements.txt` for full dependency list.
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `model_name` | `str` | `"infly/Infinity-Parser2-Pro"` | Model name on HuggingFace Hub or local path |
+| `model_cache_dir` | `Optional[str]` | `None` | Custom cache directory for downloaded models (defaults to `~/.cache/infinity_parser2/`) |
 | `backend` | `str` | `"vllm-engine"` | Inference backend: `"transformers"`, `"vllm-engine"`, or `"vllm-server"` |
 | `tensor_parallel_size` | `Optional[int]` | `None` | Tensor parallel size for vLLM Engine (defaults to GPU count) |
 | `device` | `str` | `"cuda"` | Device type, currently only `"cuda"` is supported |
