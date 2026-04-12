@@ -9,7 +9,8 @@ from .backends import (
     VLLMEngineBackend,
     VLLMServerBackend,
 )
-from .utils.pdf import convert_pdf_to_images
+from .prompts import ParseMode, PROMPT_DOC2JSON, PROMPT_DOC2MD
+from .utils import convert_pdf_to_images
 
 __all__ = [
     "InfinityParser2",
@@ -18,5 +19,8 @@ __all__ = [
     "VLLMEngineBackend",
     "VLLMServerBackend",
     "convert_pdf_to_images",
+    "ParseMode",
+    "PROMPT_DOC2JSON",
+    "PROMPT_DOC2MD",
     "__version__",
 ]

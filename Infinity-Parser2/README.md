@@ -50,9 +50,16 @@ results = parser.parse("demo_data")
 
 ```bash
 vllm serve infly/Infinity-Parser2-Pro \
+    --trust-remote-code \
+    --reasoning-parser qwen3 \
     --host 0.0.0.0 \
     --port 8000 \
-    --tensor-parallel-size 2
+    --tensor-parallel-size 2 \
+    --gpu-memory-utilization 0.85 \
+    --max-model-len 32768 \
+    --mm-encoder-tp-mode data \
+    --mm-processor-cache-type shm \
+    --enable-prefix-caching
 ```
 
 **Send inference requests:**
@@ -101,8 +108,10 @@ See `requirements.txt` for full dependency list.
 | `device` | `str` | `"cuda"` | Device type, currently only `"cuda"` is supported |
 | `api_url` | `str` | `"http://localhost:8000/v1/chat/completions"` | API URL for vLLM Server (used only with vllm-server backend) |
 | `api_key` | `str` | `"EMPTY"` | API key for vLLM Server (used only with vllm-server backend) |
-| `min_pixels` | `int` | `2048` | Minimum pixel count for input images (transformers backend only) |
-| `max_pixels` | `int` | `16777216` | Maximum pixel count for input images (~4096x4096, transformers backend only) |
+| `min_pixels` | `int` | `2048` | Minimum pixel count for input images |
+| `max_pixels` | `int` | `16777216` | Maximum pixel count for input images (~4096x4096) |
+| `torch_dtype` | `str` | `"bfloat16"` | Data type for model weights in transformers backend (`"float16"` or `"bfloat16"`) |
+| `timeout` | `int` | `300` | Request timeout in seconds for vLLM Server backend |
 | `**kwargs` | - | - | Additional arguments passed to the backend |
 
 ### parse() Method Parameters
@@ -110,10 +119,39 @@ See `requirements.txt` for full dependency list.
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `input_data` | `str \| List[str] \| PIL.Image.Image` | **Required** | File path(s), directory path, or PIL Image object |
-| `prompt` | `str` | `"Please parse this document and extract all text content."` | Prompt text sent to the model |
+| `prompt` | `Optional[str]` | `None` | Custom prompt text. If provided, uses this prompt directly and skips result post-processing |
+| `prompt_mode` | `ParseMode` | `ParseMode.DOC2JSON` | Parsing mode: `ParseMode.DOC2JSON` (layout to JSON) or `ParseMode.DOC2MD` (direct Markdown output) |
 | `batch_size` | `int` | `4` | Number of images to process per batch |
 | `output_dir` | `Optional[str]` | `None` | If provided, results are saved to this directory |
-| `**kwargs` | - | - | Additional arguments passed to the model |
+| `**kwargs` | - | - | Additional arguments passed to the model (e.g., `max_new_tokens`, `temperature`, `enable_thinking`) |
+
+### ParseMode Enum
+
+```python
+from infinity_parser2 import ParseMode
+
+# Available parsing modes
+ParseMode.DOC2JSON  # Extract layout to JSON with bbox coordinates
+ParseMode.DOC2MD    # Directly convert to Markdown format
+```
+
+| Mode | Output Format | Description |
+|------|---------------|-------------|
+| `ParseMode.DOC2JSON` | JSON string | Extracts layout elements with bounding box coordinates, category, and text content. Returns parseable JSON. When `output_dir` is set, saves both `result.json` and `result.md`. |
+| `ParseMode.DOC2MD` | Markdown string | Directly converts document content to Markdown format. Returns plain Markdown text. |
+
+### Return Value
+
+**Without output_dir (returns results directly):**
+- **Single file**: Returns `str` — parsed result for the file.
+- **Multiple files** (List): Returns `List[str]` — parsed results for all files.
+- **Directory**: Returns `Dict[str, str]` — mapping from file path to parsed result.
+
+**With output_dir (saves results to disk):**
+- Returns `None` directly.
+- Creates subdirectories for each input file (named by filename or UUID for PIL Images).
+- For `ParseMode.DOC2JSON`: each subdirectory contains `result.json` (raw JSON) and `result.md` (markdown).
+- For `ParseMode.DOC2MD` or custom prompt: each subdirectory contains `result.md`.
 
 ### Automatic Model Download
 
@@ -122,6 +160,10 @@ Infinity-Parser2 features automatic model downloading and caching. When you firs
 1. **First Use**: If the model is not found locally, it will automatically download from HuggingFace Hub and cache it at `~/.cache/infinity_parser2/`.
 
 2. **Subsequent Uses**: The cached model will be detected and loaded directly without re-downloading.
+
+3. **Local Path**: If `model_name` is a local path, it will be used directly without caching.
+
+4. **Endpoint Fallback**: Automatically detects connectivity and falls back to HuggingFace mirror (`hf-mirror.com`) if needed.
 
 ```python
 from infinity_parser2 import InfinityParser2
@@ -149,21 +191,21 @@ parser = InfinityParser2(
 ### Advanced Usage Examples
 
 ```python
-from infinity_parser2 import InfinityParser2
+from infinity_parser2 import InfinityParser2, ParseMode
 
-# Use transformers backend (local inference)
-parser = InfinityParser2(
-    model_name="infly/Infinity-Parser2-Pro",
-    backend="transformers",
-    device="cuda",
-    min_pixels=2048,       # Minimum pixel count
-    max_pixels=16777216,   # Maximum pixel count (~4096x4096)
-)
+# Default parsing (DOC2JSON mode - returns JSON)
+parser = InfinityParser2(model_name="infly/Infinity-Parser2-Pro")
+result = parser.parse("document.pdf")
+# Returns JSON with layout elements: [{"bbox": [x1,y1,x2,y2], "category": "...", "text": "..."}]
 
-# Use custom prompt
+# DOC2MD mode (direct Markdown output)
+result = parser.parse("document.pdf", prompt_mode=ParseMode.DOC2MD)
+# Returns Markdown string directly
+
+# Custom prompt (skips result post-processing)
 result = parser.parse(
     "document.pdf",
-    prompt="Please extract all table content from this document in Markdown format."
+    prompt="Please transform the document's contents into Markdown format."
 )
 
 # Batch process multiple files
@@ -173,16 +215,78 @@ results = parser.parse(
 )
 
 # Save results to specified directory
-saved_paths = parser.parse(
+# DOC2JSON mode: saves result.json + result.md for each file
+parser.parse(
     "documents_folder",
+    prompt_mode=ParseMode.DOC2JSON,
     batch_size=8,
     output_dir="./parsed_output"
+)
+# Returns: None (results saved to ./parsed_output/{filename}/)
+
+# DOC2MD mode: saves result.md for each file
+parser.parse(
+    "documents_folder",
+    prompt_mode=ParseMode.DOC2MD,
+    batch_size=8,
+    output_dir="./parsed_output"
+)
+# Returns: None (results saved to ./parsed_output/{filename}/)
+
+# Use transformers backend with custom dtype
+parser = InfinityParser2(
+    model_name="infly/Infinity-Parser2-Pro",
+    backend="transformers",
+    device="cuda",
+    torch_dtype="float16",  # or "bfloat16"
+    min_pixels=2048,
+    max_pixels=16777216,
 )
 
 # Use vLLM Server backend (remote inference)
 parser = InfinityParser2(
     backend="vllm-server",
     api_url="http://your-server:8000/v1/chat/completions",
-    api_key="your-api-key"
+    api_key="your-api-key",
+    timeout=300,
 )
+
+# Enable thinking mode (if supported by model)
+result = parser.parse("document.pdf", enable_thinking=True)
+
+# Custom generation parameters
+result = parser.parse(
+    "document.pdf",
+    max_new_tokens=16384,
+    temperature=0.01,
+    top_p=0.95,
+)
+```
+
+### Utility Functions
+
+```python
+from infinity_parser2 import (
+    convert_pdf_to_images,      # Convert PDF pages to PIL Images
+    convert_json_to_markdown,    # Convert layout JSON to Markdown
+    extract_json_content,        # Extract JSON from LLM response
+    restore_abs_bbox_coordinates, # Convert normalized bboxes to pixel coordinates
+    postprocess_doc2json_result,  # Full DOC2JSON post-processing
+    get_files_from_directory,    # Get supported files from directory
+    is_supported_file,           # Check if file type is supported
+    save_results,               # Save parsing results to directory
+    ModelCache,                 # Model cache management class
+    get_model_cache,            # Get global model cache instance
+)
+
+# Convert PDF to images
+images = convert_pdf_to_images("document.pdf", dpi=300)
+for page_img in images:
+    print(page_img.size)
+
+# Convert JSON to Markdown
+markdown = convert_json_to_markdown(json_string)
+
+# Restore absolute bbox coordinates
+json_with_coords = restore_abs_bbox_coordinates(json_string, height, width)
 ```

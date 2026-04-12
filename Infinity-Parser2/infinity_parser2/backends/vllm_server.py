@@ -4,10 +4,12 @@ Uses vLLM OpenAI-Compatible Server for online inference.
 """
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import sys
 from typing import Union
 
 from openai import OpenAI
 from PIL import Image
+from tqdm import tqdm
 
 from .base import BaseBackend
 from ..utils import encode_file_to_base64
@@ -129,7 +131,7 @@ class VLLMServerBackend(BaseBackend):
                 for idx, item in enumerate(input_data)
             }
 
-            for future in as_completed(future_to_index):
+            for future in tqdm(as_completed(future_to_index), total=len(input_data), desc="Parsing", file=sys.stdout):
                 idx = future_to_index[future]
                 try:
                     results[idx] = future.result()

@@ -2,7 +2,6 @@
 
 import tempfile
 import unittest
-from abc import ABC
 from unittest.mock import MagicMock, patch
 
 from PIL import Image
@@ -30,7 +29,6 @@ class TestBaseBackend(unittest.TestCase):
 
     def test_base_backend_subclass_interface(self):
         """Test that subclasses implement required interface."""
-        # Create a minimal concrete implementation
         class ConcreteBackend(BaseBackend):
             def init(self):
                 pass
@@ -66,8 +64,6 @@ class TestTransformersBackend(unittest.TestCase):
 
     def test_transformers_backend_initialization_params(self):
         """Test TransformersBackend initialization parameters."""
-        # Note: This test doesn't load the model, just tests parameter handling
-        # We mock the model loading to avoid actual model download
         with patch("infinity_parser2.backends.transformers.AutoModelForCausalLM") as mock_model:
             with patch("infinity_parser2.backends.transformers.AutoProcessor") as mock_processor:
                 mock_model.from_pretrained.return_value = MagicMock()
@@ -86,6 +82,17 @@ class TestTransformersBackend(unittest.TestCase):
                 self.assertEqual(backend.min_pixels, 1024)
                 self.assertEqual(backend.max_pixels, 4096)
 
+    def test_transformers_backend_min_max_pixels_defaults(self):
+        """Test TransformersBackend default min_pixels and max_pixels."""
+        with patch("infinity_parser2.backends.transformers.AutoModelForCausalLM") as mock_model:
+            with patch("infinity_parser2.backends.transformers.AutoProcessor") as mock_processor:
+                mock_model.from_pretrained.return_value = MagicMock()
+                mock_processor.from_pretrained.return_value = MagicMock()
+
+                backend = TransformersBackend(model_name="test/model")
+                self.assertEqual(backend.min_pixels, 2048)
+                self.assertEqual(backend.max_pixels, 16777216)
+
     def test_transformers_backend_process_inputs(self):
         """Test _process_inputs method."""
         with patch("infinity_parser2.backends.transformers.AutoModelForCausalLM") as mock_model:
@@ -96,7 +103,6 @@ class TestTransformersBackend(unittest.TestCase):
 
                 backend = TransformersBackend(model_name="test/model")
 
-                # Create test images
                 temp_file = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
                 img = Image.new("RGB", (100, 100), color="red")
                 img.save(temp_file.name)
@@ -122,7 +128,6 @@ class TestTransformersBackend(unittest.TestCase):
 
                 backend = TransformersBackend(model_name="test/model")
 
-                # Create test images
                 temp_files = []
                 for i in range(3):
                     f = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
@@ -157,7 +162,6 @@ class TestTransformersBackend(unittest.TestCase):
                 backend = TransformersBackend(model_name="test/model")
                 backend._model = mock_model_instance
 
-                # Mock the input tensors
                 with patch.object(backend._processor, '__call__') as mock_call:
                     mock_call.return_value = {
                         "input_ids": MagicMock(to=MagicMock(return_value=MagicMock()))
@@ -170,6 +174,40 @@ class TestTransformersBackend(unittest.TestCase):
 
                     results = backend._generate(["text1", "text2"], [], [])
                     self.assertIsInstance(results, list)
+
+    def test_transformers_backend_parse_batch_with_enable_thinking(self):
+        """Test parse_batch with enable_thinking parameter."""
+        with patch("infinity_parser2.backends.transformers.AutoModelForCausalLM") as mock_model:
+            with patch("infinity_parser2.backends.transformers.AutoProcessor") as mock_processor:
+                mock_model_instance = MagicMock()
+                mock_model.from_pretrained.return_value = mock_model_instance
+                mock_model_instance.device = "cuda"
+
+                mock_processor_instance = MagicMock()
+                mock_processor.from_pretrained.return_value = mock_processor_instance
+                mock_processor_instance.apply_chat_template.return_value = "processed"
+                mock_processor_instance.tokenizer.return_value = {"input_ids": [1, 2, 3]}
+                mock_processor_instance.batch_decode.return_value = ["Result"]
+
+                backend = TransformersBackend(model_name="test/model")
+                backend._model = mock_model_instance
+
+                with patch.object(backend._processor, '__call__') as mock_call:
+                    mock_call.return_value = {
+                        "input_ids": MagicMock(to=MagicMock(return_value=MagicMock()))
+                    }
+                    mock_model_instance.generate.return_value = MagicMock()
+                    mock_model_instance.generate.return_value.__getitem__ = MagicMock(
+                        return_value=MagicMock()
+                    )
+
+                    results = backend.parse_batch(
+                        [Image.new("RGB", (100, 100))],
+                        "Test prompt",
+                        enable_thinking=True
+                    )
+                    self.assertIsInstance(results, list)
+                    self.assertEqual(len(results), 1)
 
 
 class TestVLLMEngineBackend(unittest.TestCase):
@@ -195,6 +233,15 @@ class TestVLLMEngineBackend(unittest.TestCase):
             self.assertEqual(backend.min_pixels, 1024)
             self.assertEqual(backend.max_pixels, 4096)
 
+    def test_vllm_engine_backend_min_max_pixels_defaults(self):
+        """Test VLLMEngineBackend default min_pixels and max_pixels."""
+        with patch("infinity_parser2.backends.vllm_engine.LLM") as mock_llm:
+            mock_llm.return_value = MagicMock()
+
+            backend = VLLMEngineBackend(model_name="test/model")
+            self.assertEqual(backend.min_pixels, 2048)
+            self.assertEqual(backend.max_pixels, 16777216)
+
     def test_vllm_engine_build_messages(self):
         """Test _build_messages method."""
         with patch("infinity_parser2.backends.vllm_engine.LLM") as mock_llm:
@@ -209,12 +256,10 @@ class TestVLLMEngineBackend(unittest.TestCase):
             self.assertIsInstance(messages[0]["content"], list)
             self.assertEqual(len(messages[0]["content"]), 2)
 
-            # Check image content
             image_content = messages[0]["content"][0]
             self.assertEqual(image_content["type"], "image_url")
             self.assertIn("data:image/png;base64,base64data", image_content["image_url"]["url"])
 
-            # Check text content
             text_content = messages[0]["content"][1]
             self.assertEqual(text_content["type"], "text")
             self.assertEqual(text_content["text"], "Test prompt")
@@ -225,7 +270,6 @@ class TestVLLMEngineBackend(unittest.TestCase):
             mock_llm_instance = MagicMock()
             mock_llm.return_value = mock_llm_instance
 
-            # Mock the chat output
             mock_output = MagicMock()
             mock_output.outputs = [MagicMock(text="Parsed result")]
             mock_llm_instance.chat.return_value = [mock_output]
@@ -241,6 +285,36 @@ class TestVLLMEngineBackend(unittest.TestCase):
                 results = backend.parse_batch([temp_file.name], "Test prompt")
                 self.assertIsInstance(results, list)
                 self.assertEqual(len(results), 1)
+            finally:
+                import os
+                os.unlink(temp_file.name)
+
+    def test_vllm_engine_parse_batch_with_enable_thinking(self):
+        """Test parse_batch with enable_thinking parameter."""
+        with patch("infinity_parser2.backends.vllm_engine.LLM") as mock_llm:
+            mock_llm_instance = MagicMock()
+            mock_llm.return_value = mock_llm_instance
+
+            mock_output = MagicMock()
+            mock_output.outputs = [MagicMock(text="Parsed result")]
+            mock_llm_instance.chat.return_value = [mock_output]
+
+            backend = VLLMEngineBackend(model_name="test/model")
+
+            temp_file = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
+            img = Image.new("RGB", (100, 100), color="green")
+            img.save(temp_file.name)
+            temp_file.close()
+
+            try:
+                results = backend.parse_batch(
+                    [temp_file.name],
+                    "Test prompt",
+                    enable_thinking=True
+                )
+                self.assertIsInstance(results, list)
+                self.assertEqual(len(results), 1)
+                mock_llm_instance.chat.assert_called()
             finally:
                 import os
                 os.unlink(temp_file.name)
@@ -271,6 +345,16 @@ class TestVLLMServerBackend(unittest.TestCase):
             self.assertEqual(backend.min_pixels, 1024)
             self.assertEqual(backend.max_pixels, 4096)
             self.assertIsNotNone(backend.client)
+
+    def test_vllm_server_backend_min_max_pixels_defaults(self):
+        """Test VLLMServerBackend default min_pixels and max_pixels."""
+        with patch("infinity_parser2.backends.vllm_server.OpenAI") as mock_openai:
+            mock_client_instance = MagicMock()
+            mock_openai.return_value = mock_client_instance
+
+            backend = VLLMServerBackend(api_url="http://localhost:8000/v1/chat/completions")
+            self.assertEqual(backend.min_pixels, 2048)
+            self.assertEqual(backend.max_pixels, 16777216)
 
     def test_vllm_server_connection_check(self):
         """Test server connection validation on init."""
@@ -361,7 +445,10 @@ class TestVLLMServerBackend(unittest.TestCase):
                 self.assertEqual(call_kwargs["max_tokens"], 32768)
                 self.assertEqual(call_kwargs["temperature"], 0.01)
                 self.assertEqual(call_kwargs["top_p"], 0.95)
-                self.assertEqual(call_kwargs["extra_body"], {"chat_template_kwargs": {"enable_thinking": True}})
+                self.assertEqual(
+                    call_kwargs["extra_body"],
+                    {"chat_template_kwargs": {"enable_thinking": True}}
+                )
             finally:
                 import os
                 os.unlink(temp_file.name)

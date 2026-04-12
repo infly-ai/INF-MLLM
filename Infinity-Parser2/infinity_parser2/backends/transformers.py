@@ -1,9 +1,11 @@
 """Transformers backend for Infinity-Parser2."""
 
+import sys
 from typing import Union
 
 from PIL import Image
 import torch
+from tqdm import tqdm
 from qwen_vl_utils import process_vision_info
 from transformers import AutoModelForCausalLM, AutoProcessor
 
@@ -155,7 +157,7 @@ class TransformersBackend(BaseBackend):
         results = [None] * len(input_data)
         indices = list(range(len(input_data)))
 
-        for i in range(0, len(input_data), batch_size):
+        for i in tqdm(range(0, len(input_data), batch_size), desc="Parsing", file=sys.stdout):
             batch = input_data[i : i + batch_size]
             batch_indices = indices[i : i + batch_size]
             texts, image_inputs, video_inputs = self._process_inputs(batch, prompt, **kwargs)

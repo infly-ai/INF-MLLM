@@ -9,7 +9,7 @@ from unittest.mock import MagicMock, patch
 
 from PIL import Image
 
-from infinity_parser2 import InfinityParser2
+from infinity_parser2 import InfinityParser2, ParseMode
 from infinity_parser2.backends import TransformersBackend
 
 
@@ -26,7 +26,6 @@ class TestInfinityParser2Initialization(unittest.TestCase):
         self.assertEqual(parser.api_key, "EMPTY")
         self.assertEqual(parser.min_pixels, 2048)
         self.assertEqual(parser.max_pixels, 16777216)
-        # tensor_parallel_size defaults to number of available GPUs
         self.assertIsInstance(parser.tensor_parallel_size, int)
 
     def test_custom_initialization(self):
@@ -59,11 +58,8 @@ class TestInfinityParser2Initialization(unittest.TestCase):
         """Test that backend name is case-insensitive."""
         parser1 = InfinityParser2(backend="VLLM-ENGINE")
         parser2 = InfinityParser2(backend="vllm-engine")
-        # VLLMEngine (no hyphen) is not a valid backend name, should raise error
-        # Valid names are only: transformers, vllm-engine, vllm-server
         self.assertEqual(parser1.backend_name, "vllm-engine")
         self.assertEqual(parser2.backend_name, "vllm-engine")
-        # Verify VLLMEngine format raises error (not a valid backend name)
         with self.assertRaises(ValueError) as context:
             InfinityParser2(backend="VLLMEngine")
         self.assertIn("Unsupported backend", str(context.exception))
@@ -240,17 +236,19 @@ class TestInfinityParser2MockedParse(unittest.TestCase):
         self.assertIsInstance(result, str)
         self.assertEqual(result, "Image content")
 
-    def test_parse_with_output_dir_returns_dict(self):
-        """Test that parsing with output_dir returns dict."""
+    def test_parse_with_output_dir_creates_subdirectories(self):
+        """Test that parsing with output_dir creates subdirectories."""
         parser = self._make_parser()
         parser._backend.parse_batch.return_value = ["Result content"]
         temp_file = os.path.join(self.temp_dir, "test.png")
         Image.new("RGB", (100, 100), color="white").save(temp_file)
         output_dir = tempfile.mkdtemp()
         try:
-            result = parser.parse(temp_file, output_dir=output_dir)
-            self.assertIsInstance(result, dict)
-            self.assertIn(temp_file, result)
+            parser.parse(temp_file, output_dir=output_dir)
+            subdir = os.path.join(output_dir, "test.png")
+            self.assertTrue(os.path.exists(subdir))
+            result_file = os.path.join(subdir, "result.md")
+            self.assertTrue(os.path.exists(result_file))
         finally:
             shutil.rmtree(output_dir, ignore_errors=True)
 
@@ -266,6 +264,78 @@ class TestInfinityParser2MockedParse(unittest.TestCase):
             self.assertEqual(call_kwargs["batch_size"], 4)
         finally:
             os.unlink(temp_file.name)
+
+    def test_parse_with_prompt_mode_doc2md(self):
+        """Test parsing with DOC2MD prompt mode."""
+        parser = self._make_parser()
+        parser._backend.parse_batch.return_value = ["# Title\n\nParagraph text"]
+        temp_file = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
+        try:
+            result = parser.parse(temp_file.name, prompt_mode=ParseMode.DOC2MD)
+            self.assertIsInstance(result, str)
+            self.assertIn("# Title", result)
+        finally:
+            os.unlink(temp_file.name)
+
+    def test_parse_with_custom_prompt(self):
+        """Test parsing with custom prompt."""
+        parser = self._make_parser()
+        parser._backend.parse_batch.return_value = ["Custom result"]
+        temp_file = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
+        try:
+            result = parser.parse(temp_file.name, prompt="Custom instruction")
+            self.assertIsInstance(result, str)
+            self.assertEqual(result, "Custom result")
+            # Verify custom prompt is passed to backend
+            call_args = parser._backend.parse_batch.call_args
+            self.assertEqual(call_args[0][1], "Custom instruction")
+        finally:
+            os.unlink(temp_file.name)
+
+    def test_parse_directory(self):
+        """Test parsing a directory of files."""
+        parser = self._make_parser()
+        parser._backend.parse_batch.return_value = ["Result1", "Result2"]
+        dir_path = tempfile.mkdtemp()
+        try:
+            file1 = os.path.join(dir_path, "file1.png")
+            file2 = os.path.join(dir_path, "file2.png")
+            Image.new("RGB", (100, 100), color="red").save(file1)
+            Image.new("RGB", (100, 100), color="blue").save(file2)
+            result = parser.parse(dir_path)
+            self.assertIsInstance(result, dict)
+            self.assertEqual(len(result), 2)
+            for path, content in result.items():
+                self.assertIsInstance(path, str)
+                self.assertIsInstance(content, str)
+        finally:
+            shutil.rmtree(dir_path)
+
+
+class TestParseMode(unittest.TestCase):
+    """Tests for ParseMode enum."""
+
+    def test_parse_mode_values(self):
+        """Test ParseMode enum values."""
+        self.assertEqual(ParseMode.DOC2JSON.value, "doc2json")
+        self.assertEqual(ParseMode.DOC2MD.value, "doc2md")
+
+    def test_parse_mode_in_prompts_module(self):
+        """Test that ParseMode is accessible from prompts module."""
+        from infinity_parser2.prompts import ParseMode as PM
+        self.assertIs(PM, ParseMode)
+
+    def test_prompt_doc2json_defined(self):
+        """Test that PROMPT_DOC2JSON is defined."""
+        from infinity_parser2 import PROMPT_DOC2JSON
+        self.assertIsInstance(PROMPT_DOC2JSON, str)
+        self.assertIn("layout", PROMPT_DOC2JSON.lower())
+
+    def test_prompt_doc2md_defined(self):
+        """Test that PROMPT_DOC2MD is defined."""
+        from infinity_parser2 import PROMPT_DOC2MD
+        self.assertIsInstance(PROMPT_DOC2MD, str)
+        self.assertIn("markdown", PROMPT_DOC2MD.lower())
 
 
 if __name__ == "__main__":

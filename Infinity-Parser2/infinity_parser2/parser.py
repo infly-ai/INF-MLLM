@@ -1,7 +1,6 @@
 """Infinity-Parser2 main interface."""
 
 import os
-import uuid
 from pathlib import Path
 from typing import Dict, List, Optional, Union
 
@@ -14,14 +13,8 @@ from .backends import (
     VLLMEngineBackend,
     VLLMServerBackend,
 )
-from .utils import (
-    convert_pdf_to_images,
-    get_files_from_directory,
-    is_supported_file,
-    save_results,
-    ModelCache,
-    get_model_cache,
-)
+from .prompts import ParseMode, PROMPT_DOC2JSON, PROMPT_DOC2MD
+from .utils import *
 
 
 BACKEND_REGISTRY = {
@@ -105,43 +98,30 @@ class InfinityParser2:
                 f"Supported backends: {list(BACKEND_REGISTRY.keys())}"
             )
         backend_cls = BACKEND_REGISTRY[self.backend_name]
+        common_kwargs = {
+            "model_name": self.model_name,
+            "device": self.device,
+            "min_pixels": self.min_pixels,
+            "max_pixels": self.max_pixels,
+            **self.kwargs,
+        }
         if self.backend_name == "vllm-server":
-            backend_kwargs = {
-                "model_name": self.model_name,
-                "device": self.device,
-                "api_url": self.api_url,
-                "api_key": self.api_key,
-                "min_pixels": self.min_pixels,
-                "max_pixels": self.max_pixels,
-                **self.kwargs,
-            }
+            backend_kwargs = {**common_kwargs, "api_url": self.api_url, "api_key": self.api_key}
         elif self.backend_name == "vllm-engine":
-            backend_kwargs = {
-                "model_name": self.model_name,
-                "device": self.device,
-                "tensor_parallel_size": self.tensor_parallel_size,
-                "min_pixels": self.min_pixels,
-                "max_pixels": self.max_pixels,
-                **self.kwargs,
-            }
+            backend_kwargs = {**common_kwargs, "tensor_parallel_size": self.tensor_parallel_size}
         else:  # transformers
-            backend_kwargs = {
-                "model_name": self.model_name,
-                "device": self.device,
-                "min_pixels": self.min_pixels,
-                "max_pixels": self.max_pixels,
-                **self.kwargs,
-            }
+            backend_kwargs = common_kwargs
         return backend_cls(**backend_kwargs)
 
     def parse(
         self,
         input_data: Union[str, List[str], Image.Image],
-        prompt: str = "Please parse this document and extract all text content.",
+        prompt: Optional[str] = None,
+        prompt_mode: ParseMode = ParseMode.DOC2JSON,
         batch_size: int = 4,
         output_dir: Optional[str] = None,
         **kwargs,
-    ) -> Union[str, List[str], Dict[str, str]]:
+    ) -> Optional[Union[str, List[str], Dict[str, str]]]:
         """Parse document(s) and extract text content.
 
         Args:
@@ -149,88 +129,63 @@ class InfinityParser2:
                 - str: Single file path or directory path
                 - List[str]: List of file paths
                 - PIL.Image.Image: Image object
-            prompt: Prompt text for the model. Defaults to a general parsing prompt.
-            batch_size: Number of images to process in one batch. Defaults to 1.
-            output_dir: If provided, results are saved to output_dir. Each input file
-                gets its own subdirectory containing result.md. For Image inputs,
-                a UUID-based folder name is generated. Returns a dict mapping
-                input identifiers to their saved result paths when output_dir is set.
+            prompt: Custom prompt text for the model. If provided, takes precedence
+                over prompt_mode and uses the default parse behavior (no special
+                result processing). Defaults to None.
+            prompt_mode: Parsing mode. Options:
+                - ParseMode.DOC2JSON: Extract layout to JSON, return JSON string.
+                - ParseMode.DOC2MD: Directly convert to Markdown, return Markdown.
+                - None: Use default general parsing prompt.
+            batch_size: Number of images to process in one batch. Defaults to 4.
+            output_dir: If provided, results are saved to output_dir and this function
+                returns None. If None, results are returned directly.
             **kwargs: Additional arguments passed to the model.
 
-            Returns:
-            - str: Parsed text for a single file (when output_dir is None).
-            - List[str]: Parsed texts for multiple files (when output_dir is None).
-            - Dict[str, str]: Mapping from input identifier to saved result path
-                when output_dir is set. For file inputs, keys are file paths; for
-                Image inputs, keys are synthetic identifiers.
+        Returns:
+            When output_dir is None:
+                - str: Parsed result for a single file or image.
+                - List[str]: Parsed results for a list of files.
+                - Dict[str, str]: Mapping from file path to parsed result for a directory.
+            When output_dir is set, returns None.
 
         Example:
             >>> parser = InfinityParser2()
-            >>> # Parse single file
+            >>> # Single file, returns str
             >>> result = parser.parse("document.pdf")
-            >>> # Parse multiple files with batch_size=4
-            >>> results = parser.parse(["doc1.pdf", "doc2.png"], batch_size=4)
-            >>> # Parse and save to output directory
-            >>> saved = parser.parse(["doc.pdf"], batch_size=4, output_dir="./output")
+            >>> # Multiple files, returns List[str]
+            >>> result = parser.parse(["doc1.pdf", "doc2.pdf"])
+            >>> # Directory, returns Dict[str, str]
+            >>> result = parser.parse("/path/to/docs")
+            >>> # Save results to output_dir, returns None
+            >>> parser.parse("document.pdf", output_dir="./output")
         """
-        if isinstance(input_data, str):
-            if os.path.isdir(input_data):
-                file_paths = get_files_from_directory(input_data)
-                if not file_paths:
-                    raise ValueError(f"No supported files found in directory: {input_data}")
-                return self._parse_files(file_paths, prompt, batch_size, output_dir, **kwargs)
-            elif os.path.isfile(input_data):
-                if not is_supported_file(input_data):
-                    raise ValueError(f"Unsupported file type: {input_data}")
-                return self._parse_files([input_data], prompt, batch_size, output_dir, **kwargs)
-            else:
-                raise FileNotFoundError(f"File or directory not found: {input_data}")
-        elif isinstance(input_data, list):
-            file_paths = []
-            for item in input_data:
-                if not isinstance(item, str):
-                    raise TypeError(f"Expected str in list, got {type(item)}")
-                if not os.path.isfile(item):
-                    raise FileNotFoundError(f"File not found: {item}")
-                if not is_supported_file(item):
-                    raise ValueError(f"Unsupported file type: {item}")
-                file_paths.append(item)
-            return self._parse_files(file_paths, prompt, batch_size, output_dir, **kwargs)
-        elif isinstance(input_data, Image.Image):
-            return self._parse_files([input_data], prompt, batch_size, output_dir, **kwargs)
-        else:
-            raise TypeError(
-                f"Unsupported input type: {type(input_data)}. "
-                "Expected str, List[str], or PIL.Image.Image."
-            )
+        is_doc2json = prompt is None and prompt_mode == ParseMode.DOC2JSON
+        is_directory = isinstance(input_data, str) and os.path.isdir(input_data)
+        file_paths = normalize_input(input_data)
+        file_results = self._parse_files(file_paths, prompt, prompt_mode, batch_size)
+
+        if output_dir is not None:
+            save_results(file_paths, file_results, output_dir, is_doc2json=is_doc2json)
+            return None
+
+        if is_directory:
+            return dict(zip(file_paths, file_results))
+        elif len(file_results) == 1 and not isinstance(file_paths[0], Image.Image):
+            return file_results[0]
+        return file_results
 
     def _parse_files(
         self,
         inputs: List[Union[str, Image.Image]],
-        prompt: str,
-        batch_size: int = 1,
-        output_dir: Optional[str] = None,
-        **kwargs,
-    ) -> Union[str, List[str], Dict[str, str]]:
-        """Parse multiple files with batched inference and optional result saving.
+        prompt: Optional[str] = None,
+        prompt_mode: ParseMode = ParseMode.DOC2JSON,
+        batch_size: int = 4,
+    ) -> List[str]:
+        """Parse multiple files with batched inference.
 
         All images (including PDF pages) are collected and batched together for
         efficient inference. Results are then aggregated back to the original
-        file-level granularity, and optionally saved to output_dir.
-
-        Args:
-            inputs: List of inputs, each can be:
-                - str: File path (image or PDF)
-                - PIL.Image.Image: Image object
-            prompt: Prompt text for the model.
-            batch_size: Number of images to process in one batch.
-            output_dir: If provided, saves results to output_dir.
-            **kwargs: Additional arguments passed to the backend.
-
-        Returns:
-            - str: Single result if one input.
-            - List[str]: Results for multiple inputs (same order as inputs).
-            - Dict[str, str]: Input identifier -> saved result path when output_dir is set.
+        file-level granularity.
         """
         batch_entries: list[tuple[int, Union[str, Image.Image]]] = []
 
@@ -249,34 +204,38 @@ class InfinityParser2:
         if not batch_entries:
             return [] if len(inputs) > 1 else ""
 
-        # Track which batch entries come from PDF (by checking if original input is PDF path)
         pdf_page_batch_indices = [
             entry_idx for entry_idx, (orig_idx, item) in enumerate(batch_entries)
             if isinstance(item, Image.Image) and isinstance(inputs[orig_idx], str)
             and Path(inputs[orig_idx]).suffix.lower() == ".pdf"
         ]
 
+        # Determine effective prompt
+        if prompt is not None:
+            effective_prompt = prompt
+        elif prompt_mode == ParseMode.DOC2JSON:
+            effective_prompt = PROMPT_DOC2JSON
+        elif prompt_mode == ParseMode.DOC2MD:
+            effective_prompt = PROMPT_DOC2MD
+        else:
+            effective_prompt = "Please transform the document's contents into Markdown format."
+
         raw_inputs = [entry[1] for entry in batch_entries]
-        batch_results = self._backend.parse_batch(raw_inputs, prompt, batch_size=batch_size, **kwargs)
+        batch_results = self._backend.parse_batch(raw_inputs, effective_prompt, batch_size=batch_size)
+
+        # Postprocess for DOC2JSON
+        is_doc2json = prompt is None and prompt_mode == ParseMode.DOC2JSON
+        if is_doc2json:
+            batch_results = postprocess_doc2json_batch(batch_results, batch_entries)
 
         file_results: List[str] = ["" for _ in inputs]
         for entry_idx, (_, input_item) in enumerate(batch_entries):
             page_file_idx = batch_entries[entry_idx][0]
             if entry_idx in pdf_page_batch_indices:
-                # Merge PDF pages
                 if file_results[page_file_idx]:
                     file_results[page_file_idx] += "\n\n"
                 file_results[page_file_idx] += batch_results[entry_idx]
             else:
                 file_results[page_file_idx] = batch_results[entry_idx]
 
-        if output_dir is not None:
-            keys = [
-                uuid.uuid4().hex[:8] if isinstance(inp, Image.Image) else inp
-                for inp in inputs
-            ]
-            return save_results(keys, file_results, output_dir)
-
-        if len(inputs) == 1:
-            return file_results[0]
         return file_results

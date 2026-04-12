@@ -3,9 +3,11 @@
 Uses vLLM's LLM class for offline batch inference.
 """
 
+import sys
 from typing import Union
 
 from PIL import Image
+from tqdm import tqdm
 from vllm import LLM, SamplingParams
 
 from .base import BaseBackend
@@ -47,7 +49,9 @@ class VLLMEngineBackend(BaseBackend):
         # model_name can be a HuggingFace model ID or local path
         self._llm = LLM(
             model=self.model_name,
+            trust_remote_code=True,
             tensor_parallel_size=self.tensor_parallel_size,
+            gpu_memory_utilization=0.85,
             **self.kwargs,
         )
 
@@ -100,15 +104,15 @@ class VLLMEngineBackend(BaseBackend):
             all_messages.append(self._build_messages(base64_data, mime_type, prompt))
 
         results = [None] * len(input_data)
-        for i in range(0, len(all_messages), batch_size):
+        for i in tqdm(range(0, len(all_messages), batch_size), desc="Parsing", file=sys.stdout):
             batch_messages = all_messages[i : i + batch_size]
             outputs = self._llm.chat(
-                [batch_messages],
+                batch_messages,
                 sampling_params=sampling_params,
                 use_tqdm=False,
                 chat_template_kwargs=chat_template_kwargs,
             )
-            for j, output in enumerate(outputs[0].outputs):
-                results[i + j] = output.text
+            for j, output in enumerate(outputs):
+                results[i + j] = output.outputs[0].text
 
         return results
