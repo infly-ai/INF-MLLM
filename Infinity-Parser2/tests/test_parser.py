@@ -103,7 +103,7 @@ class TestInfinityParser2BackendProperty(unittest.TestCase):
         parser = InfinityParser2(backend="vllm-engine")
         self.assertIsNotNone(parser._backend)
 
-    @patch("infinity_parser2.backends.transformers.AutoModelForCausalLM")
+    @patch("infinity_parser2.backends.transformers.AutoModelForImageTextToText")
     @patch("infinity_parser2.backends.transformers.AutoProcessor")
     def test_backend_returns_correct_type(self, mock_processor, mock_model):
         """Test that backend returns correct backend instance."""
@@ -350,7 +350,7 @@ class TestInfinityParser2MockedParse(unittest.TestCase):
         temp_file = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
         try:
             with self.assertRaises(ValueError) as context:
-                parser.parse(temp_file.name, custom_prompt="Custom instruction", output_format="json")
+                parser.parse(temp_file.name, task_type="custom", custom_prompt="Custom instruction", output_format="json")
             self.assertIn("output_format='json' is only supported for doc2json tasks", str(context.exception))
         finally:
             os.unlink(temp_file.name)

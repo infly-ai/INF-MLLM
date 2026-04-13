@@ -27,6 +27,7 @@ PROMPT_DOC2JSON = """
 - Sort all layout elements in human reading order.
 - Final output must be a single JSON object.
 """
+
 # doc2md prompt (outputs Markdown format directly)
 PROMPT_DOC2MD = """
 You are an AI assistant specialized in converting PDF images to Markdown format. Please follow these instructions for the conversion:
