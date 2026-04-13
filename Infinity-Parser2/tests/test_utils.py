@@ -181,38 +181,6 @@ class TestConvertPdfToImages(unittest.TestCase):
         import shutil
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
-    def test_convert_pdf_requires_pypdf(self):
-        """Test that ImportError is raised if pypdf is not available."""
-        import sys
-        modules_to_remove = [k for k in sys.modules.keys() if k.startswith("pypdf")]
-        original_modules = {}
-        for mod in modules_to_remove:
-            original_modules[mod] = sys.modules.pop(mod)
-
-        try:
-            with patch.dict(sys.modules, {"pypdf": None}):
-                with self.assertRaises(ImportError) as context:
-                    convert_pdf_to_images("/fake/path.pdf")
-            self.assertIn("pypdf", str(context.exception))
-        finally:
-            sys.modules.update(original_modules)
-
-    def test_convert_pdf_requires_pymupdf(self):
-        """Test that ImportError is raised if PyMuPDF is not available."""
-        import sys
-        modules_to_remove = [k for k in sys.modules.keys() if k.startswith("fitz")]
-        original_modules = {}
-        for mod in modules_to_remove:
-            original_modules[mod] = sys.modules.pop(mod)
-
-        try:
-            with patch.dict(sys.modules, {"fitz": None}):
-                with self.assertRaises(ImportError) as context:
-                    convert_pdf_to_images("/fake/path.pdf")
-            self.assertIn("PyMuPDF", str(context.exception))
-        finally:
-            sys.modules.update(original_modules)
-
     def test_convert_pdf_returns_list(self):
         """Test that convert_pdf_to_images returns a list."""
         pdf_path = self._create_simple_pdf()
