@@ -1,10 +1,16 @@
 """PDF to image conversion utility."""
 
 import io
-from pathlib import Path
 from typing import List, Union
 
 from PIL import Image
+
+try:
+    import fitz  # PyMuPDF
+except ImportError:
+    raise ImportError(
+        "PyMuPDF is required for PDF rendering. Install it with: pip install pymupdf"
+    )
 
 
 def convert_pdf_to_images(
@@ -21,19 +27,6 @@ def convert_pdf_to_images(
     Returns:
         List of PIL Images, one per PDF page.
     """
-    try:
-        from pypdf import PdfReader
-    except ImportError:
-        raise ImportError(
-            "pypdf is required for PDF support. Install it with: pip install pypdf"
-        )
-
-    try:
-        import fitz  # PyMuPDF
-    except ImportError:
-        raise ImportError(
-            "PyMuPDF is required for PDF rendering. Install it with: pip install pymupdf"
-        )
 
     if isinstance(pdf_path, bytes):
         doc = fitz.open(stream=pdf_path, filetype="pdf")
