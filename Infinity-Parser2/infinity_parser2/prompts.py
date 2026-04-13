@@ -1,19 +1,12 @@
 """Prompts for Infinity-Parser2."""
 
-from enum import Enum
-
 __all__ = [
-    "ParseMode",
     "PROMPT_DOC2JSON",
     "PROMPT_DOC2MD",
+    "SUPPORTED_TASK_TYPES",
 ]
 
-
-class ParseMode(Enum):
-    """Document parsing mode enum."""
-
-    DOC2JSON = "doc2json"
-    DOC2MD = "doc2md"
+SUPPORTED_TASK_TYPES = ["doc2json", "doc2md", "custom"]
 
 
 # doc2json prompt (outputs JSON format)
@@ -34,7 +27,6 @@ PROMPT_DOC2JSON = """
 - Sort all layout elements in human reading order.
 - Final output must be a single JSON object.
 """
-
 # doc2md prompt (outputs Markdown format directly)
 PROMPT_DOC2MD = """
 You are an AI assistant specialized in converting PDF images to Markdown format. Please follow these instructions for the conversion:
@@ -47,10 +39,10 @@ You are an AI assistant specialized in converting PDF images to Markdown format.
 2. Mathematical Formula Processing:
 - Convert all mathematical formulas to LaTeX format.
 - Enclose inline formulas with $ $. For example: This is an inline formula $E = mc^2$
-- Enclose block formulas with $$ $$. For example: $$\frac{-b \pm \sqrt{b^2 - 4ac}}{2a}$$
+- Enclose block formulas with $$ $$. For example: $$\\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$$
 
 3. Table Processing:
-- Convert tables to Markdown format.
+- Convert tables to HTML format.
 
 4. Figure Handling:
 - Ignore figures content in the PDF image. Do not attempt to describe or convert images.
@@ -61,3 +53,4 @@ You are an AI assistant specialized in converting PDF images to Markdown format.
 
 Please strictly follow these guidelines to ensure accuracy and consistency in the conversion. Your task is to accurately convert the content of the PDF image into Markdown format without adding any extra explanations or comments.
 """
+

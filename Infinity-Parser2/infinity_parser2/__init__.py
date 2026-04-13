@@ -9,7 +9,7 @@ from .backends import (
     VLLMEngineBackend,
     VLLMServerBackend,
 )
-from .prompts import ParseMode, PROMPT_DOC2JSON, PROMPT_DOC2MD
+from .prompts import PROMPT_DOC2JSON, PROMPT_DOC2MD, SUPPORTED_TASK_TYPES
 from .utils import convert_pdf_to_images
 
 __all__ = [
@@ -19,8 +19,8 @@ __all__ = [
     "VLLMEngineBackend",
     "VLLMServerBackend",
     "convert_pdf_to_images",
-    "ParseMode",
     "PROMPT_DOC2JSON",
     "PROMPT_DOC2MD",
+    "SUPPORTED_TASK_TYPES",
     "__version__",
 ]

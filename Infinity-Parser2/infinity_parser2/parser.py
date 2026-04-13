@@ -1,6 +1,7 @@
 """Infinity-Parser2 main interface."""
 
 import os
+import re
 from pathlib import Path
 from typing import Dict, List, Optional, Union
 
@@ -13,7 +14,7 @@ from .backends import (
     VLLMEngineBackend,
     VLLMServerBackend,
 )
-from .prompts import ParseMode, PROMPT_DOC2JSON, PROMPT_DOC2MD
+from .prompts import PROMPT_DOC2JSON, PROMPT_DOC2MD, SUPPORTED_TASK_TYPES
 from .utils import *
 
 
@@ -113,11 +114,31 @@ class InfinityParser2:
             backend_kwargs = common_kwargs
         return backend_cls(**backend_kwargs)
 
+    def _resolve_prompt(self, task_type: str, custom_prompt: Optional[str]) -> str:
+        """Resolve the prompt to use based on task_type and custom_prompt.
+
+        Args:
+            task_type: The task type (e.g., "doc2json", "doc2md", "custom").
+            custom_prompt: Custom prompt, only used when task_type is "custom".
+
+        Returns:
+            The resolved prompt string.
+        """
+        if task_type == "custom":
+            assert custom_prompt is not None, "custom_prompt must be provided when task_type='custom'"
+            return custom_prompt
+        if task_type == "doc2json":
+            return PROMPT_DOC2JSON
+        if task_type == "doc2md":
+            return PROMPT_DOC2MD
+        # Fallback for unknown task types (should not happen with proper validation)
+        return "Please transform the document's contents into Markdown format."
+
     def parse(
         self,
         input_data: Union[str, List[str], Image.Image],
-        prompt: Optional[str] = None,
-        prompt_mode: ParseMode = ParseMode.DOC2JSON,
+        task_type: str = "doc2json",
+        custom_prompt: Optional[str] = None,
         batch_size: int = 4,
         output_dir: Optional[str] = None,
         output_format: str = "md",
@@ -130,25 +151,25 @@ class InfinityParser2:
                 - str: Single file path or directory path
                 - List[str]: List of file paths
                 - PIL.Image.Image: Image object
-            prompt: Custom prompt text for the model. If provided, takes precedence
-                over prompt_mode and uses the default parse behavior (no special
-                result processing). Defaults to None.
-            prompt_mode: Parsing mode. Options:
-                - ParseMode.DOC2JSON: Extract layout to JSON, return JSON string.
-                - ParseMode.DOC2MD: Directly convert to Markdown, return Markdown.
-                - None: Use default general parsing prompt.
+            task_type: Parsing task type. Options:
+                - "doc2json": Extract layout to JSON, return JSON string.
+                - "doc2md": Directly convert to Markdown, return Markdown.
+                - "custom": Use custom_prompt for parsing.
+                Defaults to "doc2json".
+            custom_prompt: Custom prompt text for the model. Used only when
+                task_type is "custom". Defaults to None.
             batch_size: Number of images to process in one batch. Defaults to 4.
             output_dir: If provided, results are saved to output_dir and this function
                 returns None. If None, results are returned directly.
             output_format: Output format for results. Options: "md" or "json".
                 Defaults to "md".
-                - For DOC2JSON tasks:
+                - For doc2json tasks:
                     - output_format="md": Returns markdown (converts JSON to markdown
                       via convert_json_to_markdown). If output_dir is set, saves only
                       the markdown result.
                     - output_format="json": Returns raw JSON result. If output_dir is
                       set, saves only the JSON result.
-                - For DOC2MD tasks or when prompt is provided: Only "md" is supported.
+                - For doc2md tasks or custom prompts: Only "md" is supported.
                   If "json" is passed, a ValueError will be raised.
             **kwargs: Additional arguments passed to the model.
 
@@ -170,41 +191,43 @@ class InfinityParser2:
             >>> # Save results to output_dir, returns None
             >>> parser.parse("document.pdf", output_dir="./output")
         """
-        is_doc2json = prompt is None and prompt_mode == ParseMode.DOC2JSON
-        is_doc2md = prompt_mode == ParseMode.DOC2MD
+        if task_type not in SUPPORTED_TASK_TYPES:
+            raise ValueError(f"task_type must be one of {SUPPORTED_TASK_TYPES}, got '{task_type}'")
 
-        if output_format not in ("md", "json"):
-            raise ValueError(f"output_format must be 'md' or 'json', got '{output_format}'")
+        if output_format not in SUPPORTED_OUTPUT_FORMATS:
+            raise ValueError(f"output_format must be one of {SUPPORTED_OUTPUT_FORMATS}, got '{output_format}'")
 
-        if output_format == "json" and (is_doc2md or prompt is not None):
+        if output_format == "json" and task_type != "doc2json":
             raise ValueError(
-                "output_format='json' is only supported for DOC2JSON tasks. "
-                "For DOC2MD tasks or when custom prompt is provided, "
-                "output_format must be 'md'."
+                "output_format='json' is only supported for doc2json tasks. "
+                "For other task types, output_format must be 'md'."
             )
+
+        prompt = self._resolve_prompt(task_type, custom_prompt)
 
         is_directory = isinstance(input_data, str) and os.path.isdir(input_data)
         file_paths = normalize_input(input_data)
         file_results = self._parse_files(
-            file_paths, prompt, prompt_mode, batch_size, output_format, **kwargs
+            file_paths, prompt, task_type, batch_size, output_format, **kwargs
         )
 
         if output_dir is not None:
             save_results(
                 file_paths, file_results, output_dir,
-                is_doc2json=is_doc2json, output_format=output_format
+                task_type=task_type, output_format=output_format
             )
         elif is_directory:
             return dict(zip(file_paths, file_results))
         elif len(file_results) == 1:
             return file_results[0]
-        return file_results
+        else:
+            return file_results
 
     def _parse_files(
         self,
         inputs: List[Union[str, Image.Image]],
-        prompt: Optional[str] = None,
-        prompt_mode: ParseMode = ParseMode.DOC2JSON,
+        prompt: Optional[str],
+        task_type: str,
         batch_size: int = 4,
         output_format: str = "md",
         **kwargs,
@@ -215,57 +238,41 @@ class InfinityParser2:
         efficient inference. Results are then aggregated back to the original
         file-level granularity.
         """
-        batch_entries, pdf_page_batch_indices = prepare_batch_entries(inputs)
 
+        # prepare batch entries
+        batch_entries = prepare_batch_entries(inputs)
         if not batch_entries:
             return [] if len(inputs) > 1 else ""
 
-        # Determine effective prompt
-        if prompt is not None:
-            effective_prompt = prompt
-        elif prompt_mode == ParseMode.DOC2JSON:
-            effective_prompt = PROMPT_DOC2JSON
-        elif prompt_mode == ParseMode.DOC2MD:
-            effective_prompt = PROMPT_DOC2MD
-        else:
-            effective_prompt = "Please transform the document's contents into Markdown format."
-
+        # parse batch
         raw_inputs = [entry[1] for entry in batch_entries]
-        batch_results = self._backend.parse_batch(raw_inputs, effective_prompt, batch_size=batch_size, **kwargs)
+        batch_results = self._backend.parse_batch(raw_inputs, prompt, batch_size=batch_size, **kwargs)
 
-        # Postprocess for DOC2JSON
-        is_doc2json = prompt is None and prompt_mode == ParseMode.DOC2JSON
-        if is_doc2json:
-            batch_results = postprocess_doc2json_batch(batch_results, batch_entries)
+        # aggregate batch results
+        num_files = len({entry[0] for entry in batch_entries})
+        page_results: List[List[str]] = [[] for _ in range(num_files)]
+        file_results: List[str] = [""] * num_files
 
-        # Aggregate batch results back to file-level
-        file_results: List[str] = ["" for _ in inputs]
-        page_json_lists: List[List[str]] = [[] for _ in inputs]
+        for entry_idx, (file_idx, image_input) in enumerate(batch_entries):
+            raw_result = batch_results[entry_idx]
 
-        for entry_idx, (_, input_item) in enumerate(batch_entries):
-            page_file_idx = batch_entries[entry_idx][0]
-            if entry_idx in pdf_page_batch_indices:
-                if is_doc2json and output_format == "json":
-                    page_json_lists[page_file_idx].append(batch_results[entry_idx])
-                elif is_doc2json:
-                    md_text = convert_json_to_markdown(batch_results[entry_idx])
-                    if file_results[page_file_idx]:
-                        file_results[page_file_idx] += "\n\n"
-                    file_results[page_file_idx] += md_text
-                else:
-                    if file_results[page_file_idx]:
-                        file_results[page_file_idx] += "\n\n"
-                    file_results[page_file_idx] += batch_results[entry_idx]
+            # postprocess result
+            if task_type == "doc2json":
+                text = postprocess_doc2json_result(raw_result, image_input, output_format)
+            elif task_type == "doc2md":
+                text = postprocess_doc2md_result(raw_result)
             else:
-                if is_doc2json and output_format == "md":
-                    file_results[page_file_idx] = convert_json_to_markdown(batch_results[entry_idx])
-                else:
-                    file_results[page_file_idx] = batch_results[entry_idx]
+                text = raw_result
 
-        # For DOC2JSON + JSON, join page JSONs into a single JSON array
-        if is_doc2json and output_format == "json":
-            for idx in range(len(inputs)):
-                if page_json_lists[idx]:
-                    file_results[idx] = "[" + ",".join(page_json_lists[idx]) + "]"
+            page_results[file_idx].append(text)
+
+        # Join results based on length of page_results and output_format
+        for idx in range(num_files):
+            if len(page_results[idx]) == 1:
+                file_results[idx] = page_results[idx][0]
+            elif output_format == "json":
+                file_results[idx] = "[" + ",".join(page_results[idx]) + "]"
+            else:
+                file_results[idx] = "\n\n".join(page_results[idx])
 
         return file_results

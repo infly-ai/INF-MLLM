@@ -6,6 +6,7 @@ from .file import (
     normalize_input,
     prepare_batch_entries,
     save_results,
+    SUPPORTED_OUTPUT_FORMATS,
 )
 from .image import encode_file_to_base64, load_image
 from .model import ModelCache, get_model_cache
@@ -14,9 +15,9 @@ from .utils import (
     convert_json_to_markdown,
     extract_json_content,
     obtain_origin_hw,
-    postprocess_doc2json_batch,
     postprocess_doc2json_result,
     restore_abs_bbox_coordinates,
+    postprocess_doc2md_result,
     truncate_last_incomplete_element,
 )
 
@@ -32,10 +33,11 @@ __all__ = [
     "ModelCache",
     "normalize_input",
     "obtain_origin_hw",
-    "postprocess_doc2json_batch",
     "postprocess_doc2json_result",
+    "postprocess_doc2md_result",
     "prepare_batch_entries",
     "restore_abs_bbox_coordinates",
     "save_results",
+    "SUPPORTED_OUTPUT_FORMATS",
     "truncate_last_incomplete_element",
 ]

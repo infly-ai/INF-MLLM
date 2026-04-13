@@ -120,27 +120,29 @@ See `requirements.txt` for full dependency list.
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `input_data` | `str \| List[str] \| PIL.Image.Image` | **Required** | File path(s), directory path, or PIL Image object |
-| `prompt` | `Optional[str]` | `None` | Custom prompt text. If provided, uses this prompt directly and skips result post-processing |
-| `prompt_mode` | `ParseMode` | `ParseMode.DOC2JSON` | Parsing mode: `ParseMode.DOC2JSON` (layout to JSON) or `ParseMode.DOC2MD` (direct Markdown output) |
+| `custom_prompt` | `Optional[str]` | `None` | Custom prompt text. If provided, uses this prompt directly and skips result post-processing |
+| `task_type` | `str` | `"doc2json"` | Parsing mode: `"doc2json"` (layout to JSON) or `"doc2md"` (direct Markdown output). Set to `"custom"` when using `custom_prompt`. |
 | `batch_size` | `int` | `4` | Number of images to process per batch |
 | `output_dir` | `Optional[str]` | `None` | If provided, results are saved to this directory |
 | `output_format` | `str` | `"md"` | Output format for DOC2JSON tasks: `"md"` (markdown) or `"json"` (raw JSON). Only `"md"` is supported for DOC2MD tasks or when custom prompt is provided. |
 | `**kwargs` | - | - | Additional arguments passed to the model (e.g., `max_new_tokens`, `temperature`) |
 
-### ParseMode Enum
+### task_type Options
 
 ```python
-from infinity_parser2 import ParseMode
+from infinity_parser2 import SUPPORTED_TASK_TYPES
 
-# Available parsing modes
-ParseMode.DOC2JSON  # Extract layout to JSON with bbox coordinates
-ParseMode.DOC2MD    # Directly convert to Markdown format
+# Available task types
+"doc2json"  # Extract layout to JSON with bbox coordinates
+"doc2md"    # Directly convert to Markdown format
+"custom"    # Use custom_prompt for parsing
 ```
 
-| Mode | Output Format | Description |
-|------|---------------|-------------|
-| `ParseMode.DOC2JSON` | JSON string | Extracts layout elements with bounding box coordinates, category, and text content. Returns parseable JSON. When `output_dir` is set, saves both `result.json` and `result.md`. |
-| `ParseMode.DOC2MD` | Markdown string | Directly converts document content to Markdown format. Returns plain Markdown text. |
+| task_type | Default Output | Description |
+|-----------|----------------|-------------|
+| `doc2json` | Markdown string | Extracts layout elements with bounding box coordinates, category, and text content. By default (`output_format="md"`), converts JSON to Markdown. Set `output_format="json"` to return raw JSON. When `output_dir` is set, saves either `result.md` or `result.json` based on `output_format`. |
+| `doc2md` | Markdown string | Directly converts document content to Markdown format. Returns plain Markdown text. |
+| `custom` | Varies | Uses `custom_prompt` for parsing. Returns raw model output (post-processing is skipped). Only `output_format="md"` is supported. |
 
 ### Return Value
 
@@ -152,10 +154,10 @@ ParseMode.DOC2MD    # Directly convert to Markdown format
 **With output_dir (saves results to disk):**
 - Returns `None` directly.
 - Creates subdirectories for each input file (named by filename or UUID for PIL Images).
-- For `ParseMode.DOC2JSON`:
+- For `doc2json`:
   - `output_format="md"`: each subdirectory contains `result.md` (markdown).
   - `output_format="json"`: each subdirectory contains `result.json` (raw JSON).
-- For `ParseMode.DOC2MD` or custom prompt: each subdirectory contains `result.md`.
+- For `doc2md` or custom_prompt: each subdirectory contains `result.md`.
 
 ### Automatic Model Download
 
@@ -195,57 +197,57 @@ parser = InfinityParser2(
 ### Advanced Usage Examples
 
 ```python
-from infinity_parser2 import InfinityParser2, ParseMode
+from infinity_parser2 import InfinityParser2
 
-# Default parsing (DOC2JSON mode - returns Markdown by default)
+# Default parsing (doc2json mode - returns Markdown by default)
 parser = InfinityParser2(model_name="infly/Infinity-Parser2-Pro")
-result = parser.parse("document.pdf")
+result = parser.parse("demo_data/demo.pdf")
 # Returns Markdown (JSON is converted to Markdown via convert_json_to_markdown)
 
-# DOC2JSON mode with raw JSON output
-result = parser.parse("document.pdf", output_format="json")
+# doc2json mode with raw JSON output
+result = parser.parse("demo_data/demo.pdf", output_format="json")
 # Returns JSON string with layout elements: [{"bbox": [x1,y1,x2,y2], "category": "...", "text": "..."}]
 
-# DOC2MD mode (direct Markdown output)
-result = parser.parse("document.pdf", prompt_mode=ParseMode.DOC2MD)
+# doc2md mode (direct Markdown output)
+result = parser.parse("demo_data/demo.pdf", task_type="doc2md")
 # Returns Markdown string directly
 
 # Custom prompt (skips result post-processing)
 result = parser.parse(
-    "document.pdf",
-    prompt="Please transform the document's contents into Markdown format."
+    "demo_data/demo.pdf",
+    custom_prompt="Please transform the document's contents into Markdown format."
 )
 
 # Batch process multiple files
 results = parser.parse(
-    ["doc1.pdf", "doc2.png", "doc3.jpg"],
+    ["demo_data/demo.pdf", "demo_data/demo.png", "demo_data/demo.png"],
     batch_size=4  # Process 4 images per batch
 )
 
 # Save results to specified directory
-# DOC2JSON mode: saves result.md by default
+# doc2json mode: saves result.md by default
 parser.parse(
-    "documents_folder",
-    prompt_mode=ParseMode.DOC2JSON,
+    "demo_data",
+    task_type="doc2json",
     batch_size=8,
     output_dir="./parsed_output"
 )
 # Returns: None (results saved to ./parsed_output/{filename}/result.md)
 
-# DOC2JSON mode with JSON output: saves result.json
+# doc2json mode with JSON output: saves result.json
 parser.parse(
-    "documents_folder",
-    prompt_mode=ParseMode.DOC2JSON,
+    "demo_data",
+    task_type="doc2json",
     batch_size=8,
     output_dir="./parsed_output",
     output_format="json"
 )
 # Returns: None (results saved to ./parsed_output/{filename}/result.json)
 
-# DOC2MD mode: saves result.md for each file
+# doc2md mode: saves result.md for each file
 parser.parse(
-    "documents_folder",
-    prompt_mode=ParseMode.DOC2MD,
+    "demo_data",
+    task_type="doc2md",
     batch_size=8,
     output_dir="./parsed_output"
 )
@@ -272,7 +274,7 @@ parser = InfinityParser2(
 
 # Custom generation parameters
 result = parser.parse(
-    "document.pdf",
+    "demo_data/demo.pdf",
     max_new_tokens=16384,
     temperature=0.01,
     top_p=0.95,
@@ -288,9 +290,11 @@ from infinity_parser2 import (
     extract_json_content,        # Extract JSON from LLM response
     restore_abs_bbox_coordinates, # Convert normalized bboxes to pixel coordinates
     postprocess_doc2json_result,  # Full DOC2JSON post-processing
+    postprocess_doc2md_result,    # Post-process DOC2MD result (remove code fences)
     get_files_from_directory,    # Get supported files from directory
     is_supported_file,           # Check if file type is supported
     save_results,               # Save parsing results to directory
+    SUPPORTED_TASK_TYPES,       # List of supported task types
     ModelCache,                 # Model cache management class
     get_model_cache,            # Get global model cache instance
 )

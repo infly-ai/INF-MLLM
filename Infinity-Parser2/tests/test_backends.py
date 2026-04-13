@@ -64,7 +64,7 @@ class TestTransformersBackend(unittest.TestCase):
 
     def test_transformers_backend_initialization_params(self):
         """Test TransformersBackend initialization parameters."""
-        with patch("infinity_parser2.backends.transformers.AutoModelForCausalLM") as mock_model:
+        with patch("infinity_parser2.backends.transformers.AutoModelForImageTextToText") as mock_model:
             with patch("infinity_parser2.backends.transformers.AutoProcessor") as mock_processor:
                 mock_model.from_pretrained.return_value = MagicMock()
                 mock_processor.from_pretrained.return_value = MagicMock()
@@ -84,7 +84,7 @@ class TestTransformersBackend(unittest.TestCase):
 
     def test_transformers_backend_min_max_pixels_defaults(self):
         """Test TransformersBackend default min_pixels and max_pixels."""
-        with patch("infinity_parser2.backends.transformers.AutoModelForCausalLM") as mock_model:
+        with patch("infinity_parser2.backends.transformers.AutoModelForImageTextToText") as mock_model:
             with patch("infinity_parser2.backends.transformers.AutoProcessor") as mock_processor:
                 mock_model.from_pretrained.return_value = MagicMock()
                 mock_processor.from_pretrained.return_value = MagicMock()
@@ -95,59 +95,70 @@ class TestTransformersBackend(unittest.TestCase):
 
     def test_transformers_backend_process_inputs(self):
         """Test _process_inputs method."""
-        with patch("infinity_parser2.backends.transformers.AutoModelForCausalLM") as mock_model:
+        with patch("infinity_parser2.backends.transformers.AutoModelForImageTextToText") as mock_model:
             with patch("infinity_parser2.backends.transformers.AutoProcessor") as mock_processor:
-                mock_model.from_pretrained.return_value = MagicMock()
-                mock_processor_instance = MagicMock()
-                mock_processor.from_pretrained.return_value = mock_processor_instance
+                with patch("infinity_parser2.backends.transformers.process_vision_info") as mock_process_vision:
+                    mock_model.from_pretrained.return_value = MagicMock()
+                    mock_processor_instance = MagicMock()
+                    mock_processor.from_pretrained.return_value = mock_processor_instance
+                    mock_processor_instance.apply_chat_template.return_value = "processed"
+                    mock_processor_instance.batch_decode.return_value = ["decoded"]
+                    mock_processor_instance.return_value = {"input_ids": MagicMock()}
+                    mock_process_vision.return_value = ([MagicMock()], None)
 
-                backend = TransformersBackend(model_name="test/model")
+                    backend = TransformersBackend(model_name="test/model")
 
-                temp_file = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
-                img = Image.new("RGB", (100, 100), color="red")
-                img.save(temp_file.name)
-                temp_file.close()
+                    temp_file = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
+                    img = Image.new("RGB", (100, 100), color="red")
+                    img.save(temp_file.name)
+                    temp_file.close()
 
-                try:
-                    texts, image_inputs, video_inputs = backend._process_inputs(
-                        [temp_file.name], "Test prompt"
-                    )
-                    self.assertIsInstance(texts, list)
-                    self.assertEqual(len(texts), 1)
-                finally:
-                    import os
-                    os.unlink(temp_file.name)
+                    try:
+                        result = backend._process_inputs(
+                            [temp_file.name], "Test prompt"
+                        )
+                        self.assertIsInstance(result, dict)
+                        self.assertIn("input_ids", result)
+                    finally:
+                        import os
+                        os.unlink(temp_file.name)
 
     def test_transformers_backend_process_multiple_inputs(self):
         """Test processing multiple inputs."""
-        with patch("infinity_parser2.backends.transformers.AutoModelForCausalLM") as mock_model:
+        with patch("infinity_parser2.backends.transformers.AutoModelForImageTextToText") as mock_model:
             with patch("infinity_parser2.backends.transformers.AutoProcessor") as mock_processor:
-                mock_model.from_pretrained.return_value = MagicMock()
-                mock_processor_instance = MagicMock()
-                mock_processor.from_pretrained.return_value = mock_processor_instance
+                with patch("infinity_parser2.backends.transformers.process_vision_info") as mock_process_vision:
+                    mock_model.from_pretrained.return_value = MagicMock()
+                    mock_processor_instance = MagicMock()
+                    mock_processor.from_pretrained.return_value = mock_processor_instance
+                    mock_processor_instance.apply_chat_template.return_value = "processed"
+                    mock_processor_instance.batch_decode.return_value = ["decoded"]
+                    mock_processor_instance.return_value = {"input_ids": MagicMock()}
+                    mock_process_vision.return_value = ([MagicMock()], None)
 
-                backend = TransformersBackend(model_name="test/model")
+                    backend = TransformersBackend(model_name="test/model")
 
-                temp_files = []
-                for i in range(3):
-                    f = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
-                    img = Image.new("RGB", (100, 100), color="blue")
-                    img.save(f.name)
-                    temp_files.append(f.name)
+                    temp_files = []
+                    for i in range(3):
+                        f = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
+                        img = Image.new("RGB", (100, 100), color="blue")
+                        img.save(f.name)
+                        temp_files.append(f.name)
 
-                try:
-                    texts, image_inputs, video_inputs = backend._process_inputs(
-                        temp_files, "Test prompt"
-                    )
-                    self.assertEqual(len(texts), 3)
-                finally:
-                    import os
-                    for f in temp_files:
-                        os.unlink(f)
+                    try:
+                        result = backend._process_inputs(
+                            temp_files, "Test prompt"
+                        )
+                        self.assertIsInstance(result, dict)
+                        self.assertIn("input_ids", result)
+                    finally:
+                        import os
+                        for f in temp_files:
+                            os.unlink(f)
 
     def test_transformers_backend_generate_output_format(self):
         """Test _generate method output format."""
-        with patch("infinity_parser2.backends.transformers.AutoModelForCausalLM") as mock_model:
+        with patch("infinity_parser2.backends.transformers.AutoModelForImageTextToText") as mock_model:
             with patch("infinity_parser2.backends.transformers.AutoProcessor") as mock_processor:
                 mock_model_instance = MagicMock()
                 mock_model.from_pretrained.return_value = mock_model_instance
@@ -156,57 +167,59 @@ class TestTransformersBackend(unittest.TestCase):
                 mock_processor_instance = MagicMock()
                 mock_processor.from_pretrained.return_value = mock_processor_instance
                 mock_processor_instance.apply_chat_template.return_value = "processed text"
-                mock_processor_instance.tokenizer.return_value = {"input_ids": [1, 2, 3]}
                 mock_processor_instance.batch_decode.return_value = ["Generated text"]
 
                 backend = TransformersBackend(model_name="test/model")
                 backend._model = mock_model_instance
 
                 with patch.object(backend._processor, '__call__') as mock_call:
+                    mock_input_ids = MagicMock()
                     mock_call.return_value = {
-                        "input_ids": MagicMock(to=MagicMock(return_value=MagicMock()))
+                        "input_ids": mock_input_ids
                     }
 
-                    mock_model_instance.generate.return_value = MagicMock()
-                    mock_model_instance.generate.return_value.__getitem__ = MagicMock(
-                        return_value=MagicMock()
-                    )
+                    mock_output_ids = MagicMock()
+                    mock_model_instance.generate.return_value = [mock_output_ids]
+                    mock_output_ids.__getitem__ = MagicMock(return_value=[1, 2, 3])
 
-                    results = backend._generate(["text1", "text2"], [], [])
+                    results = backend._generate({"input_ids": mock_input_ids})
                     self.assertIsInstance(results, list)
 
     def test_transformers_backend_parse_batch(self):
         """Test parse_batch basic functionality."""
-        with patch("infinity_parser2.backends.transformers.AutoModelForCausalLM") as mock_model:
+        with patch("infinity_parser2.backends.transformers.AutoModelForImageTextToText") as mock_model:
             with patch("infinity_parser2.backends.transformers.AutoProcessor") as mock_processor:
-                mock_model_instance = MagicMock()
-                mock_model.from_pretrained.return_value = mock_model_instance
-                mock_model_instance.device = "cuda"
+                with patch("infinity_parser2.backends.transformers.process_vision_info") as mock_process_vision:
+                    mock_model_instance = MagicMock()
+                    mock_model.from_pretrained.return_value = mock_model_instance
+                    mock_model_instance.device = "cuda"
 
-                mock_processor_instance = MagicMock()
-                mock_processor.from_pretrained.return_value = mock_processor_instance
-                mock_processor_instance.apply_chat_template.return_value = "processed"
-                mock_processor_instance.tokenizer.return_value = {"input_ids": [1, 2, 3]}
-                mock_processor_instance.batch_decode.return_value = ["Result"]
+                    mock_processor_instance = MagicMock()
+                    mock_processor.from_pretrained.return_value = mock_processor_instance
+                    mock_processor_instance.apply_chat_template.return_value = "processed"
+                    mock_processor_instance.batch_decode.return_value = ["Result"]
+                    mock_processor_instance.return_value = {"input_ids": MagicMock()}
+                    mock_process_vision.return_value = ([MagicMock()], None)
 
-                backend = TransformersBackend(model_name="test/model")
-                backend._model = mock_model_instance
+                    backend = TransformersBackend(model_name="test/model")
+                    backend._model = mock_model_instance
 
-                with patch.object(backend._processor, '__call__') as mock_call:
-                    mock_call.return_value = {
-                        "input_ids": MagicMock(to=MagicMock(return_value=MagicMock()))
-                    }
-                    mock_model_instance.generate.return_value = MagicMock()
-                    mock_model_instance.generate.return_value.__getitem__ = MagicMock(
-                        return_value=MagicMock()
-                    )
+                    with patch.object(backend._processor, '__call__') as mock_call:
+                        mock_input_ids = MagicMock()
+                        mock_call.return_value = {
+                            "input_ids": mock_input_ids
+                        }
 
-                    results = backend.parse_batch(
-                        [Image.new("RGB", (100, 100))],
-                        "Test prompt"
-                    )
-                    self.assertIsInstance(results, list)
-                    self.assertEqual(len(results), 1)
+                        mock_output_ids = MagicMock()
+                        mock_model_instance.generate.return_value = [mock_output_ids]
+                        mock_output_ids.__getitem__ = MagicMock(return_value=[1, 2, 3])
+
+                        results = backend.parse_batch(
+                            [Image.new("RGB", (100, 100))],
+                            "Test prompt"
+                        )
+                        self.assertIsInstance(results, list)
+                        self.assertEqual(len(results), 1)
 
 
 class TestVLLMEngineBackend(unittest.TestCase):

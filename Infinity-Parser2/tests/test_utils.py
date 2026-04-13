@@ -20,7 +20,6 @@ from infinity_parser2.utils import (
     restore_abs_bbox_coordinates,
     convert_json_to_markdown,
     postprocess_doc2json_result,
-    postprocess_doc2json_batch,
     save_results,
 )
 from infinity_parser2.utils.model import ModelCache, _resolve_hf_endpoint
@@ -409,25 +408,6 @@ class TestPostprocessDoc2JsonResult(unittest.TestCase):
         self.assertEqual(data[0]["category"], "text")
 
 
-class TestPostprocessDoc2JsonBatch(unittest.TestCase):
-    """Tests for postprocess_doc2json_batch utility function."""
-
-    def test_batch_postprocessing(self):
-        """Test batch postprocessing of multiple results."""
-        raw_results = [
-            '```json\n[{"bbox": [0, 0, 500, 500], "category": "text", "text": "Page 1"}]\n```',
-            '```json\n[{"bbox": [0, 0, 500, 500], "category": "text", "text": "Page 2"}]\n```',
-        ]
-        batch_entries = [
-            (0, Image.new("RGB", (1000, 1000))),
-            (1, Image.new("RGB", (1000, 1000))),
-        ]
-        results = postprocess_doc2json_batch(raw_results, batch_entries)
-        self.assertEqual(len(results), 2)
-        self.assertIn("Page 1", results[0])
-        self.assertIn("Page 2", results[1])
-
-
 class TestImageMimeTypes(unittest.TestCase):
     """Tests for IMAGE_MIME_TYPES constant."""
 
@@ -536,9 +516,9 @@ class TestGetFilesFromDirectory(unittest.TestCase):
 class TestSaveResults(unittest.TestCase):
     """Tests for save_results utility function.
 
-    New signature: save_results(inputs, results, output_dir, is_doc2json=False, output_format='md')
+    New signature: save_results(inputs, results, output_dir, task_type="doc2json", output_format="md")
     Returns None (writes files to disk).
-    output_format controls what file is saved: 'md' saves result.md, 'json' saves result.json (DOC2JSON only).
+    output_format controls what file is saved: 'md' saves result.md, 'json' saves result.json (doc2json only).
     """
 
     def setUp(self):
@@ -554,21 +534,21 @@ class TestSaveResults(unittest.TestCase):
         """Test that save_results returns None."""
         keys = ["test_key"]
         results = ["Test result content"]
-        result = save_results(keys, results, self.temp_dir, is_doc2json=False)
+        result = save_results(keys, results, self.temp_dir, task_type="doc2md")
         self.assertIsNone(result)
 
     def test_save_results_creates_directory(self):
         """Test that save_results creates output directory."""
         keys = ["test_key"]
         results = ["Test result content"]
-        save_results(keys, results, self.temp_dir, is_doc2json=False)
+        save_results(keys, results, self.temp_dir, task_type="doc2md")
         self.assertTrue(os.path.exists(os.path.join(self.temp_dir, "test_key")))
 
     def test_save_results_writes_md_file(self):
-        """Test that save_results writes result.md for non-DOC2JSON mode."""
+        """Test that save_results writes result.md for non-doc2json mode."""
         keys = ["test_key"]
         results = ["Test result content"]
-        save_results(keys, results, self.temp_dir, is_doc2json=False)
+        save_results(keys, results, self.temp_dir, task_type="doc2md")
         result_path = os.path.join(self.temp_dir, "test_key", "result.md")
         self.assertTrue(os.path.exists(result_path))
         with open(result_path, "r") as f:
@@ -576,11 +556,11 @@ class TestSaveResults(unittest.TestCase):
         self.assertEqual(content, "Test result content")
 
     def test_save_results_doc2json_mode_md(self):
-        """Test that save_results creates result.md for DOC2JSON mode with output_format='md'."""
+        """Test that save_results creates result.md for doc2json mode with output_format='md'."""
         keys = ["test_key"]
         json_result = json.dumps([{"bbox": [0, 0, 100, 100], "category": "text", "text": "Hello"}])
         results = [json_result]
-        save_results(keys, results, self.temp_dir, is_doc2json=True, output_format="md")
+        save_results(keys, results, self.temp_dir, task_type="doc2json", output_format="md")
 
         json_path = os.path.join(self.temp_dir, "test_key", "result.json")
         md_path = os.path.join(self.temp_dir, "test_key", "result.md")
@@ -588,11 +568,11 @@ class TestSaveResults(unittest.TestCase):
         self.assertTrue(os.path.exists(md_path))
 
     def test_save_results_doc2json_mode_json(self):
-        """Test that save_results creates result.json for DOC2JSON mode with output_format='json'."""
+        """Test that save_results creates result.json for doc2json mode with output_format='json'."""
         keys = ["test_key"]
         json_result = json.dumps([{"bbox": [0, 0, 100, 100], "category": "text", "text": "Hello"}])
         results = [json_result]
-        save_results(keys, results, self.temp_dir, is_doc2json=True, output_format="json")
+        save_results(keys, results, self.temp_dir, task_type="doc2json", output_format="json")
 
         json_path = os.path.join(self.temp_dir, "test_key", "result.json")
         md_path = os.path.join(self.temp_dir, "test_key", "result.md")
@@ -605,7 +585,7 @@ class TestSaveResults(unittest.TestCase):
         """Test saving multiple results."""
         keys = ["key1", "key2", "key3"]
         results = ["Result 1", "Result 2", "Result 3"]
-        save_results(keys, results, self.temp_dir, is_doc2json=False)
+        save_results(keys, results, self.temp_dir, task_type="doc2md")
         for key in keys:
             result_path = os.path.join(self.temp_dir, key, "result.md")
             self.assertTrue(os.path.exists(result_path))
@@ -615,7 +595,7 @@ class TestSaveResults(unittest.TestCase):
         os.makedirs(self.temp_dir, exist_ok=True)
         keys = ["test_key"]
         results = ["Test content"]
-        save_results(keys, results, self.temp_dir, is_doc2json=False)
+        save_results(keys, results, self.temp_dir, task_type="doc2md")
         result_path = os.path.join(self.temp_dir, "test_key", "result.md")
         self.assertTrue(os.path.exists(result_path))
 

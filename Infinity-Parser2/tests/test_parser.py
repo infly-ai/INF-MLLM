@@ -9,7 +9,7 @@ from unittest.mock import MagicMock, patch
 
 from PIL import Image
 
-from infinity_parser2 import InfinityParser2, ParseMode
+from infinity_parser2 import InfinityParser2, SUPPORTED_TASK_TYPES
 from infinity_parser2.backends import TransformersBackend
 
 
@@ -294,13 +294,13 @@ class TestInfinityParser2MockedParse(unittest.TestCase):
         finally:
             os.unlink(temp_file.name)
 
-    def test_parse_with_prompt_mode_doc2md(self):
-        """Test parsing with DOC2MD prompt mode."""
+    def test_parse_with_task_type_doc2md(self):
+        """Test parsing with doc2md task type."""
         parser = self._make_parser()
         parser._backend.parse_batch.return_value = ["# Title\n\nParagraph text"]
         temp_file = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
         try:
-            result = parser.parse(temp_file.name, prompt_mode=ParseMode.DOC2MD)
+            result = parser.parse(temp_file.name, task_type="doc2md")
             self.assertIsInstance(result, str)
             self.assertIn("# Title", result)
         finally:
@@ -327,7 +327,7 @@ class TestInfinityParser2MockedParse(unittest.TestCase):
         try:
             with self.assertRaises(ValueError) as context:
                 parser.parse(temp_file.name, output_format="xml")
-            self.assertIn("output_format must be 'md' or 'json'", str(context.exception))
+            self.assertIn("output_format must be one of", str(context.exception))
         finally:
             os.unlink(temp_file.name)
 
@@ -338,8 +338,8 @@ class TestInfinityParser2MockedParse(unittest.TestCase):
         temp_file = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
         try:
             with self.assertRaises(ValueError) as context:
-                parser.parse(temp_file.name, prompt_mode=ParseMode.DOC2MD, output_format="json")
-            self.assertIn("output_format='json' is only supported for DOC2JSON tasks", str(context.exception))
+                parser.parse(temp_file.name, task_type="doc2md", output_format="json")
+            self.assertIn("output_format='json' is only supported for doc2json tasks", str(context.exception))
         finally:
             os.unlink(temp_file.name)
 
@@ -350,8 +350,8 @@ class TestInfinityParser2MockedParse(unittest.TestCase):
         temp_file = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
         try:
             with self.assertRaises(ValueError) as context:
-                parser.parse(temp_file.name, prompt="Custom instruction", output_format="json")
-            self.assertIn("output_format='json' is only supported for DOC2JSON tasks", str(context.exception))
+                parser.parse(temp_file.name, custom_prompt="Custom instruction", output_format="json")
+            self.assertIn("output_format='json' is only supported for doc2json tasks", str(context.exception))
         finally:
             os.unlink(temp_file.name)
 
@@ -395,15 +395,14 @@ class TestInfinityParser2MockedParse(unittest.TestCase):
             shutil.rmtree(output_dir, ignore_errors=True)
 
     def test_parse_with_custom_prompt(self):
-        """Test parsing with custom prompt."""
+        """Test parsing with custom_prompt (task_type='custom')."""
         parser = self._make_parser()
         parser._backend.parse_batch.return_value = ["Custom result"]
         temp_file = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
         try:
-            result = parser.parse(temp_file.name, prompt="Custom instruction")
+            result = parser.parse(temp_file.name, task_type="custom", custom_prompt="Custom instruction")
             self.assertIsInstance(result, str)
             self.assertEqual(result, "Custom result")
-            # Verify custom prompt is passed to backend
             call_args = parser._backend.parse_batch.call_args
             self.assertEqual(call_args[0][1], "Custom instruction")
         finally:
@@ -429,18 +428,24 @@ class TestInfinityParser2MockedParse(unittest.TestCase):
             shutil.rmtree(dir_path)
 
 
-class TestParseMode(unittest.TestCase):
-    """Tests for ParseMode enum."""
+class TestTaskType(unittest.TestCase):
+    """Tests for task_type parameter and SUPPORTED_TASK_TYPES."""
 
-    def test_parse_mode_values(self):
-        """Test ParseMode enum values."""
-        self.assertEqual(ParseMode.DOC2JSON.value, "doc2json")
-        self.assertEqual(ParseMode.DOC2MD.value, "doc2md")
+    def test_supported_task_types(self):
+        """Test SUPPORTED_TASK_TYPES contains expected values."""
+        self.assertEqual(SUPPORTED_TASK_TYPES, ["doc2json", "doc2md", "custom"])
 
-    def test_parse_mode_in_prompts_module(self):
-        """Test that ParseMode is accessible from prompts module."""
-        from infinity_parser2.prompts import ParseMode as PM
-        self.assertIs(PM, ParseMode)
+    def test_task_type_doc2json(self):
+        """Test that 'doc2json' is a supported task type."""
+        self.assertIn("doc2json", SUPPORTED_TASK_TYPES)
+
+    def test_task_type_doc2md(self):
+        """Test that 'doc2md' is a supported task type."""
+        self.assertIn("doc2md", SUPPORTED_TASK_TYPES)
+
+    def test_task_type_custom(self):
+        """Test that 'custom' is a supported task type."""
+        self.assertIn("custom", SUPPORTED_TASK_TYPES)
 
     def test_prompt_doc2json_defined(self):
         """Test that PROMPT_DOC2JSON is defined."""

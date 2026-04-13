@@ -13,6 +13,7 @@ from .utils import convert_json_to_markdown
 
 SUPPORTED_IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".bmp", ".tiff", ".webp"}
 SUPPORTED_DOC_EXTENSIONS = {".pdf"}
+SUPPORTED_OUTPUT_FORMATS = ["md", "json"]
 
 
 def prepare_batch_entries(
@@ -24,11 +25,8 @@ def prepare_batch_entries(
         inputs: List of file paths or PIL Images.
 
     Returns:
-        A tuple of (batch_entries, pdf_page_batch_indices):
-        - batch_entries: List of (file_idx, item) tuples, where item is either
+        batch_entries: List of (file_idx, item) tuples, where item is either
           a file path (for non-PDF) or a PIL Image (for PDF pages or images).
-        - pdf_page_batch_indices: List of indices into batch_entries that correspond
-          to PDF page images.
     """
     batch_entries: list[tuple[int, Union[str, Image.Image]]] = []
 
@@ -44,13 +42,7 @@ def prepare_batch_entries(
         else:
             batch_entries.append((idx, item))
 
-    pdf_page_batch_indices = [
-        entry_idx for entry_idx, (orig_idx, item) in enumerate(batch_entries)
-        if isinstance(item, Image.Image) and isinstance(inputs[orig_idx], str)
-        and Path(inputs[orig_idx]).suffix.lower() == ".pdf"
-    ]
-
-    return batch_entries, pdf_page_batch_indices
+    return batch_entries
 
 
 def normalize_input(input_data: Union[str, List[str], Image.Image]) -> List[Union[str, Image.Image]]:
@@ -123,28 +115,28 @@ def save_results(
     inputs: List[Union[str, Image.Image]],
     results: List[str],
     output_dir: str,
-    is_doc2json: bool = False,
+    task_type: str = "doc2json",
     output_format: str = "md",
 ) -> None:
     """Save parsing results to output directory.
 
     Unified entry point that delegates to save_results_json or save_results_md
-    based on the is_doc2json flag and output_format. Prints the output directory
+    based on the task_type and output_format. Prints the output directory
     path to console.
 
     Args:
         inputs: Original inputs (file paths or PIL Images).
         results: Parsed results (same order as inputs).
         output_dir: Base output directory.
-        is_doc2json: If True, source results are in JSON format (DOC2JSON mode).
+        task_type: Task type (e.g., "doc2json", "doc2md", "custom").
         output_format: Output format to save. Options: "md" or "json".
             - "md": Save only markdown result.
-            - "json": Save only JSON result (only valid for DOC2JSON mode).
+            - "json": Save only JSON result (only valid for doc2json mode).
     """
     keys = [uuid.uuid4().hex[:8] if isinstance(inp, Image.Image) else inp for inp in inputs]
 
     if output_format == "json":
-        assert is_doc2json, "output_format='json' is only supported for DOC2JSON tasks."
+        assert task_type == "doc2json", "output_format='json' is only supported for doc2json tasks."
         save_results_json(keys, results, output_dir)
     else:
         save_results_md(keys, results, output_dir)

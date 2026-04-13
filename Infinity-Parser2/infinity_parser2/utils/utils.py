@@ -119,6 +119,7 @@ def convert_json_to_markdown(ans: str, keep_header_footer: bool = False) -> str:
 def postprocess_doc2json_result(
     raw_text: str,
     image: Union[str, Path, Image.Image],
+    output_format: str = "json",
 ) -> str:
     """
     Postprocess raw LLM output for DOC2JSON mode:
@@ -129,12 +130,30 @@ def postprocess_doc2json_result(
     text = extract_json_content(raw_text)
     text, _ = truncate_last_incomplete_element(text)
     origin_h, origin_w = obtain_origin_hw(image)
-    return restore_abs_bbox_coordinates(text, origin_h, origin_w)
+    text = restore_abs_bbox_coordinates(text, origin_h, origin_w)
+    if output_format == "md":
+        text = convert_json_to_markdown(text)
+    return text
 
 
-def postprocess_doc2json_batch(
-    batch_results: list[str],
-    batch_entries: list[tuple[int, Union[str, Path, Image.Image]]],
-) -> list[str]:
-    """Postprocess a batch of raw LLM outputs for DOC2JSON mode."""
-    return [postprocess_doc2json_result(batch_results[i], batch_entries[i][1]) for i in range(len(batch_entries))]
+# ---------------------------------------------------------------------------
+# Markdown cleanup
+# ---------------------------------------------------------------------------
+
+def postprocess_doc2md_result(text: str) -> str:
+    """Remove markdown code block fences from text.
+
+    Removes ```markdown\n and ``` (or similar) fences from the beginning
+    and end of text if present.
+
+    Args:
+        text: Input text that may contain markdown code block fences.
+
+    Returns:
+        Text with code block fences removed.
+    """
+    text = text.strip()
+    text = re.sub(r"^```markdown\s*\n?", "", text)
+    text = re.sub(r"^```\s*\n?", "", text)
+    text = re.sub(r"\n?```$", "", text)
+    return text.strip()
