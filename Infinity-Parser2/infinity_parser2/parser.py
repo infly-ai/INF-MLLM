@@ -84,9 +84,9 @@ class InfinityParser2:
         self.max_pixels = max_pixels
         self.kwargs = kwargs
 
-        # Initialize model cache and resolve model path
+        # Initialize model cache and resolve model path (stored separately)
         cache = get_model_cache(model_cache_dir)
-        self.model_name = cache.resolve_model_path(self.model_name)
+        self._model_path = cache.resolve_model_path(self.model_name)
 
         self._backend: BaseBackend = self._init_backend()
 
@@ -99,7 +99,7 @@ class InfinityParser2:
             )
         backend_cls = BACKEND_REGISTRY[self.backend_name]
         common_kwargs = {
-            "model_name": self.model_name,
+            "model_name": self._model_path,
             "device": self.device,
             "min_pixels": self.min_pixels,
             "max_pixels": self.max_pixels,
@@ -170,7 +170,7 @@ class InfinityParser2:
 
         if is_directory:
             return dict(zip(file_paths, file_results))
-        elif len(file_results) == 1 and not isinstance(file_paths[0], Image.Image):
+        elif len(file_results) == 1:
             return file_results[0]
         return file_results
 

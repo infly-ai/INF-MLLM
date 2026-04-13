@@ -16,8 +16,13 @@ from infinity_parser2.backends import TransformersBackend
 class TestInfinityParser2Initialization(unittest.TestCase):
     """Tests for InfinityParser2 initialization and configuration."""
 
-    def test_default_initialization(self):
+    @patch("infinity_parser2.parser.get_model_cache")
+    @patch("infinity_parser2.backends.vllm_engine.VLLMEngineBackend.__init__", return_value=None)
+    def test_default_initialization(self, mock_backend_init, mock_get_cache):
         """Test default initialization with all default parameters."""
+        mock_cache = MagicMock()
+        mock_cache.resolve_model_path.return_value = "/cached/path/infly_Infinity-Parser2-Pro"
+        mock_get_cache.return_value = mock_cache
         parser = InfinityParser2()
         self.assertEqual(parser.model_name, "infly/Infinity-Parser2-Pro")
         self.assertEqual(parser.backend_name, "vllm-engine")
@@ -28,8 +33,13 @@ class TestInfinityParser2Initialization(unittest.TestCase):
         self.assertEqual(parser.max_pixels, 16777216)
         self.assertIsInstance(parser.tensor_parallel_size, int)
 
-    def test_custom_initialization(self):
+    @patch("infinity_parser2.parser.get_model_cache")
+    @patch("infinity_parser2.backends.transformers.TransformersBackend.__init__", return_value=None)
+    def test_custom_initialization(self, mock_backend_init, mock_get_cache):
         """Test initialization with custom parameters."""
+        mock_cache = MagicMock()
+        mock_cache.resolve_model_path.return_value = "/cached/path/custom/model"
+        mock_get_cache.return_value = mock_cache
         parser = InfinityParser2(
             model_name="custom/model",
             backend="transformers",
@@ -54,8 +64,13 @@ class TestInfinityParser2Initialization(unittest.TestCase):
             InfinityParser2(device="cpu")
         self.assertIn("cuda", str(context.exception))
 
-    def test_backend_case_insensitive(self):
+    @patch("infinity_parser2.parser.get_model_cache")
+    @patch("infinity_parser2.backends.vllm_engine.VLLMEngineBackend.__init__", return_value=None)
+    def test_backend_case_insensitive(self, mock_backend_init, mock_get_cache):
         """Test that backend name is case-insensitive."""
+        mock_cache = MagicMock()
+        mock_cache.resolve_model_path.return_value = "/cached/path/model"
+        mock_get_cache.return_value = mock_cache
         parser1 = InfinityParser2(backend="VLLM-ENGINE")
         parser2 = InfinityParser2(backend="vllm-engine")
         self.assertEqual(parser1.backend_name, "vllm-engine")
