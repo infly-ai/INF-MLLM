@@ -6,10 +6,10 @@ from typing import Union
 from PIL import Image
 import torch
 from tqdm import tqdm
+from transformers import AutoModelForImageTextToText, AutoProcessor
 from qwen_vl_utils import process_vision_info
-from transformers import AutoModelForCausalLM, AutoProcessor
 
-from ..utils import convert_pdf_to_images, load_image
+from ..utils import load_image
 from .base import BaseBackend
 
 
@@ -36,7 +36,7 @@ class TransformersBackend(BaseBackend):
             torch_dtype: Data type for model weights, "float16" or "bfloat16".
             min_pixels: Minimum number of pixels for image input.
             max_pixels: Maximum number of pixels for image input.
-            **kwargs: Additional arguments for AutoModelForCausalLM.from_pretrained.
+            **kwargs: Additional arguments for AutoModelForImageTextToText.from_pretrained.
         """
         super().__init__(model_name, device, **kwargs)
         self.torch_dtype = getattr(torch, torch_dtype, torch.bfloat16)
@@ -46,8 +46,7 @@ class TransformersBackend(BaseBackend):
 
     def init(self) -> None:
         """Initialize the model and processor."""
-        # model_name can be a HuggingFace model ID or local path
-        self._model = AutoModelForCausalLM.from_pretrained(
+        self._model = AutoModelForImageTextToText.from_pretrained(
             self.model_name,
             torch_dtype=self.torch_dtype,
             device_map="auto",
@@ -60,60 +59,55 @@ class TransformersBackend(BaseBackend):
         inputs: list[Union[str, Image.Image]],
         prompt: str,
         **kwargs,
-    ) -> tuple[list[str], list[Image.Image], list]:
-        """Process inputs into messages, images, and video lists.
+    ) -> dict:
+        """Process inputs for generation.
 
         Returns:
-            Tuple of (texts, image_inputs, video_inputs).
+            Dictionary with processed inputs for the model.
         """
         images = [load_image(item) for item in inputs]
 
-        enable_thinking = kwargs.get("enable_thinking", False)
-        chat_template_kwargs = {"enable_thinking": enable_thinking} if enable_thinking else {}
-
         messages = [
-            {
-                "role": "user",
-                "content": [
-                    {"type": "image", "image": img, "min_pixels": self.min_pixels, "max_pixels": self.max_pixels},
-                    {"type": "text", "text": prompt},
-                ],
-            }
+            [
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "image", "image": img, "min_pixels": self.min_pixels, "max_pixels": self.max_pixels},
+                        {"type": "text", "text": prompt},
+                    ],
+                }
+            ]
             for img in images
         ]
 
-        texts = [
-            self._processor.apply_chat_template([msg], tokenize=False, add_generation_prompt=True, **chat_template_kwargs)
-            for msg in messages
-        ]
+        chat_template_kwargs = {"enable_thinking": False}
 
-        all_image_inputs, all_video_inputs = [], []
-        for msg in messages:
-            img_inp, vid_inp = process_vision_info([msg])
-            all_image_inputs.extend(img_inp if img_inp else [])
-            all_video_inputs.extend(vid_inp if vid_inp else [])
+        text = self._processor.apply_chat_template(
+            messages, tokenize=False, add_generation_prompt=True, **chat_template_kwargs
+        )
+        image_inputs, _ = process_vision_info(messages, image_patch_size=16)
 
-        return texts, all_image_inputs, all_video_inputs
+        inputs = self._processor(
+            text=text,
+            images=image_inputs,
+            do_resize=False,
+            padding=True,
+            return_tensors="pt",
+        )
+        inputs.pop("token_type_ids", None)
+        return inputs
 
-    def _generate(self, texts: list[str], image_inputs: list, video_inputs: list, **kwargs) -> list[str]:
+    def _generate(self, inputs: dict, **kwargs) -> list[str]:
         """Run model generation and decode outputs.
 
         Args:
-            texts: Processed text prompts.
-            image_inputs: Processed image inputs.
-            video_inputs: Processed video inputs.
+            inputs: Processed inputs from _process_inputs.
             **kwargs: Generation arguments.
 
         Returns:
             List of generated text outputs.
         """
-        inputs = self._processor(
-            text=texts,
-            images=image_inputs if image_inputs else None,
-            videos=video_inputs if video_inputs else None,
-            padding=True,
-            return_tensors="pt",
-        )
+        # Move tensors to device
         inputs = {
             k: v.to(self._model.device) if isinstance(v, torch.Tensor) else v
             for k, v in inputs.items()
@@ -126,15 +120,14 @@ class TransformersBackend(BaseBackend):
             top_p=kwargs.get("top_p", 0.95),
         )
 
-        results = []
-        for i, text in enumerate(texts):
-            input_len = len(self._processor.tokenizer(text)["input_ids"])
-            generated = generated_ids[i][input_len:]
-            output_text = self._processor.batch_decode(
-                [generated], skip_special_tokens=True, clean_up_tokenization_spaces=False
-            )[0]
-            results.append(output_text)
-        return results
+        generated_ids_trimmed = [
+            out_ids[len(in_ids):]
+            for in_ids, out_ids in zip(inputs["input_ids"], generated_ids)
+        ]
+        output_text = self._processor.batch_decode(
+            generated_ids_trimmed, skip_special_tokens=True, clean_up_tokenization_spaces=False
+        )
+        return output_text
 
     def parse_batch(
         self,
@@ -155,14 +148,12 @@ class TransformersBackend(BaseBackend):
             List of parsed text content (one per input in the same order).
         """
         results = [None] * len(input_data)
-        indices = list(range(len(input_data)))
 
         for i in tqdm(range(0, len(input_data), batch_size), desc="Parsing", file=sys.stdout):
             batch = input_data[i : i + batch_size]
-            batch_indices = indices[i : i + batch_size]
-            texts, image_inputs, video_inputs = self._process_inputs(batch, prompt, **kwargs)
-            batch_results = self._generate(texts, image_inputs, video_inputs, **kwargs)
-            for idx, result in zip(batch_indices, batch_results):
-                results[idx] = result
+            inputs = self._process_inputs(batch, prompt, **kwargs)
+            batch_results = self._generate(inputs, **kwargs)
+            for j, result in enumerate(batch_results):
+                results[i + j] = result
 
         return results

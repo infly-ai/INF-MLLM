@@ -186,7 +186,7 @@ class InfinityParser2:
         is_directory = isinstance(input_data, str) and os.path.isdir(input_data)
         file_paths = normalize_input(input_data)
         file_results = self._parse_files(
-            file_paths, prompt, prompt_mode, batch_size, output_format
+            file_paths, prompt, prompt_mode, batch_size, output_format, **kwargs
         )
 
         if output_dir is not None:
@@ -207,6 +207,7 @@ class InfinityParser2:
         prompt_mode: ParseMode = ParseMode.DOC2JSON,
         batch_size: int = 4,
         output_format: str = "md",
+        **kwargs,
     ) -> List[str]:
         """Parse multiple files with batched inference.
 
@@ -230,7 +231,7 @@ class InfinityParser2:
             effective_prompt = "Please transform the document's contents into Markdown format."
 
         raw_inputs = [entry[1] for entry in batch_entries]
-        batch_results = self._backend.parse_batch(raw_inputs, effective_prompt, batch_size=batch_size)
+        batch_results = self._backend.parse_batch(raw_inputs, effective_prompt, batch_size=batch_size, **kwargs)
 
         # Postprocess for DOC2JSON
         is_doc2json = prompt is None and prompt_mode == ParseMode.DOC2JSON
@@ -256,7 +257,10 @@ class InfinityParser2:
                         file_results[page_file_idx] += "\n\n"
                     file_results[page_file_idx] += batch_results[entry_idx]
             else:
-                file_results[page_file_idx] = batch_results[entry_idx]
+                if is_doc2json and output_format == "md":
+                    file_results[page_file_idx] = convert_json_to_markdown(batch_results[entry_idx])
+                else:
+                    file_results[page_file_idx] = batch_results[entry_idx]
 
         # For DOC2JSON + JSON, join page JSONs into a single JSON array
         if is_doc2json and output_format == "json":

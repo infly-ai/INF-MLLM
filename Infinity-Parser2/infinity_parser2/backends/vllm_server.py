@@ -41,13 +41,14 @@ class VLLMServerBackend(BaseBackend):
             timeout: Request timeout in seconds.
             **kwargs: Additional arguments for requests.
         """
-        super().__init__(model_name, "cuda", **kwargs)
+        device = kwargs.pop("device", "cuda")
+        super().__init__(model_name, device, **kwargs)
         self.api_url = api_url
         self.api_key = api_key
         self.timeout = timeout
         self.min_pixels = min_pixels
         self.max_pixels = max_pixels
-        self.client = OpenAI(api_key=self.api_key, base_url=self.api_url.rsplit("/v1", 1)[0])
+        self.client = OpenAI(api_key=self.api_key, base_url=self.api_url.rsplit("/chat/completions", 1)[0])
         self.init()
 
     def init(self) -> None:
@@ -93,10 +94,9 @@ class VLLMServerBackend(BaseBackend):
         max_tokens = kwargs.get("max_new_tokens", kwargs.get("max_tokens", 32768))
         temperature = kwargs.get("temperature", 0.01)
         top_p = kwargs.get("top_p", 0.95)
-        enable_thinking = kwargs.get("enable_thinking", False)
         extra_body = {
             "chat_template_kwargs": {
-                "enable_thinking": enable_thinking
+                "enable_thinking": False
             }
         }
 
@@ -123,21 +123,26 @@ class VLLMServerBackend(BaseBackend):
             return response.choices[0].message.content
 
         results: list[str] = [None] * len(input_data)
-        max_workers = max(1, batch_size)
+        num_batches = (len(input_data) + batch_size - 1) // batch_size
 
-        with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            future_to_index = {
-                executor.submit(parse_one, item): idx
-                for idx, item in enumerate(input_data)
-            }
+        for batch_idx in range(num_batches):
+            start = batch_idx * batch_size
+            end = min(start + batch_size, len(input_data))
+            batch_items = input_data[start:end]
 
-            for future in tqdm(as_completed(future_to_index), total=len(input_data), desc="Parsing", file=sys.stdout):
-                idx = future_to_index[future]
-                try:
-                    results[idx] = future.result()
-                except Exception as e:
-                    raise RuntimeError(
-                        f"Failed to parse input at index {idx}: {e}"
-                    ) from e
+            with ThreadPoolExecutor(max_workers=len(batch_items)) as executor:
+                future_to_index = {
+                    executor.submit(parse_one, item): start + i
+                    for i, item in enumerate(batch_items)
+                }
+
+                for future in tqdm(as_completed(future_to_index), total=len(batch_items), desc=f"Batch {batch_idx + 1}/{num_batches}", file=sys.stdout):
+                    idx = future_to_index[future]
+                    try:
+                        results[idx] = future.result()
+                    except Exception as e:
+                        raise RuntimeError(
+                            f"Failed to parse input at index {idx}: {e}"
+                        ) from e
 
         return results

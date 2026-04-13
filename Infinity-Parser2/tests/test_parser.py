@@ -226,6 +226,19 @@ class TestInfinityParser2MockedParse(unittest.TestCase):
         finally:
             os.unlink(temp_file.name)
 
+    def test_parse_single_image_doc2json_converts_to_markdown(self):
+        """Test that DOC2JSON mode converts JSON to Markdown for single image."""
+        parser = self._make_parser()
+        parser._backend.parse_batch.return_value = ['[{"category": "title", "text": "# Document Title"}]']
+        temp_file = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
+        try:
+            result = parser.parse(temp_file.name)
+            self.assertIsInstance(result, str)
+            self.assertIn("# Document Title", result)
+            self.assertNotIn("[{", result)
+        finally:
+            os.unlink(temp_file.name)
+
     def test_parse_list_returns_list(self):
         """Test that parsing list returns list of strings."""
         parser = self._make_parser()
@@ -242,14 +255,15 @@ class TestInfinityParser2MockedParse(unittest.TestCase):
             for f in temp_files:
                 os.unlink(f)
 
-    def test_parse_pil_image(self):
-        """Test parsing PIL Image object."""
+    def test_parse_pil_image_doc2json(self):
+        """Test parsing PIL Image object in DOC2JSON mode converts JSON to Markdown."""
         parser = self._make_parser()
-        parser._backend.parse_batch.return_value = ["Image content"]
+        parser._backend.parse_batch.return_value = ['[{"category": "text", "text": "Image content"}]']
         img = Image.new("RGB", (100, 100), color="white")
         result = parser.parse(img)
         self.assertIsInstance(result, str)
-        self.assertEqual(result, "Image content")
+        self.assertIn("Image content", result)
+        self.assertNotIn("[{", result)
 
     def test_parse_with_output_dir_creates_subdirectories(self):
         """Test that parsing with output_dir creates subdirectories."""

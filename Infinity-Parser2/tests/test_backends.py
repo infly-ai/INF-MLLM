@@ -175,8 +175,8 @@ class TestTransformersBackend(unittest.TestCase):
                     results = backend._generate(["text1", "text2"], [], [])
                     self.assertIsInstance(results, list)
 
-    def test_transformers_backend_parse_batch_with_enable_thinking(self):
-        """Test parse_batch with enable_thinking parameter."""
+    def test_transformers_backend_parse_batch(self):
+        """Test parse_batch basic functionality."""
         with patch("infinity_parser2.backends.transformers.AutoModelForCausalLM") as mock_model:
             with patch("infinity_parser2.backends.transformers.AutoProcessor") as mock_processor:
                 mock_model_instance = MagicMock()
@@ -203,8 +203,7 @@ class TestTransformersBackend(unittest.TestCase):
 
                     results = backend.parse_batch(
                         [Image.new("RGB", (100, 100))],
-                        "Test prompt",
-                        enable_thinking=True
+                        "Test prompt"
                     )
                     self.assertIsInstance(results, list)
                     self.assertEqual(len(results), 1)
@@ -289,8 +288,8 @@ class TestVLLMEngineBackend(unittest.TestCase):
                 import os
                 os.unlink(temp_file.name)
 
-    def test_vllm_engine_parse_batch_with_enable_thinking(self):
-        """Test parse_batch with enable_thinking parameter."""
+    def test_vllm_engine_parse_batch(self):
+        """Test parse_batch basic functionality."""
         with patch("infinity_parser2.backends.vllm_engine.LLM") as mock_llm:
             mock_llm_instance = MagicMock()
             mock_llm.return_value = mock_llm_instance
@@ -309,8 +308,7 @@ class TestVLLMEngineBackend(unittest.TestCase):
             try:
                 results = backend.parse_batch(
                     [temp_file.name],
-                    "Test prompt",
-                    enable_thinking=True
+                    "Test prompt"
                 )
                 self.assertIsInstance(results, list)
                 self.assertEqual(len(results), 1)
@@ -415,7 +413,7 @@ class TestVLLMServerBackend(unittest.TestCase):
                 import os
                 os.unlink(temp_file.name)
 
-    def test_vllm_server_extra_body_with_enable_thinking(self):
+    def test_vllm_server_extra_body(self):
         """Test that OpenAI client is called with correct parameters."""
         with patch("infinity_parser2.backends.vllm_server.OpenAI") as mock_openai:
             mock_client_instance = MagicMock()
@@ -438,7 +436,7 @@ class TestVLLMServerBackend(unittest.TestCase):
             temp_file.close()
 
             try:
-                backend.parse_batch([temp_file.name], "Test prompt", enable_thinking=True)
+                backend.parse_batch([temp_file.name], "Test prompt")
                 call_kwargs = mock_client_instance.chat.completions.create.call_args[1]
                 self.assertEqual(call_kwargs["model"], "infly/Infinity-Parser2-Pro")
                 self.assertIn("messages", call_kwargs)
@@ -447,7 +445,7 @@ class TestVLLMServerBackend(unittest.TestCase):
                 self.assertEqual(call_kwargs["top_p"], 0.95)
                 self.assertEqual(
                     call_kwargs["extra_body"],
-                    {"chat_template_kwargs": {"enable_thinking": True}}
+                    {"chat_template_kwargs": {"enable_thinking": False}}
                 )
             finally:
                 import os

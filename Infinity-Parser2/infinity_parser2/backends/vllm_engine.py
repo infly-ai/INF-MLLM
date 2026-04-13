@@ -95,8 +95,7 @@ class VLLMEngineBackend(BaseBackend):
             temperature=kwargs.get("temperature", 0.01),
             top_p=kwargs.get("top_p", 0.95),
         )
-        enable_thinking = kwargs.get("enable_thinking", False)
-        chat_template_kwargs = {"enable_thinking": enable_thinking} if enable_thinking else None
+        chat_template_kwargs = {"enable_thinking": False}
 
         all_messages = []
         for item in input_data:

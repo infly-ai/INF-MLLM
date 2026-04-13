@@ -56,7 +56,7 @@ vllm serve infly/Infinity-Parser2-Pro \
     --port 8000 \
     --tensor-parallel-size 2 \
     --gpu-memory-utilization 0.85 \
-    --max-model-len 32768 \
+    --max-model-len 65536 \
     --mm-encoder-tp-mode data \
     --mm-processor-cache-type shm \
     --enable-prefix-caching
@@ -68,6 +68,7 @@ vllm serve infly/Infinity-Parser2-Pro \
 from infinity_parser2 import InfinityParser2
 
 parser = InfinityParser2(
+    model_name="infly/Infinity-Parser2-Pro",
     backend="vllm-server",
     api_url="http://localhost:8000/v1/chat/completions"
 )
@@ -124,7 +125,7 @@ See `requirements.txt` for full dependency list.
 | `batch_size` | `int` | `4` | Number of images to process per batch |
 | `output_dir` | `Optional[str]` | `None` | If provided, results are saved to this directory |
 | `output_format` | `str` | `"md"` | Output format for DOC2JSON tasks: `"md"` (markdown) or `"json"` (raw JSON). Only `"md"` is supported for DOC2MD tasks or when custom prompt is provided. |
-| `**kwargs` | - | - | Additional arguments passed to the model (e.g., `max_new_tokens`, `temperature`, `enable_thinking`) |
+| `**kwargs` | - | - | Additional arguments passed to the model (e.g., `max_new_tokens`, `temperature`) |
 
 ### ParseMode Enum
 
@@ -262,14 +263,12 @@ parser = InfinityParser2(
 
 # Use vLLM Server backend (remote inference)
 parser = InfinityParser2(
+    model_name="infly/Infinity-Parser2-Pro",
     backend="vllm-server",
     api_url="http://your-server:8000/v1/chat/completions",
     api_key="your-api-key",
     timeout=300,
 )
-
-# Enable thinking mode (if supported by model)
-result = parser.parse("document.pdf", enable_thinking=True)
 
 # Custom generation parameters
 result = parser.parse(
