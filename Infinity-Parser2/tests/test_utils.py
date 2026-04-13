@@ -536,8 +536,9 @@ class TestGetFilesFromDirectory(unittest.TestCase):
 class TestSaveResults(unittest.TestCase):
     """Tests for save_results utility function.
 
-    New signature: save_results(inputs, results, output_dir, is_doc2json=False)
+    New signature: save_results(inputs, results, output_dir, is_doc2json=False, output_format='md')
     Returns None (writes files to disk).
+    output_format controls what file is saved: 'md' saves result.md, 'json' saves result.json (DOC2JSON only).
     """
 
     def setUp(self):
@@ -574,17 +575,29 @@ class TestSaveResults(unittest.TestCase):
             content = f.read()
         self.assertEqual(content, "Test result content")
 
-    def test_save_results_doc2json_mode(self):
-        """Test that save_results creates both result.json and result.md for DOC2JSON mode."""
+    def test_save_results_doc2json_mode_md(self):
+        """Test that save_results creates result.md for DOC2JSON mode with output_format='md'."""
         keys = ["test_key"]
         json_result = json.dumps([{"bbox": [0, 0, 100, 100], "category": "text", "text": "Hello"}])
         results = [json_result]
-        save_results(keys, results, self.temp_dir, is_doc2json=True)
+        save_results(keys, results, self.temp_dir, is_doc2json=True, output_format="md")
+
+        json_path = os.path.join(self.temp_dir, "test_key", "result.json")
+        md_path = os.path.join(self.temp_dir, "test_key", "result.md")
+        self.assertFalse(os.path.exists(json_path))
+        self.assertTrue(os.path.exists(md_path))
+
+    def test_save_results_doc2json_mode_json(self):
+        """Test that save_results creates result.json for DOC2JSON mode with output_format='json'."""
+        keys = ["test_key"]
+        json_result = json.dumps([{"bbox": [0, 0, 100, 100], "category": "text", "text": "Hello"}])
+        results = [json_result]
+        save_results(keys, results, self.temp_dir, is_doc2json=True, output_format="json")
 
         json_path = os.path.join(self.temp_dir, "test_key", "result.json")
         md_path = os.path.join(self.temp_dir, "test_key", "result.md")
         self.assertTrue(os.path.exists(json_path))
-        self.assertTrue(os.path.exists(md_path))
+        self.assertFalse(os.path.exists(md_path))
         with open(json_path, "r") as f:
             self.assertEqual(f.read(), json_result)
 

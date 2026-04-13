@@ -123,6 +123,7 @@ See `requirements.txt` for full dependency list.
 | `prompt_mode` | `ParseMode` | `ParseMode.DOC2JSON` | Parsing mode: `ParseMode.DOC2JSON` (layout to JSON) or `ParseMode.DOC2MD` (direct Markdown output) |
 | `batch_size` | `int` | `4` | Number of images to process per batch |
 | `output_dir` | `Optional[str]` | `None` | If provided, results are saved to this directory |
+| `output_format` | `str` | `"md"` | Output format for DOC2JSON tasks: `"md"` (markdown) or `"json"` (raw JSON). Only `"md"` is supported for DOC2MD tasks or when custom prompt is provided. |
 | `**kwargs` | - | - | Additional arguments passed to the model (e.g., `max_new_tokens`, `temperature`, `enable_thinking`) |
 
 ### ParseMode Enum
@@ -150,7 +151,9 @@ ParseMode.DOC2MD    # Directly convert to Markdown format
 **With output_dir (saves results to disk):**
 - Returns `None` directly.
 - Creates subdirectories for each input file (named by filename or UUID for PIL Images).
-- For `ParseMode.DOC2JSON`: each subdirectory contains `result.json` (raw JSON) and `result.md` (markdown).
+- For `ParseMode.DOC2JSON`:
+  - `output_format="md"`: each subdirectory contains `result.md` (markdown).
+  - `output_format="json"`: each subdirectory contains `result.json` (raw JSON).
 - For `ParseMode.DOC2MD` or custom prompt: each subdirectory contains `result.md`.
 
 ### Automatic Model Download
@@ -193,10 +196,14 @@ parser = InfinityParser2(
 ```python
 from infinity_parser2 import InfinityParser2, ParseMode
 
-# Default parsing (DOC2JSON mode - returns JSON)
+# Default parsing (DOC2JSON mode - returns Markdown by default)
 parser = InfinityParser2(model_name="infly/Infinity-Parser2-Pro")
 result = parser.parse("document.pdf")
-# Returns JSON with layout elements: [{"bbox": [x1,y1,x2,y2], "category": "...", "text": "..."}]
+# Returns Markdown (JSON is converted to Markdown via convert_json_to_markdown)
+
+# DOC2JSON mode with raw JSON output
+result = parser.parse("document.pdf", output_format="json")
+# Returns JSON string with layout elements: [{"bbox": [x1,y1,x2,y2], "category": "...", "text": "..."}]
 
 # DOC2MD mode (direct Markdown output)
 result = parser.parse("document.pdf", prompt_mode=ParseMode.DOC2MD)
@@ -215,14 +222,24 @@ results = parser.parse(
 )
 
 # Save results to specified directory
-# DOC2JSON mode: saves result.json + result.md for each file
+# DOC2JSON mode: saves result.md by default
 parser.parse(
     "documents_folder",
     prompt_mode=ParseMode.DOC2JSON,
     batch_size=8,
     output_dir="./parsed_output"
 )
-# Returns: None (results saved to ./parsed_output/{filename}/)
+# Returns: None (results saved to ./parsed_output/{filename}/result.md)
+
+# DOC2JSON mode with JSON output: saves result.json
+parser.parse(
+    "documents_folder",
+    prompt_mode=ParseMode.DOC2JSON,
+    batch_size=8,
+    output_dir="./parsed_output",
+    output_format="json"
+)
+# Returns: None (results saved to ./parsed_output/{filename}/result.json)
 
 # DOC2MD mode: saves result.md for each file
 parser.parse(

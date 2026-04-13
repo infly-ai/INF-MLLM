@@ -85,7 +85,7 @@ def restore_abs_bbox_coordinates(ans: str, origin_h: float, origin_w: float) -> 
             else:
                 valid = False
 
-    return json.dumps(data, indent=4) if valid else ans
+    return json.dumps(data, ensure_ascii=False) if valid else ans
 
 
 # ---------------------------------------------------------------------------

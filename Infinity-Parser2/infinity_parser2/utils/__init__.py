@@ -4,6 +4,7 @@ from .file import (
     get_files_from_directory,
     is_supported_file,
     normalize_input,
+    prepare_batch_entries,
     save_results,
 )
 from .image import encode_file_to_base64, load_image
@@ -33,6 +34,7 @@ __all__ = [
     "obtain_origin_hw",
     "postprocess_doc2json_batch",
     "postprocess_doc2json_result",
+    "prepare_batch_entries",
     "restore_abs_bbox_coordinates",
     "save_results",
     "truncate_last_incomplete_element",

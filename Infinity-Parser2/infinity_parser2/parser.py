@@ -120,6 +120,7 @@ class InfinityParser2:
         prompt_mode: ParseMode = ParseMode.DOC2JSON,
         batch_size: int = 4,
         output_dir: Optional[str] = None,
+        output_format: str = "md",
         **kwargs,
     ) -> Optional[Union[str, List[str], Dict[str, str]]]:
         """Parse document(s) and extract text content.
@@ -139,6 +140,16 @@ class InfinityParser2:
             batch_size: Number of images to process in one batch. Defaults to 4.
             output_dir: If provided, results are saved to output_dir and this function
                 returns None. If None, results are returned directly.
+            output_format: Output format for results. Options: "md" or "json".
+                Defaults to "md".
+                - For DOC2JSON tasks:
+                    - output_format="md": Returns markdown (converts JSON to markdown
+                      via convert_json_to_markdown). If output_dir is set, saves only
+                      the markdown result.
+                    - output_format="json": Returns raw JSON result. If output_dir is
+                      set, saves only the JSON result.
+                - For DOC2MD tasks or when prompt is provided: Only "md" is supported.
+                  If "json" is passed, a ValueError will be raised.
             **kwargs: Additional arguments passed to the model.
 
         Returns:
@@ -160,15 +171,30 @@ class InfinityParser2:
             >>> parser.parse("document.pdf", output_dir="./output")
         """
         is_doc2json = prompt is None and prompt_mode == ParseMode.DOC2JSON
+        is_doc2md = prompt_mode == ParseMode.DOC2MD
+
+        if output_format not in ("md", "json"):
+            raise ValueError(f"output_format must be 'md' or 'json', got '{output_format}'")
+
+        if output_format == "json" and (is_doc2md or prompt is not None):
+            raise ValueError(
+                "output_format='json' is only supported for DOC2JSON tasks. "
+                "For DOC2MD tasks or when custom prompt is provided, "
+                "output_format must be 'md'."
+            )
+
         is_directory = isinstance(input_data, str) and os.path.isdir(input_data)
         file_paths = normalize_input(input_data)
-        file_results = self._parse_files(file_paths, prompt, prompt_mode, batch_size)
+        file_results = self._parse_files(
+            file_paths, prompt, prompt_mode, batch_size, output_format
+        )
 
         if output_dir is not None:
-            save_results(file_paths, file_results, output_dir, is_doc2json=is_doc2json)
-            return None
-
-        if is_directory:
+            save_results(
+                file_paths, file_results, output_dir,
+                is_doc2json=is_doc2json, output_format=output_format
+            )
+        elif is_directory:
             return dict(zip(file_paths, file_results))
         elif len(file_results) == 1:
             return file_results[0]
@@ -180,6 +206,7 @@ class InfinityParser2:
         prompt: Optional[str] = None,
         prompt_mode: ParseMode = ParseMode.DOC2JSON,
         batch_size: int = 4,
+        output_format: str = "md",
     ) -> List[str]:
         """Parse multiple files with batched inference.
 
@@ -187,28 +214,10 @@ class InfinityParser2:
         efficient inference. Results are then aggregated back to the original
         file-level granularity.
         """
-        batch_entries: list[tuple[int, Union[str, Image.Image]]] = []
-
-        for idx, item in enumerate(inputs):
-            if isinstance(item, str):
-                ext = Path(item).suffix.lower()
-                if ext == ".pdf":
-                    page_images = convert_pdf_to_images(item)
-                    for page_img in page_images:
-                        batch_entries.append((idx, page_img))
-                else:
-                    batch_entries.append((idx, item))
-            else:
-                batch_entries.append((idx, item))
+        batch_entries, pdf_page_batch_indices = prepare_batch_entries(inputs)
 
         if not batch_entries:
             return [] if len(inputs) > 1 else ""
-
-        pdf_page_batch_indices = [
-            entry_idx for entry_idx, (orig_idx, item) in enumerate(batch_entries)
-            if isinstance(item, Image.Image) and isinstance(inputs[orig_idx], str)
-            and Path(inputs[orig_idx]).suffix.lower() == ".pdf"
-        ]
 
         # Determine effective prompt
         if prompt is not None:
@@ -228,14 +237,31 @@ class InfinityParser2:
         if is_doc2json:
             batch_results = postprocess_doc2json_batch(batch_results, batch_entries)
 
+        # Aggregate batch results back to file-level
         file_results: List[str] = ["" for _ in inputs]
+        page_json_lists: List[List[str]] = [[] for _ in inputs]
+
         for entry_idx, (_, input_item) in enumerate(batch_entries):
             page_file_idx = batch_entries[entry_idx][0]
             if entry_idx in pdf_page_batch_indices:
-                if file_results[page_file_idx]:
-                    file_results[page_file_idx] += "\n\n"
-                file_results[page_file_idx] += batch_results[entry_idx]
+                if is_doc2json and output_format == "json":
+                    page_json_lists[page_file_idx].append(batch_results[entry_idx])
+                elif is_doc2json:
+                    md_text = convert_json_to_markdown(batch_results[entry_idx])
+                    if file_results[page_file_idx]:
+                        file_results[page_file_idx] += "\n\n"
+                    file_results[page_file_idx] += md_text
+                else:
+                    if file_results[page_file_idx]:
+                        file_results[page_file_idx] += "\n\n"
+                    file_results[page_file_idx] += batch_results[entry_idx]
             else:
                 file_results[page_file_idx] = batch_results[entry_idx]
+
+        # For DOC2JSON + JSON, join page JSONs into a single JSON array
+        if is_doc2json and output_format == "json":
+            for idx in range(len(inputs)):
+                if page_json_lists[idx]:
+                    file_results[idx] = "[" + ",".join(page_json_lists[idx]) + "]"
 
         return file_results

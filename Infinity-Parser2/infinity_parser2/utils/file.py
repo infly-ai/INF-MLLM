@@ -7,11 +7,50 @@ from typing import List, Union
 
 from PIL import Image
 
+from .pdf import convert_pdf_to_images
 from .utils import convert_json_to_markdown
 
 
 SUPPORTED_IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".bmp", ".tiff", ".webp"}
 SUPPORTED_DOC_EXTENSIONS = {".pdf"}
+
+
+def prepare_batch_entries(
+    inputs: List[Union[str, Image.Image]]
+) -> tuple[list[tuple[int, Union[str, Image.Image]]], list[int]]:
+    """Expand inputs into batch entries, splitting PDFs into individual pages.
+
+    Args:
+        inputs: List of file paths or PIL Images.
+
+    Returns:
+        A tuple of (batch_entries, pdf_page_batch_indices):
+        - batch_entries: List of (file_idx, item) tuples, where item is either
+          a file path (for non-PDF) or a PIL Image (for PDF pages or images).
+        - pdf_page_batch_indices: List of indices into batch_entries that correspond
+          to PDF page images.
+    """
+    batch_entries: list[tuple[int, Union[str, Image.Image]]] = []
+
+    for idx, item in enumerate(inputs):
+        if isinstance(item, str):
+            ext = Path(item).suffix.lower()
+            if ext == ".pdf":
+                page_images = convert_pdf_to_images(item)
+                for page_img in page_images:
+                    batch_entries.append((idx, page_img))
+            else:
+                batch_entries.append((idx, item))
+        else:
+            batch_entries.append((idx, item))
+
+    pdf_page_batch_indices = [
+        entry_idx for entry_idx, (orig_idx, item) in enumerate(batch_entries)
+        if isinstance(item, Image.Image) and isinstance(inputs[orig_idx], str)
+        and Path(inputs[orig_idx]).suffix.lower() == ".pdf"
+    ]
+
+    return batch_entries, pdf_page_batch_indices
 
 
 def normalize_input(input_data: Union[str, List[str], Image.Image]) -> List[Union[str, Image.Image]]:
@@ -85,24 +124,31 @@ def save_results(
     results: List[str],
     output_dir: str,
     is_doc2json: bool = False,
+    output_format: str = "md",
 ) -> None:
     """Save parsing results to output directory.
 
     Unified entry point that delegates to save_results_json or save_results_md
-    based on the is_doc2json flag. Prints the output directory path to console.
+    based on the is_doc2json flag and output_format. Prints the output directory
+    path to console.
 
     Args:
         inputs: Original inputs (file paths or PIL Images).
         results: Parsed results (same order as inputs).
         output_dir: Base output directory.
-        is_doc2json: If True, save as JSON + Markdown (doc2json mode).
+        is_doc2json: If True, source results are in JSON format (DOC2JSON mode).
+        output_format: Output format to save. Options: "md" or "json".
+            - "md": Save only markdown result.
+            - "json": Save only JSON result (only valid for DOC2JSON mode).
     """
     keys = [uuid.uuid4().hex[:8] if isinstance(inp, Image.Image) else inp for inp in inputs]
-    if is_doc2json:
-        md_results = [convert_json_to_markdown(r) for r in results]
-        save_results_json(keys, results, md_results, output_dir)
+
+    if output_format == "json":
+        assert is_doc2json, "output_format='json' is only supported for DOC2JSON tasks."
+        save_results_json(keys, results, output_dir)
     else:
         save_results_md(keys, results, output_dir)
+
     print(f"[Infinity-Parser2] Results saved to: {os.path.abspath(output_dir)}")
 
 
@@ -129,32 +175,24 @@ def save_results_md(keys: List[str], results: List[str], output_dir: str) -> Non
             f.write(result)
 
 
-def save_results_json(
-    keys: List[str], json_results: List[str], md_results: List[str], output_dir: str
-) -> None:
-    """Save doc2json parsing results (JSON + Markdown) to output directory.
+def save_results_json(keys: List[str], results: List[str], output_dir: str) -> None:
+    """Save JSON parsing results to output directory.
 
-    Creates a subdirectory for each entry containing:
-    - result.json: raw JSON output from the model
-    - result.md: markdown converted from JSON
+    Creates a subdirectory for each entry and writes result.json inside it.
+    For file paths, the folder name is the filename (basename); for UUIDs,
+    the folder name is the UUID itself.
 
     Args:
         keys: Identifiers (file paths or UUIDs).
-        json_results: Raw JSON results from the model.
-        md_results: Markdown results converted from JSON.
+        results: Parsed JSON text results (same order as keys).
         output_dir: Base output directory.
     """
     os.makedirs(output_dir, exist_ok=True)
 
-    for key, json_result, md_result in zip(keys, json_results, md_results):
+    for key, result in zip(keys, results):
         folder_name = Path(key).name
         file_dir = os.path.join(output_dir, folder_name)
         os.makedirs(file_dir, exist_ok=True)
-
-        json_path = os.path.join(file_dir, "result.json")
-        with open(json_path, "w", encoding="utf-8") as f:
-            f.write(json_result)
-
-        md_path = os.path.join(file_dir, "result.md")
-        with open(md_path, "w", encoding="utf-8") as f:
-            f.write(md_result)
+        result_path = os.path.join(file_dir, "result.json")
+        with open(result_path, "w", encoding="utf-8") as f:
+            f.write(result)

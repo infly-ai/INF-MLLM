@@ -292,6 +292,94 @@ class TestInfinityParser2MockedParse(unittest.TestCase):
         finally:
             os.unlink(temp_file.name)
 
+    def test_parse_with_output_format_json(self):
+        """Test parsing with output_format='json' returns raw JSON."""
+        parser = self._make_parser()
+        parser._backend.parse_batch.return_value = ['[{"bbox": [0,0,100,100], "category": "text", "text": "Hello"}]']
+        temp_file = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
+        try:
+            result = parser.parse(temp_file.name, output_format="json")
+            self.assertIsInstance(result, str)
+            self.assertIn('"category": "text"', result)
+            self.assertIn('"Hello"', result)
+        finally:
+            os.unlink(temp_file.name)
+
+    def test_parse_with_output_format_invalid(self):
+        """Test that invalid output_format raises ValueError."""
+        parser = self._make_parser()
+        parser._backend.parse_batch.return_value = ["Result"]
+        temp_file = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
+        try:
+            with self.assertRaises(ValueError) as context:
+                parser.parse(temp_file.name, output_format="xml")
+            self.assertIn("output_format must be 'md' or 'json'", str(context.exception))
+        finally:
+            os.unlink(temp_file.name)
+
+    def test_parse_doc2md_cannot_use_output_format_json(self):
+        """Test that DOC2MD mode cannot use output_format='json'."""
+        parser = self._make_parser()
+        parser._backend.parse_batch.return_value = ["# Title"]
+        temp_file = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
+        try:
+            with self.assertRaises(ValueError) as context:
+                parser.parse(temp_file.name, prompt_mode=ParseMode.DOC2MD, output_format="json")
+            self.assertIn("output_format='json' is only supported for DOC2JSON tasks", str(context.exception))
+        finally:
+            os.unlink(temp_file.name)
+
+    def test_parse_custom_prompt_cannot_use_output_format_json(self):
+        """Test that custom prompt cannot use output_format='json'."""
+        parser = self._make_parser()
+        parser._backend.parse_batch.return_value = ["Custom result"]
+        temp_file = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
+        try:
+            with self.assertRaises(ValueError) as context:
+                parser.parse(temp_file.name, prompt="Custom instruction", output_format="json")
+            self.assertIn("output_format='json' is only supported for DOC2JSON tasks", str(context.exception))
+        finally:
+            os.unlink(temp_file.name)
+
+    def test_parse_with_output_dir_and_output_format_json(self):
+        """Test parsing with output_dir and output_format='json' saves only JSON."""
+        parser = self._make_parser()
+        parser._backend.parse_batch.return_value = ['[{"bbox": [0,0,100,100], "category": "text", "text": "Hello"}]']
+        temp_file = os.path.join(self.temp_dir, "test.png")
+        Image.new("RGB", (100, 100), color="white").save(temp_file)
+        output_dir = tempfile.mkdtemp()
+        try:
+            parser.parse(temp_file, output_dir=output_dir, output_format="json")
+            subdir = os.path.join(output_dir, "test.png")
+            self.assertTrue(os.path.exists(subdir))
+            json_file = os.path.join(subdir, "result.json")
+            self.assertTrue(os.path.exists(json_file))
+            md_file = os.path.join(subdir, "result.md")
+            self.assertFalse(os.path.exists(md_file))
+            with open(json_file, "r") as f:
+                content = f.read()
+            self.assertIn('"category": "text"', content)
+        finally:
+            shutil.rmtree(output_dir, ignore_errors=True)
+
+    def test_parse_with_output_dir_and_output_format_md(self):
+        """Test parsing with output_dir and output_format='md' (default) saves only Markdown."""
+        parser = self._make_parser()
+        parser._backend.parse_batch.return_value = ['[{"bbox": [0,0,100,100], "category": "text", "text": "Hello"}]']
+        temp_file = os.path.join(self.temp_dir, "test.png")
+        Image.new("RGB", (100, 100), color="white").save(temp_file)
+        output_dir = tempfile.mkdtemp()
+        try:
+            parser.parse(temp_file, output_dir=output_dir, output_format="md")
+            subdir = os.path.join(output_dir, "test.png")
+            self.assertTrue(os.path.exists(subdir))
+            md_file = os.path.join(subdir, "result.md")
+            self.assertTrue(os.path.exists(md_file))
+            json_file = os.path.join(subdir, "result.json")
+            self.assertFalse(os.path.exists(json_file))
+        finally:
+            shutil.rmtree(output_dir, ignore_errors=True)
+
     def test_parse_with_custom_prompt(self):
         """Test parsing with custom prompt."""
         parser = self._make_parser()
