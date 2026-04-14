@@ -11,10 +11,6 @@
 🚀 <a>Demo (coming soon...)</a>
 </p>
 
-## News
-- [2026-04-14] We uploaded the quick start guide for Infinity-Parser2. Feel free to contact us if you have any questions.
-- [2026-04-11] We released Infinity-Parser2-Pro, our flagship document parsing model — now available as a preview. Stay tuned: the official release, the lightweight Infinity-Parser2-Flash, and our multimodal parsing dataset Infinity-Doc2-10M are coming soon.
-
 ## Introduction
 
 We are excited to release Infinity-Parser2-Pro, our latest flagship document understanding model that achieves a new state-of-the-art on olmOCR-Bench with a score of 86.7%, surpassing frontier models such as DeepSeek-OCR-2, PaddleOCR-VL, and dots.mocr. Building on our previous model Infinity-Parser-7B, we have significantly enhanced our data engine and multi-task reinforcement learning approach. This enables the model to consolidate robust multi-modal parsing capabilities into a unified architecture, delivering brand-new zero-shot capabilities for diverse real-world business scenarios.
