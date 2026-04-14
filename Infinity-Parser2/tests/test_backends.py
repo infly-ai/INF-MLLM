@@ -454,8 +454,8 @@ class TestVLLMServerBackend(unittest.TestCase):
                 self.assertEqual(call_kwargs["model"], "infly/Infinity-Parser2-Pro")
                 self.assertIn("messages", call_kwargs)
                 self.assertEqual(call_kwargs["max_tokens"], 32768)
-                self.assertEqual(call_kwargs["temperature"], 0.01)
-                self.assertEqual(call_kwargs["top_p"], 0.95)
+                self.assertEqual(call_kwargs["temperature"], 0.0)
+                self.assertEqual(call_kwargs["top_p"], 1.0)
                 self.assertEqual(
                     call_kwargs["extra_body"],
                     {"chat_template_kwargs": {"enable_thinking": False}}

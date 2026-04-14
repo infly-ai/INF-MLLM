@@ -92,8 +92,8 @@ class VLLMEngineBackend(BaseBackend):
 
         sampling_params = SamplingParams(
             max_tokens=kwargs.get("max_new_tokens", 32768),
-            temperature=kwargs.get("temperature", 0.01),
-            top_p=kwargs.get("top_p", 0.95),
+            temperature=kwargs.get("temperature", 0.0),
+            top_p=kwargs.get("top_p", 1.0),
         )
         chat_template_kwargs = {"enable_thinking": False}
 

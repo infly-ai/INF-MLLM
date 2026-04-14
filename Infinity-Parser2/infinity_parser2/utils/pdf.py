@@ -27,6 +27,7 @@ def convert_pdf_to_images(
     Returns:
         List of PIL Images, one per PDF page.
     """
+    Image.MAX_IMAGE_PIXELS = None  # Disable decompression bomb check for large PDF pages
 
     if isinstance(pdf_path, bytes):
         doc = fitz.open(stream=pdf_path, filetype="pdf")

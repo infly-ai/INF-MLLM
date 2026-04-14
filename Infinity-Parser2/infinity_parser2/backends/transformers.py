@@ -116,8 +116,8 @@ class TransformersBackend(BaseBackend):
         generated_ids = self._model.generate(
             **inputs,
             max_new_tokens=kwargs.get("max_new_tokens", 32768),
-            temperature=kwargs.get("temperature", 0.01),
-            top_p=kwargs.get("top_p", 0.95),
+            temperature=kwargs.get("temperature", 0.0),
+            top_p=kwargs.get("top_p", 1.0),
         )
 
         generated_ids_trimmed = [
