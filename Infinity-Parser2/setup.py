@@ -36,6 +36,8 @@ setup(
     name="infinity_parser2",
     version="0.1.0",
     description="Document parsing Python package supporting PDF and image parsing using Infinity-Parser2-Pro model.",
+    long_description=open("README.md", "r", encoding="utf-8").read(),
+    long_description_content_type="text/markdown",
     author="INF Tech",
     author_email="contact@inftech.ai",
     url="https://github.com/infly-ai/INF-MLLM",
