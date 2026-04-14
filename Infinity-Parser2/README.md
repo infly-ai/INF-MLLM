@@ -1,6 +1,36 @@
 # Infinity-Parser2
 
-Infinity-Parser2 is a document parsing tool powered by the Infinity-Parser2-Pro model. It converts **PDF files** and **images** (PNG, JPG, WEBP) into structured Markdown or JSON with layout information.
+<p align="center">
+    <img src="https://raw.githubusercontent.com/infly-ai/INF-MLLM/main/Infinity-Parser2/assets/logo.png" width="400"/>
+<p>
+
+<p align="center">
+💻 <a href="https://huggingface.co/infly/Infinity-Parser2-Pro">Model</a> |
+📊 <a>Dataset (coming soon...)</a> |
+📄 <a>Paper (coming soon...)</a> |
+🚀 <a>Demo (coming soon...)</a>
+</p>
+
+## News
+- [2026-04-14] We uploaded the quick start guide for Infinity-Parser2. Feel free to contact us if you have any questions.
+- [2026-04-11] We released Infinity-Parser2-Pro, our flagship document parsing model — now available as a preview. Stay tuned: the official release, the lightweight Infinity-Parser2-Flash, and our multimodal parsing dataset Infinity-Doc2-10M are coming soon.
+
+## Introduction
+
+We are excited to release Infinity-Parser2-Pro, our latest flagship document understanding model that achieves a new state-of-the-art on olmOCR-Bench with a score of 86.7%, surpassing frontier models such as DeepSeek-OCR-2, PaddleOCR-VL, and dots.mocr. Building on our previous model Infinity-Parser-7B, we have significantly enhanced our data engine and multi-task reinforcement learning approach. This enables the model to consolidate robust multi-modal parsing capabilities into a unified architecture, delivering brand-new zero-shot capabilities for diverse real-world business scenarios.
+
+### Key Features
+
+- **Upgraded Data Engine**: We have comprehensively enhanced our synthetic data engine to support both fixed-layout and flexible-layout document formats. By generating over 1 million diverse full-text samples covering a wide range of document layouts, combined with a dynamic adaptive sampling strategy, we ensure highly balanced and robust multi-task learning across various document types.
+- **Multi-Task Reinforcement Learning**: We designed a novel verifiable reward system to support Joint Reinforcement Learning (RL), enabling seamless and simultaneous co-optimization of multiple complex tasks, including doc2json and doc2markdown.
+- **Breakthrough Parsing Performance**: It substantially outperforms our previous 7B model, achieving 86.7% on olmOCR-Bench, surpassing frontier models such as DeepSeek-OCR-2, PaddleOCR-VL, and dots.mocr.
+- **Inference Acceleration**: By adopting the highly efficient MoE architecture, our inference throughput has increased by 21% (from 441 to 534 tokens/sec), reducing deployment latency and costs.
+
+## Performance
+
+<p align="left">
+    <img src="https://raw.githubusercontent.com/infly-ai/INF-MLLM/main/Infinity-Parser2/assets/document_parsing_performance_evaluation.png" width="1200"/>
+<p>
 
 ## Quick Start
 
@@ -255,3 +285,7 @@ print(cache.resolve_model_path("infly/Infinity-Parser2-Pro"))
 - Python 3.12+
 - CUDA-compatible GPU
 - See `setup.py` for full dependency list.
+
+## Acknowledgments
+
+We would like to thank [Qwen3.5](https://github.com/QwenLM/Qwen3.5), [ms-swift](https://github.com/modelscope/ms-swift), [VeRL](https://github.com/verl-project/verl), [lmms-eval](https://github.com/EvolvingLMMs-Lab/lmms-eval), [olmocr](https://huggingface.co/datasets/allenai/olmOCR-bench), [PaddleOCR-VL](https://github.com/PaddlePaddle/PaddleOCR), [MinerU](https://github.com/opendatalab/MinerU), [dots.ocr](https://github.com/rednote-hilab/dots.ocr), [Chandra-OCR-2](https://github.com/datalab-to/chandra), for providing dataset, code and models.
