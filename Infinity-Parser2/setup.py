@@ -26,6 +26,10 @@ install_requires = [
     "xgrammar>=0.1.29",
     "partial_json_parser>=0.2.1.1.post6",
     "huggingface-hub>=0.24.0",
+    "numpy==2.4.3",
+    "scikit-learn==1.8.0",
+    "scipy==1.17.1",
+    "opencv-python-headless>=4.13.0.92"
 ]
 
 setup(
