@@ -33,4 +33,9 @@ setup(
         "Topic :: Scientific/Engineering :: Artificial Intelligence",
     ],
     keywords="document parsing",
+    entry_points={
+        "console_scripts": [
+            "parser=infinity_parser2.cli:main",
+        ],
+    },
 )

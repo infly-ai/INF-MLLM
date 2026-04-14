@@ -1,14 +1,18 @@
+# Infinity-Parser2
+
+Infinity-Parser2 is a document parsing tool powered by the Infinity-Parser2-Pro model. It converts **PDF files** and **images** (PNG, JPG, WEBP) into structured Markdown or JSON with layout information.
+
+---
+
 ## Quick Start
 
 ### Installation
-
-#### Install via pip (Recommended)
 
 ```bash
 pip install infinity_parser2
 ```
 
-#### Install from Source
+Or install from source:
 
 ```bash
 git clone https://github.com/infly-ai/INF-MLLM.git
@@ -16,37 +20,111 @@ cd INF-MLLM/Infinity-Parser2
 pip install -e .
 ```
 
-### Model Inference
+### Usage
 
-#### 1. vLLM Engine (Offline Batch Inference)
+#### Command Line
+
+The `parser` command is the fastest way to get started.
+
+```bash
+# Parse a PDF (outputs Markdown by default)
+parser demo_data/demo.pdf
+
+# Parse an image
+parser demo_data/demo.png
+
+# Batch parse multiple files
+parser demo_data/demo.pdf demo_data/demo.png -o ./output
+
+# Parse an entire directory
+parser demo_data -o ./output
+
+# Output raw JSON with layout bboxes
+parser demo_data/demo.pdf --output-format json
+
+# Convert to Markdown directly
+parser demo_data/demo.png --task doc2md
+```
+
+```bash
+# View all options
+parser --help
+```
+
+#### Python API
 
 ```python
 from infinity_parser2 import InfinityParser2
 
-# Initialize parser (default backend)
-parser = InfinityParser2(model_name="infly/Infinity-Parser2-Pro")
+parser = InfinityParser2()
 
-# Parse a single PDF file
+# Parse a single file (returns Markdown)
 result = parser.parse("demo_data/demo.pdf")
 print(result)
 
-# Parse a single image file
-result = parser.parse("demo_data/demo.png")
-print(result)
+# Parse multiple files (returns list)
+results = parser.parse(["demo_data/demo.pdf", "demo_data/demo.png"])
 
-# Parse multiple files
-results = parser.parse([
-    "demo_data/demo.pdf",
-    "demo_data/demo.png"
-])
-
-# Parse an entire directory
+# Parse a directory (returns dict)
 results = parser.parse("demo_data")
 ```
 
-#### 2. vLLM Server (Online HTTP API)
+**Output formats:**
 
-**Start the vLLM server:**
+| task_type   | Description                                          | Default Output |
+|-------------|------------------------------------------------------|----------------|
+| `doc2json`  | Extract layout elements with bboxes (default)        | Markdown       |
+| `doc2md`    | Directly convert to Markdown                         | Markdown       |
+| `custom`    | Use your own prompt                                 | Raw model output |
+
+```python
+# doc2json: get raw JSON with bbox coordinates
+result = parser.parse("demo_data/demo.pdf", output_format="json")
+
+# doc2md: direct Markdown conversion
+result = parser.parse("demo_data/demo.pdf", task_type="doc2md")
+
+# Custom prompt
+result = parser.parse("demo_data/demo.pdf", task_type="custom",
+                      custom_prompt="Extract the title and authors only.")
+
+# Batch processing with custom batch size
+result = parser.parse("demo_data", batch_size=8)
+
+# Save results to directory
+parser.parse("demo_data/demo.pdf", output_dir="./output")
+```
+
+**Backends:**
+
+Infinity-Parser2 supports three inference backends. By default it uses the **vLLM Engine** (offline batch inference).
+
+```python
+# vLLM Engine (default) — offline batch inference
+parser = InfinityParser2(
+    model_name="infly/Infinity-Parser2-Pro",
+    backend="vllm-engine",        # default
+    tensor_parallel_size=2,
+)
+
+# Transformers — local single-GPU inference
+parser = InfinityParser2(
+    model_name="infly/Infinity-Parser2-Pro",
+    backend="transformers",
+    device="cuda",
+    torch_dtype="bfloat16",       # "float16" or "bfloat16"
+)
+
+# vLLM Server — online HTTP API (start server first)
+parser = InfinityParser2(
+    model_name="infly/Infinity-Parser2-Pro",
+    backend="vllm-server",
+    api_url="http://localhost:8000/v1/chat/completions",
+    api_key="EMPTY",
+)
+```
+
+To start a vLLM server:
 
 ```bash
 vllm serve infly/Infinity-Parser2-Pro \
@@ -62,217 +140,24 @@ vllm serve infly/Infinity-Parser2-Pro \
     --enable-prefix-caching
 ```
 
-**Send inference requests:**
+---
 
-```python
-from infinity_parser2 import InfinityParser2
+## Advanced Usage
 
-parser = InfinityParser2(
-    model_name="infly/Infinity-Parser2-Pro",
-    backend="vllm-server",
-    api_url="http://localhost:8000/v1/chat/completions"
-)
+### Model Caching
 
-result = parser.parse("demo_data/demo.pdf")
-print(result)
-```
-
-#### 3. Transformers Backend (Local Inference)
-
-```python
-from infinity_parser2 import InfinityParser2
-
-parser = InfinityParser2(
-    model_name="infly/Infinity-Parser2-Pro",
-    backend="transformers",
-    device="cuda"
-)
-
-result = parser.parse("demo_data/demo.png")
-print(result)
-```
-
-## Requirements
-
-See `requirements.txt` for full dependency list.
-
-## API Reference
-
-### InfinityParser2 Initialization Parameters
-
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `model_name` | `str` | `"infly/Infinity-Parser2-Pro"` | Model name on HuggingFace Hub or local path |
-| `model_cache_dir` | `Optional[str]` | `None` | Custom cache directory for downloaded models (defaults to `~/.cache/infinity_parser2/`) |
-| `backend` | `str` | `"vllm-engine"` | Inference backend: `"transformers"`, `"vllm-engine"`, or `"vllm-server"` |
-| `tensor_parallel_size` | `Optional[int]` | `None` | Tensor parallel size for vLLM Engine (defaults to GPU count) |
-| `device` | `str` | `"cuda"` | Device type, currently only `"cuda"` is supported |
-| `api_url` | `str` | `"http://localhost:8000/v1/chat/completions"` | API URL for vLLM Server (used only with vllm-server backend) |
-| `api_key` | `str` | `"EMPTY"` | API key for vLLM Server (used only with vllm-server backend) |
-| `min_pixels` | `int` | `2048` | Minimum pixel count for input images |
-| `max_pixels` | `int` | `16777216` | Maximum pixel count for input images (~4096x4096) |
-| `torch_dtype` | `str` | `"bfloat16"` | Data type for model weights in transformers backend (`"float16"` or `"bfloat16"`) |
-| `timeout` | `int` | `300` | Request timeout in seconds for vLLM Server backend |
-| `**kwargs` | - | - | Additional arguments passed to the backend |
-
-### parse() Method Parameters
-
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `input_data` | `str \| List[str] \| PIL.Image.Image` | **Required** | File path(s), directory path, or PIL Image object |
-| `custom_prompt` | `Optional[str]` | `None` | Custom prompt text. If provided, uses this prompt directly and skips result post-processing |
-| `task_type` | `str` | `"doc2json"` | Parsing mode: `"doc2json"` (layout to JSON) or `"doc2md"` (direct Markdown output). Set to `"custom"` when using `custom_prompt`. |
-| `batch_size` | `int` | `4` | Number of images to process per batch |
-| `output_dir` | `Optional[str]` | `None` | If provided, results are saved to this directory |
-| `output_format` | `str` | `"md"` | Output format for DOC2JSON tasks: `"md"` (markdown) or `"json"` (raw JSON). Only `"md"` is supported for DOC2MD tasks or when custom prompt is provided. |
-| `**kwargs` | - | - | Additional arguments passed to the model (e.g., `max_new_tokens`, `temperature`) |
-
-### task_type Options
-
-```python
-from infinity_parser2 import SUPPORTED_TASK_TYPES
-
-# Available task types
-"doc2json"  # Extract layout to JSON with bbox coordinates
-"doc2md"    # Directly convert to Markdown format
-"custom"    # Use custom_prompt for parsing
-```
-
-| task_type | Default Output | Description |
-|-----------|----------------|-------------|
-| `doc2json` | Markdown string | Extracts layout elements with bounding box coordinates, category, and text content. By default (`output_format="md"`), converts JSON to Markdown. Set `output_format="json"` to return raw JSON. When `output_dir` is set, saves either `result.md` or `result.json` based on `output_format`. |
-| `doc2md` | Markdown string | Directly converts document content to Markdown format. Returns plain Markdown text. |
-| `custom` | Varies | Uses `custom_prompt` for parsing. Returns raw model output (post-processing is skipped). Only `output_format="md"` is supported. |
-
-### Return Value
-
-**Without output_dir (returns results directly):**
-- **Single file**: Returns `str` — parsed result for the file.
-- **Multiple files** (List): Returns `List[str]` — parsed results for all files.
-- **Directory**: Returns `Dict[str, str]` — mapping from file path to parsed result.
-
-**With output_dir (saves results to disk):**
-- Returns `None` directly.
-- Creates subdirectories for each input file (named by filename or UUID for PIL Images).
-- For `doc2json`:
-  - `output_format="md"`: each subdirectory contains `result.md` (markdown).
-  - `output_format="json"`: each subdirectory contains `result.json` (raw JSON).
-- For `doc2md` or custom_prompt: each subdirectory contains `result.md`.
-
-### Automatic Model Download
-
-Infinity-Parser2 features automatic model downloading and caching. When you first initialize the parser:
-
-1. **First Use**: If the model is not found locally, it will automatically download from HuggingFace Hub and cache it at `~/.cache/infinity_parser2/`.
-
-2. **Subsequent Uses**: The cached model will be detected and loaded directly without re-downloading.
-
-3. **Local Path**: If `model_name` is a local path, it will be used directly without caching.
-
-4. **Endpoint Fallback**: Automatically detects connectivity and falls back to HuggingFace mirror (`hf-mirror.com`) if needed.
-
-```python
-from infinity_parser2 import InfinityParser2
-
-# First time: downloads model automatically if not cached
-parser = InfinityParser2(model_name="infly/Infinity-Parser2-Pro")
-# Output: [Infinity-Parser2] Model 'infly/Infinity-Parser2-Pro' not found locally.
-#         Starting download to: ~/.cache/infinity_parser2/infly_Infinity-Parser2-Pro
-#         ...
-
-# Second time: uses cached model
-parser = InfinityParser2(model_name="infly/Infinity-Parser2-Pro")
-# Output: [Infinity-Parser2] Found cached model at: ~/.cache/infinity_parser2/infly_Infinity-Parser2-Pro
-```
-
-You can also customize the cache directory:
+Models are downloaded automatically on first use and cached at `~/.cache/infinity_parser2/`. You can customize the cache location:
 
 ```python
 parser = InfinityParser2(
     model_name="infly/Infinity-Parser2-Pro",
-    model_cache_dir="/path/to/your/cache"
+    model_cache_dir="/path/to/cache"
 )
 ```
 
-### Advanced Usage Examples
+### Generation Parameters
 
 ```python
-from infinity_parser2 import InfinityParser2
-
-# Default parsing (doc2json mode - returns Markdown by default)
-parser = InfinityParser2(model_name="infly/Infinity-Parser2-Pro")
-result = parser.parse("demo_data/demo.pdf")
-# Returns Markdown (JSON is converted to Markdown via convert_json_to_markdown)
-
-# doc2json mode with raw JSON output
-result = parser.parse("demo_data/demo.pdf", output_format="json")
-# Returns JSON string with layout elements: [{"bbox": [x1,y1,x2,y2], "category": "...", "text": "..."}]
-
-# doc2md mode (direct Markdown output)
-result = parser.parse("demo_data/demo.pdf", task_type="doc2md")
-# Returns Markdown string directly
-
-# Custom prompt (skips result post-processing)
-result = parser.parse(
-    "demo_data/demo.pdf",
-    custom_prompt="Please transform the document's contents into Markdown format."
-)
-
-# Batch process multiple files
-results = parser.parse(
-    ["demo_data/demo.pdf", "demo_data/demo.png", "demo_data/demo.png"],
-    batch_size=4  # Process 4 images per batch
-)
-
-# Save results to specified directory
-# doc2json mode: saves result.md by default
-parser.parse(
-    "demo_data",
-    task_type="doc2json",
-    batch_size=8,
-    output_dir="./parsed_output"
-)
-# Returns: None (results saved to ./parsed_output/{filename}/result.md)
-
-# doc2json mode with JSON output: saves result.json
-parser.parse(
-    "demo_data",
-    task_type="doc2json",
-    batch_size=8,
-    output_dir="./parsed_output",
-    output_format="json"
-)
-# Returns: None (results saved to ./parsed_output/{filename}/result.json)
-
-# doc2md mode: saves result.md for each file
-parser.parse(
-    "demo_data",
-    task_type="doc2md",
-    batch_size=8,
-    output_dir="./parsed_output"
-)
-# Returns: None (results saved to ./parsed_output/{filename}/)
-
-# Use transformers backend with custom dtype
-parser = InfinityParser2(
-    model_name="infly/Infinity-Parser2-Pro",
-    backend="transformers",
-    device="cuda",
-    torch_dtype="float16",  # or "bfloat16"
-    min_pixels=2048,
-    max_pixels=16777216,
-)
-
-# Use vLLM Server backend (remote inference)
-parser = InfinityParser2(
-    model_name="infly/Infinity-Parser2-Pro",
-    backend="vllm-server",
-    api_url="http://your-server:8000/v1/chat/completions",
-    api_key="your-api-key",
-    timeout=300,
-)
-
-# Custom generation parameters
 result = parser.parse(
     "demo_data/demo.pdf",
     max_new_tokens=16384,
@@ -285,28 +170,79 @@ result = parser.parse(
 
 ```python
 from infinity_parser2 import (
-    convert_pdf_to_images,      # Convert PDF pages to PIL Images
-    convert_json_to_markdown,    # Convert layout JSON to Markdown
-    extract_json_content,        # Extract JSON from LLM response
-    restore_abs_bbox_coordinates, # Convert normalized bboxes to pixel coordinates
-    postprocess_doc2json_result,  # Full DOC2JSON post-processing
-    postprocess_doc2md_result,    # Post-process DOC2MD result (remove code fences)
-    get_files_from_directory,    # Get supported files from directory
-    is_supported_file,           # Check if file type is supported
-    save_results,               # Save parsing results to directory
-    SUPPORTED_TASK_TYPES,       # List of supported task types
-    ModelCache,                 # Model cache management class
-    get_model_cache,            # Get global model cache instance
+    convert_pdf_to_images,
+    convert_json_to_markdown,
+    extract_json_content,
+    get_files_from_directory,
+    is_supported_file,
+    SUPPORTED_TASK_TYPES,
+    ModelCache,
+    get_model_cache,
 )
 
-# Convert PDF to images
-images = convert_pdf_to_images("document.pdf", dpi=300)
-for page_img in images:
-    print(page_img.size)
+# Convert PDF pages to PIL Images
+images = convert_pdf_to_images("demo_data/demo.pdf", dpi=300)
 
-# Convert JSON to Markdown
+# Convert layout JSON to Markdown
 markdown = convert_json_to_markdown(json_string)
 
-# Restore absolute bbox coordinates
-json_with_coords = restore_abs_bbox_coordinates(json_string, height, width)
+# Check model cache
+cache = get_model_cache()
+print(cache.resolve_model_path("infly/Infinity-Parser2-Pro"))
 ```
+
+---
+
+## API Reference
+
+### InfinityParser2
+
+```python
+parser = InfinityParser2(model_name="infly/Infinity-Parser2-Pro")
+```
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `model_name` | `str` | `"infly/Infinity-Parser2-Pro"` | HuggingFace model name or local path |
+| `backend` | `str` | `"vllm-engine"` | Inference backend: `"transformers"`, `"vllm-engine"`, or `"vllm-server"` |
+| `tensor_parallel_size` | `int` | `None` | GPU count by default. Tensor parallel size for vLLM Engine |
+| `device` | `str` | `"cuda"` | Only `"cuda"` is supported |
+| `api_url` | `str` | `"http://localhost:8000/v1/chat/completions"` | API URL for vLLM Server backend |
+| `api_key` | `str` | `"EMPTY"` | API key for vLLM Server backend |
+| `min_pixels` | `int` | `2048` | Minimum pixel count for image input (transformers backend only) |
+| `max_pixels` | `int` | `16777216` | Maximum pixel count (~4096x4096), transformers backend only |
+| `model_cache_dir` | `str` | `None` | Model cache directory (defaults to `~/.cache/infinity_parser2/`) |
+
+### parse()
+
+```python
+result = parser.parse("demo_data/demo.pdf")
+```
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `input_data` | `str \| List[str] \| PIL.Image` | **Required** | File path(s), directory path, or PIL Image object |
+| `task_type` | `str` | `"doc2json"` | `"doc2json"` (layout to JSON) \| `"doc2md"` (direct Markdown) \| `"custom"` |
+| `custom_prompt` | `str` | `None` | Custom prompt; required when `task_type="custom"` |
+| `batch_size` | `int` | `4` | Number of images to process per batch |
+| `output_dir` | `str` | `None` | If set, saves results to this directory instead of returning them |
+| `output_format` | `str` | `"md"` | `"md"` \| `"json"`. Only `"md"` is supported for `doc2md` / `custom` tasks |
+| `**kwargs` | — | — | Additional args passed to the model (e.g., `max_new_tokens`, `temperature`) |
+
+### Return Values
+
+| Input           | output_dir=None                  | output_dir set |
+|-----------------|----------------------------------|---------------|
+| Single file     | `str`                            | `None`        |
+| List of files   | `List[str]`                      | `None`        |
+| Directory       | `Dict[str, str]` (path→content) | `None`        |
+
+When `output_dir` is set, results are saved to `output_dir/{filename}/result.md` (or `result.json`).
+
+---
+
+## Requirements
+
+- Python 3.12+
+- CUDA-compatible GPU
+- See `requirements.txt` for full dependency list.

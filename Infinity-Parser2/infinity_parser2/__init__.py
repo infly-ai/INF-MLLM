@@ -11,6 +11,7 @@ from .backends import (
 )
 from .prompts import PROMPT_DOC2JSON, PROMPT_DOC2MD, SUPPORTED_TASK_TYPES
 from .utils import convert_pdf_to_images
+from .cli import main as cli_main
 
 __all__ = [
     "InfinityParser2",
@@ -23,4 +24,5 @@ __all__ = [
     "PROMPT_DOC2MD",
     "SUPPORTED_TASK_TYPES",
     "__version__",
+    "cli_main",
 ]
