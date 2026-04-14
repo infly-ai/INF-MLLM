@@ -11,8 +11,8 @@ Infinity-Parser2 is a document parsing tool powered by the Infinity-Parser2-Pro 
 ```bash
 # Install PyTorch (CUDA). Find the proper version on the [official site](https://pytorch.org/get-started/previous-versions) based on your CUDA version.
 pip install torch==2.10.0 torchvision==0.25.0 torchaudio==2.10.0 --index-url https://download.pytorch.org/whl/cu128
-# Install vLLM
-pip install vllm==0.17.1
+# Install vLLM and resolve triton conflict
+pip install vllm==0.17.1 && pip uninstall -y pytorch-triton
 # Install FlashAttention (required for NVIDIA GPUs). This command builds flash-attn from source, which can take 10 to 30 minutes.
 pip install flash-attn==2.8.3 --no-build-isolation
 # We recommend to use FlashAttention-3 for **Hopper GPUs (e.g. H100, H800)**. See the [official guide](https://github.com/Dao-AILab/flash-attention).
