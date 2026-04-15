@@ -63,7 +63,7 @@ Install from PyPI
 pip install infinity_parser2
 ```
 
-Install from source
+Install from source code
 
 ```bash
 git clone https://github.com/infly-ai/INF-MLLM.git
