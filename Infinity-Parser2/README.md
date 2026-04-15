@@ -72,6 +72,8 @@ pip install -e .
 The `parser` command is the fastest way to get started.
 
 ```bash
+# NOTE: The Infinity-Parser2 model will be automatically downloaded on the first run.
+
 # Parse a PDF (outputs Markdown by default)
 parser demo_data/demo.pdf
 
@@ -99,6 +101,8 @@ parser --help
 #### Python API
 
 ```python
+# NOTE: The Infinity-Parser2 model will be automatically downloaded on the first run.
+
 from infinity_parser2 import InfinityParser2
 
 parser = InfinityParser2()
