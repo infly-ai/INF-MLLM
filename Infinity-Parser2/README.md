@@ -57,11 +57,15 @@ pip install vllm==0.17.1
 
 #### Install infinity_parser2
 
-```bash
-# From PyPI
-pip install infinity_parser2
+Install from PyPI
 
-# From source
+```bash
+pip install infinity_parser2
+```
+
+Install from source
+
+```bash
 git clone https://github.com/infly-ai/INF-MLLM.git
 cd INF-MLLM/Infinity-Parser2
 pip install -e .
