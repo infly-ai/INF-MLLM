@@ -136,7 +136,7 @@ Examples:
     parser.add_argument(
         "--version",
         action="version",
-        version="Infinity-Parser2 0.1.0",
+        version="Infinity-Parser2 0.2.0",
     )
 
     return parser
