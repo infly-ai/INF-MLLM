@@ -35,6 +35,10 @@ We are excited to release Infinity-Parser2-Pro, our latest flagship document und
 #### Pre-requisites
 
 ```bash
+# Create a Conda environment (Optional)
+conda create -n infinity_parser2 python=3.12
+conda activate infinity_parser2
+
 # Install PyTorch (CUDA). Find the proper version at https://pytorch.org/get-started/previous-versions based on your CUDA version.
 pip install torch==2.10.0 torchvision==0.25.0 torchaudio==2.10.0 --index-url https://download.pytorch.org/whl/cu128
 
