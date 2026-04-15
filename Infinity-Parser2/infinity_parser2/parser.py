@@ -52,7 +52,7 @@ class InfinityParser2:
     Example:
         >>> from infinity_parser2 import InfinityParser2
         >>> parser = InfinityParser2(model_name="infly/Infinity-Parser2-Pro")
-        >>> result = parser.parse("document.pdf")
+        >>> result = parser.parse("demo_data/demo.pdf")
     """
 
     def __init__(
@@ -183,13 +183,13 @@ class InfinityParser2:
         Example:
             >>> parser = InfinityParser2()
             >>> # Single file, returns str
-            >>> result = parser.parse("document.pdf")
+            >>> result = parser.parse("demo_data/demo.pdf")
             >>> # Multiple files, returns List[str]
-            >>> result = parser.parse(["doc1.pdf", "doc2.pdf"])
+            >>> result = parser.parse(["demo_data/demo.pdf", "demo_data/demo.png"])
             >>> # Directory, returns Dict[str, str]
-            >>> result = parser.parse("/path/to/docs")
+            >>> result = parser.parse("./demo_data")
             >>> # Save results to output_dir, returns None
-            >>> parser.parse("document.pdf", output_dir="./output")
+            >>> parser.parse("demo_data/demo.pdf", output_dir="./output")
         """
         if task_type not in SUPPORTED_TASK_TYPES:
             raise ValueError(f"task_type must be one of {SUPPORTED_TASK_TYPES}, got '{task_type}'")
@@ -204,6 +204,7 @@ class InfinityParser2:
             )
 
         prompt = self._resolve_prompt(task_type, custom_prompt)
+        print(f"[Infinity-Parser2] task_type: {task_type}, prompt: {prompt}")
 
         is_directory = isinstance(input_data, str) and os.path.isdir(input_data)
         file_paths = normalize_input(input_data)

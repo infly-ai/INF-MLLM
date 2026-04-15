@@ -26,28 +26,28 @@ def build_parser() -> argparse.ArgumentParser:
         epilog="""
 Examples:
   # Parse a PDF file (default: doc2json -> markdown output)
-  parser document.pdf
+  parser demo_data/demo.pdf
 
   # Parse with doc2md task type
-  parser document.pdf --task doc2md
+  parser demo_data/demo.pdf --task doc2md
 
   # Parse with custom prompt
-  parser document.pdf --task custom --prompt "Extract the title and authors"
+  parser demo_data/demo.pdf --task custom --prompt "Please transform the document's contents into Markdown format."
 
   # Parse multiple files
-  parser doc1.pdf doc2.png --output-dir ./results
+  parser demo_data/demo.pdf demo_data/demo.png --output-dir ./results
 
   # Parse a directory
-  parser ./docs --output-dir ./results
+  parser demo_data --output-dir ./results
 
   # Output raw JSON
-  parser document.pdf --output-format json
+  parser demo_data/demo.pdf --output-format json
 
   # Use transformers backend
-  parser document.pdf --backend transformers
+  parser demo_data/demo.pdf --backend transformers
 
   # Use vllm-server backend
-  parser document.pdf --backend vllm-server --api-url http://localhost:8000/v1/chat/completions
+  parser demo_data/demo.pdf --backend vllm-server --api-url http://localhost:8000/v1/chat/completions
         """,
     )
 
