@@ -35,6 +35,10 @@ We are excited to release Infinity-Parser2-Pro, our latest flagship document und
 #### Pre-requisites
 
 ```bash
+# Create a Conda environment (Optional)
+conda create -n infinity_parser2 python=3.12
+conda activate infinity_parser2
+
 # Install PyTorch (CUDA). Find the proper version at https://pytorch.org/get-started/previous-versions based on your CUDA version.
 pip install torch==2.10.0 torchvision==0.25.0 torchaudio==2.10.0 --index-url https://download.pytorch.org/whl/cu128
 
@@ -68,6 +72,8 @@ pip install -e .
 The `parser` command is the fastest way to get started.
 
 ```bash
+# NOTE: The Infinity-Parser2 model will be automatically downloaded on the first run.
+
 # Parse a PDF (outputs Markdown by default)
 parser demo_data/demo.pdf
 
@@ -95,6 +101,8 @@ parser --help
 #### Python API
 
 ```python
+# NOTE: The Infinity-Parser2 model will be automatically downloaded on the first run.
+
 from infinity_parser2 import InfinityParser2
 
 parser = InfinityParser2()
