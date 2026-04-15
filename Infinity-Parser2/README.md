@@ -42,10 +42,12 @@ conda activate infinity_parser2
 # Install PyTorch (CUDA). Find the proper version at https://pytorch.org/get-started/previous-versions based on your CUDA version.
 pip install torch==2.10.0 torchvision==0.25.0 torchaudio==2.10.0 --index-url https://download.pytorch.org/whl/cu128
 
-# Install FlashAttention (required for NVIDIA GPUs).
+# Install FlashAttention (recommended for NVIDIA GPUs).
 # This command builds flash-attn from source, which can take 10 to 30 minutes.
+# To speed up installation, download the appropriate wheel from the official releases (https://github.com/Dao-AILab/flash-attention/releases), then run:
+# pip install /path/to/<wheel_filename>.whl
 pip install flash-attn==2.8.3 --no-build-isolation
-# For Hopper GPUs (e.g. H100, H800), we recommend FlashAttention-3 instead. See the official guide at https://github.com/Dao-AILab/flash-attention.
+# NOTE: For Hopper GPUs (e.g. H100, H800), we recommend FlashAttention-3 instead. See: https://github.com/Dao-AILab/flash-attention.
 
 # Install vLLM
 # NOTE: you may need to run the command below to resolve triton and numpy conflicts before installing vllm.
