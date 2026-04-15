@@ -135,7 +135,7 @@ result = parser.parse("demo_data/demo.pdf", task_type="doc2md")
 
 # Custom prompt
 result = parser.parse("demo_data/demo.pdf", task_type="custom",
-                      custom_prompt="Extract the title and authors only.")
+                      custom_prompt="Please transform the document's contents into Markdown format.")
 
 # Batch processing with custom batch size
 result = parser.parse("demo_data", batch_size=8)
