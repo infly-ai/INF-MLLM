@@ -30,7 +30,101 @@ We are excited to release Infinity-Parser2-Pro, our latest flagship document und
 
 ## Quick Start
 
-### Installation
+### 1. Minimal "Hello World" (Native Transformers)
+
+If you are looking for a minimal script to parse a single image to Markdown using the native `transformers` library, here is a simple snippet:
+
+```python
+from PIL import Image
+import torch
+from transformers import AutoModelForImageTextToText, AutoProcessor
+from qwen_vl_utils import process_vision_info
+
+# Load the model and processor
+model = AutoModelForImageTextToText.from_pretrained(
+    "infly/Infinity-Parser2-Pro",
+    torch_dtype="float16",
+    device_map="auto",
+)
+processor = AutoProcessor.from_pretrained("infly/Infinity-Parser2-Pro")
+
+# Build the messages for the model
+pil_image = Image.open("demo_data/demo.png").convert("RGB")
+min_pixels = 2048  # 32 * 64
+max_pixels = 16777216  # 4096 * 4096
+prompt = """
+Please output the layout information from the PDF image, including each layout element's bbox, its category, and the corresponding text content within the bbox.
+1. Bbox format: [x1, y1, x2, y2]
+2. Layout Categories: The possible categories are ['header', 'title', 'text', 'figure', 'table', 'formula', 'figure_caption', 'table_caption', 'formula_caption', 'figure_footnote', 'table_footnote', 'page_footnote', 'footer'].
+3. Text Extraction & Formatting Rules:
+    - Figure: For the 'figure' category, the text field should be empty string.
+    - Formula: Format its text as LaTeX.
+    - Table: Format its text as HTML.
+    - All Others (Text, Title, etc.): Format their text as Markdown.
+4. Constraints:
+    - The output text must be the original text from the image, with no translation.
+    - All layout elements must be sorted according to human reading order.
+5. Final Output: The entire output must be a single JSON object.
+"""
+
+messages = [
+    {
+        "role": "user",
+        "content": [
+            {
+                "type": "image",
+                "image": pil_image,
+                "min_pixels": min_pixels,
+                "max_pixels": max_pixels,
+            },
+            {"type": "text", "text": prompt},
+        ],
+    }
+]
+
+chat_template_kwargs = {"enable_thinking": False}
+
+text = processor.apply_chat_template(
+    messages, tokenize=False, add_generation_prompt=True, **chat_template_kwargs
+)
+image_inputs, _ = process_vision_info(messages, image_patch_size=16)
+
+inputs = processor(
+    text=text,
+    images=image_inputs,
+    do_resize=False,
+    padding=True,
+    return_tensors="pt",
+)
+
+# Move all tensors to the same device as the model
+inputs = {
+    k: v.to(model.device) if isinstance(v, torch.Tensor) else v
+    for k, v in inputs.items()
+}
+
+# Generate the response
+generated_ids = model.generate(
+    **inputs,
+    max_new_tokens=32768,
+    temperature=0.0,
+    top_p=1.0,
+)
+
+# Strip input tokens, keeping only the newly generated response
+generated_ids_trimmed = [
+    out_ids[len(in_ids) :]
+    for in_ids, out_ids in zip(inputs["input_ids"], generated_ids)
+]
+output_text = processor.batch_decode(
+    generated_ids_trimmed, skip_special_tokens=True, clean_up_tokenization_spaces=False
+)
+print(output_text)
+```
+
+### 2. Advanced Pipeline (infinity_parser2)
+
+For bulk processing, advanced features, or an end-to-end PDF parsing pipeline, we recommend using our infinity_parser2 wrapper.
 
 #### Pre-requisites
 
@@ -71,9 +165,9 @@ cd INF-MLLM/Infinity-Parser2
 pip install -e .
 ```
 
-### Usage
+#### Usage
 
-#### Command Line
+##### Command Line
 
 The `parser` command is the fastest way to get started.
 
@@ -104,7 +198,7 @@ parser demo_data/demo.png --task doc2md
 parser --help
 ```
 
-#### Python API
+##### Python API
 
 ```python
 # NOTE: The Infinity-Parser2 model will be automatically downloaded on the first run.
