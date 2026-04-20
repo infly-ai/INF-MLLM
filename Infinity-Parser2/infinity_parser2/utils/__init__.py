@@ -8,9 +8,15 @@ from .file import (
     save_results,
     SUPPORTED_OUTPUT_FORMATS,
 )
-from .image import encode_file_to_base64, load_image
-from .model import ModelCache, get_model_cache
-from .pdf import convert_pdf_to_images
+
+try:
+    from .image import encode_file_to_base64, load_image
+    from .model import ModelCache, get_model_cache
+    from .pdf import convert_pdf_to_images
+
+    _HAS_TORCH_UTILS = True
+except ImportError:
+    _HAS_TORCH_UTILS = False
 from .utils import (
     convert_json_to_markdown,
     extract_json_content,
@@ -19,6 +25,7 @@ from .utils import (
     restore_abs_bbox_coordinates,
     postprocess_doc2md_result,
     truncate_last_incomplete_element,
+    draw_bboxes_on_image,
 )
 
 __all__ = [
@@ -40,4 +47,16 @@ __all__ = [
     "save_results",
     "SUPPORTED_OUTPUT_FORMATS",
     "truncate_last_incomplete_element",
+    "draw_bboxes_on_image",
 ]
+
+if _HAS_TORCH_UTILS:
+    __all__.extend(
+        [
+            "convert_pdf_to_images",
+            "encode_file_to_base64",
+            "get_model_cache",
+            "load_image",
+            "ModelCache",
+        ]
+    )
