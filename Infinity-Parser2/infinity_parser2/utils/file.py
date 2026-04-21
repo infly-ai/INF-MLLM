@@ -10,14 +10,13 @@ from PIL import Image
 from .pdf import convert_pdf_to_images
 from .utils import convert_json_to_markdown
 
-
 SUPPORTED_IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".bmp", ".tiff", ".webp"}
 SUPPORTED_DOC_EXTENSIONS = {".pdf"}
 SUPPORTED_OUTPUT_FORMATS = ["md", "json"]
 
 
 def prepare_batch_entries(
-    inputs: List[Union[str, Image.Image]]
+    inputs: List[Union[str, Image.Image]],
 ) -> tuple[list[tuple[int, Union[str, Image.Image]]], list[int]]:
     """Expand inputs into batch entries, splitting PDFs into individual pages.
 
@@ -45,7 +44,9 @@ def prepare_batch_entries(
     return batch_entries
 
 
-def normalize_input(input_data: Union[str, List[str], Image.Image]) -> List[Union[str, Image.Image]]:
+def normalize_input(
+    input_data: Union[str, List[str], Image.Image],
+) -> List[Union[str, Image.Image]]:
     """Normalize input to a list of file paths or images.
 
     Args:
@@ -133,10 +134,14 @@ def save_results(
             - "md": Save only markdown result.
             - "json": Save only JSON result (only valid for doc2json mode).
     """
-    keys = [uuid.uuid4().hex[:8] if isinstance(inp, Image.Image) else inp for inp in inputs]
+    keys = [
+        uuid.uuid4().hex[:8] if isinstance(inp, Image.Image) else inp for inp in inputs
+    ]
 
     if output_format == "json":
-        assert task_type == "doc2json", "output_format='json' is only supported for doc2json tasks."
+        assert (
+            task_type == "doc2json"
+        ), "output_format='json' is only supported for doc2json tasks."
         save_results_json(keys, results, output_dir)
     else:
         save_results_md(keys, results, output_dir)
@@ -185,6 +190,99 @@ def save_results_json(keys: List[str], results: List[str], output_dir: str) -> N
         folder_name = Path(key).name
         file_dir = os.path.join(output_dir, folder_name)
         os.makedirs(file_dir, exist_ok=True)
-        result_path = os.path.join(file_dir, "result.json")
         with open(result_path, "w", encoding="utf-8") as f:
             f.write(result)
+
+
+def compress_directory_to_zip(directory_path: str, output_zip_path: str) -> int:
+    """Compress a directory into a ZIP file.
+
+    Args:
+        directory_path: Directory to compress.
+        output_zip_path: Output ZIP file path.
+
+    Returns:
+        0 on success, -1 on error.
+    """
+    import zipfile
+    import os
+    from loguru import logger
+
+    try:
+        with zipfile.ZipFile(output_zip_path, "w", zipfile.ZIP_DEFLATED) as zipf:
+            for root, _, files in os.walk(directory_path):
+                for file in files:
+                    file_path = os.path.join(root, file)
+                    arcname = os.path.relpath(file_path, directory_path)
+                    zipf.write(file_path, arcname)
+        return 0
+    except Exception as e:
+        logger.exception(e)
+        return -1
+
+
+def package_results_as_zip(
+    task_type: str, processed_md: str, raw_result: str, bbox_gallery: list
+) -> str:
+    """
+      - processed_result.md   
+      - raw_result.json/.md   
+      - bbox_page_N.png       
+
+    Args:
+        task_type
+        processed_md
+        raw_result
+        bbox_gallery
+
+    Returns:
+         zip file path
+    """
+    import json
+    import uuid
+    import shutil
+    from .utils import extract_json_content
+
+    tag = uuid.uuid4().hex[:8]
+    out_dir = Path("downloads") / f"result_{tag}"
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    # 1. save processed result
+    md_path = out_dir / "processed_result.md"
+    md_path.write_text(processed_md or "", encoding="utf-8")
+
+    # 2. save raw result
+    if task_type == "doc2json":
+        raw_path = out_dir / "raw_result.json"
+        try:
+            cleaned = extract_json_content(raw_result or "")
+            parsed = json.loads(cleaned)
+            raw_path.write_text(
+                json.dumps(parsed, ensure_ascii=False, indent=2), encoding="utf-8"
+            )
+        except Exception:
+            raw_path.write_text(raw_result or "", encoding="utf-8")
+    else:
+        raw_path = out_dir / "raw_result.md"
+        raw_path.write_text(raw_result or "", encoding="utf-8")
+
+    # 3. save bbox images (Gallery return value processing)
+    if bbox_gallery:
+        for idx, item in enumerate(bbox_gallery, start=1):
+            img = item[0] if isinstance(item, (tuple, list)) else item
+            if img is None:
+                continue
+            bbox_path = out_dir / f"bbox_page_{idx}.png"
+            if isinstance(img, str):
+                shutil.copy(img, str(bbox_path))
+            elif isinstance(img, Path):
+                shutil.copy(str(img), str(bbox_path))
+            else:
+                # PIL Image object
+                img.save(str(bbox_path), "PNG")
+
+    # 4. compress to zip
+    zip_path = out_dir.parent / f"result_{tag}.zip"
+    compress_directory_to_zip(str(out_dir), str(zip_path))
+
+    return str(zip_path)

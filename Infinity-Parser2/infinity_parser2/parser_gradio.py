@@ -1,43 +1,35 @@
-import os
-import re
 import sys
-import json
-import time
-import sys
-import json
-import time
 import copy
-import base64
 import asyncio
 import tempfile
 import subprocess
 from pathlib import Path
 from datetime import datetime
-import zipfile
-import httpx, aiofiles, os, asyncio
+
+import httpx
+import aiofiles
+import os
 import numpy as np
 import gradio as gr
-from PIL import Image
-from pdf2image import convert_from_path
 from loguru import logger
-from openai import OpenAI, AsyncOpenAI
-from gradio_pdf import PDF
-import certifi
-import httpx
+from openai import AsyncOpenAI
 import aiohttp
 import uuid
 import tqdm
-import base64, pathlib
+import base64
+import pathlib
 from io import BytesIO
-from pdf2image import convert_from_bytes, convert_from_path  # pip install pdf2image
-
-import requests
+from pdf2image import convert_from_bytes, convert_from_path
 from utils import (
     postprocess_doc2json_result,
     postprocess_doc2md_result,
     draw_bboxes_on_image,
+    encode_image,
+    images_to_pdf,
+    package_results_as_zip,
+    images_to_b64,
 )
-from prompts import *
+from prompts import _resolve_prompt, SUPPORTED_TASK_TYPES
 
 
 def setup_poppler_linux():
@@ -54,21 +46,6 @@ def setup_poppler_linux():
 
 if sys.platform.startswith("linux"):
     setup_poppler_linux()
-
-
-def resolve_prompt(task_type, custom_prompt=None):
-    """根据任务类型返回对应的 prompt"""
-    if task_type == "custom":
-        assert (
-            custom_prompt is not None and custom_prompt.strip()
-        ), "custom_prompt must be provided when task_type='custom'"
-        return custom_prompt
-    if task_type == "doc2json":
-        return PROMPT_DOC2JSON
-    if task_type == "doc2md":
-        return PROMPT_DOC2MD
-    raise ValueError(f"Unknown task_type: {task_type}")
-
 
 openai_api_key = "EMPTY"
 openai_api_base = os.environ.get("INFINITY_API_BASE", "")
@@ -91,7 +68,7 @@ AVAILABLE_MODELS = {
 async def send_pdf_async_aiohttp(
     file_path, server_ip, route="/upload", Authorization=None
 ):
-    """使用aiohttp异步发送PDF"""
+    """use aiohttp send pdf"""
     url = f"{server_ip}{route}"
     headers = {}
     if Authorization:
@@ -110,10 +87,10 @@ async def send_pdf_async_aiohttp(
                     content_type="application/pdf",
                 )
                 async with session.post(url, data=data, headers=headers) as response:
-                    print(f"PDF发送成功: {file_path}, 状态码: {response.status}")
+                    print(f"PDF sent successfully: {file_path}, status code: {response.status}")
                     return response
     except Exception as e:
-        print(f"PDF发送失败: {file_path}, 错误: {e}")
+        print(f"PDF sent failed: {file_path}, error: {e}")
         return None
 
 
@@ -143,35 +120,6 @@ async def request(messages, model_name, client, Authorization):
             yield content
 
 
-def images_to_pdf(img_paths, pdf_path):
-
-    if isinstance(img_paths, (str, Path)):
-        img_paths = [img_paths]
-
-    if not img_paths:
-        raise ValueError("img_paths is empty")
-    images = []
-    for p in img_paths:
-        p = Path(p)
-        if not p.is_file():
-            raise FileNotFoundError(p)
-
-        img = Image.open(p)
-        if img.mode in ("RGBA", "P"):
-            img = img.convert("RGB")
-        images.append(img)
-
-    pdf_path = Path(pdf_path)
-    pdf_path.parent.mkdir(parents=True, exist_ok=True)
-    images[0].save(pdf_path, save_all=True, append_images=images[1:], resolution=300.0)
-    return pdf_path
-
-
-def encode_image(image_path):
-    with open(image_path, "rb") as image_file:
-        return base64.b64encode(image_file.read()).decode("utf-8")
-
-
 def build_message(image_path, prompt):
 
     content = [
@@ -190,72 +138,13 @@ def build_message(image_path, prompt):
     return messages
 
 
-def package_results_as_zip(task_type, processed_md, raw_result, bbox_gallery):
-    """
-    将解析结果打包为 ZIP 文件：
-      - processed_result.md   (Markdown 渲染文本)
-      - raw_result.json/.md   (原始输出，doc2json → .json，其他 → .md)
-      - bbox_page_N.png       (仅 doc2json 且有 bbox 图片时，逐页保存)
-    """
-    tag = uuid.uuid4().hex[:8]
-    out_dir = Path("downloads") / f"result_{tag}"
-    out_dir.mkdir(parents=True, exist_ok=True)
-
-    # 1. 保存 processed result → .md
-    md_path = out_dir / "processed_result.md"
-    md_path.write_text(processed_md or "", encoding="utf-8")
-
-    # 2. 保存 raw result → .json 或 .md
-    if task_type == "doc2json":
-        raw_path = out_dir / "raw_result.json"
-        try:
-            from utils import extract_json_content
-
-            cleaned = extract_json_content(raw_result or "")
-            parsed = json.loads(cleaned)
-            raw_path.write_text(
-                json.dumps(parsed, ensure_ascii=False, indent=2), encoding="utf-8"
-            )
-        except Exception:
-            raw_path.write_text(raw_result or "", encoding="utf-8")
-    else:
-        raw_path = out_dir / "raw_result.md"
-        raw_path.write_text(raw_result or "", encoding="utf-8")
-
-    # 3. 逐页保存 bbox 图片
-    #    Gradio Gallery 回传时会把 PIL Image 序列化为临时文件路径(str)
-    if bbox_gallery:
-        import shutil
-
-        for idx, item in enumerate(bbox_gallery, start=1):
-            # Gallery 可能传入 (image, caption) tuple 或纯 image/path
-            img = item[0] if isinstance(item, (tuple, list)) else item
-            if img is None:
-                continue
-            bbox_path = out_dir / f"bbox_page_{idx}.png"
-            if isinstance(img, str):
-                # Gradio 返回的是临时文件路径，直接复制
-                shutil.copy(img, str(bbox_path))
-            elif isinstance(img, Path):
-                shutil.copy(str(img), str(bbox_path))
-            else:
-                # PIL Image 对象
-                img.save(str(bbox_path), "PNG")
-
-    # 4. 打包成 ZIP
-    zip_path = out_dir.parent / f"result_{tag}.zip"
-    compress_directory_to_zip(str(out_dir), str(zip_path))
-
-    return str(zip_path)
-
-
 async def doc_parser(doc_path, task_type, custom_prompt, model_id):
     model_name = AVAILABLE_MODELS[model_id]["name"]
     client = AVAILABLE_MODELS[model_id]["client"]
     Authorization = AVAILABLE_MODELS[model_id]["Authorization"]
 
-    # 根据任务类型获取 prompt
-    prompt = resolve_prompt(task_type, custom_prompt)
+    # get prompt
+    prompt = _resolve_prompt(task_type, custom_prompt)
 
     doc_path = Path(doc_path)
     if not doc_path.is_file():
@@ -265,7 +154,7 @@ async def doc_parser(doc_path, task_type, custom_prompt, model_id):
         tmpdir = Path(tmpdir)
 
         queries = []
-        img_paths = []  # 保存图片路径，供 doc2json 后处理使用
+        img_paths = []  # save image paths for doc2json post processing
         if doc_path.suffix.lower() == ".pdf":
             pages = convert_from_path(doc_path, dpi=300)
             for idx, page in enumerate(pages, start=1):
@@ -279,7 +168,6 @@ async def doc_parser(doc_path, task_type, custom_prompt, model_id):
             queries.append(messages)
             img_paths.append(doc_path)
 
-        # ⚠️ 必须在 with 块内处理，否则 tmpdir 被删后 img_paths 失效
         all_pages = []  # processed full text
         all_pages_raw = []  # raw full text
         all_bbox_images = (
@@ -290,10 +178,8 @@ async def doc_parser(doc_path, task_type, custom_prompt, model_id):
             raw_page = ""
             async for chunk in request(query, model_name, client, Authorization):
                 raw_page += chunk
-                # 实时流式预览：Gallery 用空列表占位
                 yield raw_page, [], raw_page, raw_page
 
-            # 根据任务类型做后处理
             if task_type == "doc2json":
                 processed = postprocess_doc2json_result(
                     raw_page, img_paths[i], output_format="md"
@@ -310,11 +196,9 @@ async def doc_parser(doc_path, task_type, custom_prompt, model_id):
             all_pages_raw.append(raw_page)
             print(f"[page {i+1}] done, task_type={task_type}")
 
-            # 拼接
             final_processed = "\n---\n".join(all_pages)
             final_raw = "\n\n".join(all_pages_raw)
 
-            # bbox 逐页列表（传给 Gallery）
             yield final_processed, all_bbox_images, final_processed, final_raw
 
 
@@ -345,7 +229,7 @@ latex_delimiters = [
 
 
 def check_task_input(task_type, custom_prompt):
-    """校验：custom 模式下必须填写 prompt"""
+    """validate: custom mode must fill in prompt"""
     if task_type == "custom" and (not custom_prompt or custom_prompt.strip() == ""):
         raise gr.Error("Please enter a custom prompt before parsing.")
     return task_type
@@ -360,25 +244,23 @@ def to_file(image_path):
 
 
 def render_img(b64_list, idx, scale):
-    """根据当前索引 idx 和缩放倍数 scale 渲染 HTML。"""
+    """Render HTML based on current index idx and scale."""
     if not b64_list:
-        return "<p style='color:gray'>请先上传图片</p>"
+        return "<p style='color:gray'>Please upload an image first.</p>"
     idx %= len(b64_list)
     src = b64_list[idx]
     # return (
     #     f'<div style="overflow:auto;border:1px solid #ccc;'
-    #     f'display:flex;justify-content:center;align-items:center;'   # ① 横纵向居中
-    #     f'width:100%;height:800px;">'                               # ② 容器尺寸
+    #     f'display:flex;justify-content:center;align-items:center;'   
+    #     f'width:100%;height:800px;">'                               
     #     f'<img src="{src}" '
-    #     f'style="transform:scale({scale});transform-origin:center center;" />'  # ③ 以中心缩放
+    #     f'style="transform:scale({scale});transform-origin:center center;" />'  
     #     f'</div>'
     # )
 
-    # 以百分比形式设置 width，height 自动等比
     percent = scale * 100
 
     if scale <= 1:
-        # ---------- 居中模式 ----------
         return f"""
             <div style="
                 width:100%;
@@ -387,9 +269,9 @@ def render_img(b64_list, idx, scale):
                 border:1px solid #ccc;
             ">
               <div style="
-                  min-width:100%;           /* 保证外层 div 至少跟容器一样宽 */
+                  min-width:100%;           
                   display:flex;
-                  justify-content:center;   /* 小图水平居中 */
+                  justify-content:center;   
               ">
                 <img src="{src}" style="
                     width:{percent}%;
@@ -400,7 +282,6 @@ def render_img(b64_list, idx, scale):
             </div>
             """
     else:
-        # ---------- 放大模式 ----------
         return (
             f'<div style="overflow:auto;border:1px solid #ccc;'
             f'width:100%;height:800px;">'
@@ -411,45 +292,8 @@ def render_img(b64_list, idx, scale):
         )
 
 
-def files_to_b64(file, pdf_dpi: int = 200):
-    out: list[str] = []
-    if hasattr(file, "data"):
-        raw_bytes = file.data
-        suffix = pathlib.Path(file.name).suffix.lower()
-
-        # -- PDF --
-        if suffix == ".pdf":
-            pages = convert_from_bytes(raw_bytes, dpi=pdf_dpi)
-            for page in pages:
-                buf = BytesIO()
-                page.save(buf, format="PNG")
-                b64 = base64.b64encode(buf.getvalue()).decode()
-                out.append(f"data:image/png;base64,{b64}")
-        else:
-            b64 = base64.b64encode(raw_bytes).decode()
-            out.append(f"data:image/{suffix[1:]};base64,{b64}")
-
-    else:
-        path = pathlib.Path(file)
-        suffix = path.suffix.lower()
-
-        if suffix == ".pdf":
-            pages = convert_from_path(str(path), dpi=pdf_dpi)
-            for page in pages:
-                buf = BytesIO()
-                page.save(buf, format="PNG")
-                b64 = base64.b64encode(buf.getvalue()).decode()
-                out.append(f"data:image/png;base64,{b64}")
-        else:
-            raw_bytes = path.read_bytes()
-            b64 = base64.b64encode(raw_bytes).decode()
-            out.append(f"data:image/{suffix[1:]};base64,{b64}")
-
-    return out
-
-
 async def process_file(file_path):
-    """使用asyncio的异步方案"""
+    """Use asyncio for async processing."""
     if file_path is None:
         return None
 
@@ -496,10 +340,10 @@ if __name__ == "__main__":
                     label="Custom Prompt",
                     placeholder="Enter your custom prompt here...",
                     lines=4,
-                    visible=False,  # 默认隐藏，选 custom 时才显示
+                    visible=False,  # hidden by default, show when custom is selected
                 )
 
-                # 切换任务类型时，控制自定义 prompt 框的可见性
+                # switch task type to control custom prompt visibility
                 def on_task_change(task_type):
                     return gr.update(visible=(task_type == "custom"))
 
@@ -531,7 +375,7 @@ if __name__ == "__main__":
 
                 model_selector = gr.Dropdown(
                     choices=[(k, k) for k, v in AVAILABLE_MODELS.items()],
-                    value=list(AVAILABLE_MODELS.keys())[0],  # 默认选择第一个模型
+                    value=list(AVAILABLE_MODELS.keys())[0],  # default to first model
                     label="Model Selection",
                     info="Select the model to use for parsing",
                     interactive=True,
@@ -594,9 +438,9 @@ if __name__ == "__main__":
                             latex_delimiters=latex_delimiters,
                             line_breaks=True,
                         )
-                    with gr.Tab("Bbox image"):
+                    with gr.Tab("Layout result"):
                         bbox_img = gr.Gallery(
-                            label="Bbox visualization",
+                            label="Layout result",
                             columns=1,
                             rows=1,
                             height=1100,
@@ -623,7 +467,7 @@ if __name__ == "__main__":
                     )
                 )
 
-            b64s = files_to_b64(files)
+            b64s = images_to_b64(files)
             return b64s, 0, render_img(b64s, 0, 1)
 
         file.change(
@@ -631,7 +475,7 @@ if __name__ == "__main__":
             inputs=file,
             outputs=[img_list_state, idx_state, viewer],
         ).then(
-            lambda: gr.update(value=1),  # 无输入，直接把 zoom 设为 1
+            lambda: gr.update(value=1),  # no input, set zoom to 1
             None,  # inputs=None
             zoom,  # outputs=[zoom]
         )
@@ -662,28 +506,32 @@ if __name__ == "__main__":
             outputs=viewer,
         )
 
+        def auto_package_and_show(*args):
+            # bind zip file path and component visibility together
+            zip_path = package_results_as_zip(*args)
+            return gr.update(value=zip_path, visible=True)
+
         change_bu.click(
             fn=check_task_input,
             inputs=[task_selector, custom_prompt],
             outputs=task_selector,
-        ).then(
-            lambda f: gr.update(visible=False), inputs=output_file, outputs=output_file
-        ).then(
-            fn=check_file, inputs=file, outputs=file
+        ).then(fn=check_file, inputs=file, outputs=file).then(
+            # hide and clear download box before starting
+            lambda: gr.update(value=None, visible=False),
+            inputs=None,
+            outputs=output_file,
         ).then(
             fn=doc_parser,
             inputs=[file, task_selector, custom_prompt, model_selector],
             outputs=[md, bbox_img, processed_text, raw_text],
         )
 
-        clear_bu.add([file, md, bbox_img, processed_text, raw_text])
-
         download_btn.click(
-            fn=package_results_as_zip,
+            fn=auto_package_and_show,
             inputs=[task_selector, processed_text, raw_text, bbox_img],
             outputs=output_file,
-        ).then(
-            lambda f: gr.update(visible=True), inputs=output_file, outputs=output_file
         )
+
+        clear_bu.add([file, md, bbox_img, processed_text, raw_text])
 
     demo.launch(server_name="0.0.0.0", share=True)
