@@ -5,6 +5,21 @@ from typing import Union
 
 from PIL import Image, ImageDraw, ImageFont
 
+CATEGORY_COLORS = {
+    "header": (255, 107, 107),
+    "title": (78, 205, 196),
+    "text": (69, 183, 209),
+    "figure": (150, 206, 180),
+    "table": (255, 234, 167),
+    "formula": (162, 155, 254),
+    "figure_caption": (253, 203, 110),
+    "table_caption": (0, 184, 148),
+    "formula_caption": (108, 92, 231),
+    "figure_footnote": (214, 48, 49),
+    "table_footnote": (9, 132, 227),
+    "page_footnote": (253, 121, 168),
+    "footer": (116, 185, 255),
+}
 # ---------------------------------------------------------------------------
 # JSON extraction & cleanup
 # ---------------------------------------------------------------------------
@@ -163,21 +178,6 @@ def postprocess_doc2md_result(text: str) -> str:
     return text.strip()
 
 
-CATEGORY_COLORS = {
-    "header": (255, 107, 107),
-    "title": (78, 205, 196),
-    "text": (69, 183, 209),
-    "figure": (150, 206, 180),
-    "table": (255, 234, 167),
-    "formula": (162, 155, 254),
-    "figure_caption": (253, 203, 110),
-    "table_caption": (0, 184, 148),
-    "formula_caption": (108, 92, 231),
-    "figure_footnote": (214, 48, 49),
-    "table_footnote": (9, 132, 227),
-    "page_footnote": (253, 121, 168),
-    "footer": (116, 185, 255),
-}
 
 
 def _get_font(size: int = 14):

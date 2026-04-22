@@ -14,7 +14,7 @@ from .backends import (
     VLLMEngineBackend,
     VLLMServerBackend,
 )
-from .prompts import SUPPORTED_TASK_TYPES, _resolve_prompt
+from .prompts import SUPPORTED_TASK_TYPES, resolve_prompt
 from .utils import *
 
 BACKEND_REGISTRY = {
@@ -193,7 +193,7 @@ class InfinityParser2:
                 "For other task types, output_format must be 'md'."
             )
 
-        prompt = _resolve_prompt(task_type, custom_prompt)
+        prompt = resolve_prompt(task_type, custom_prompt)
         print(f"[Infinity-Parser2] task_type: {task_type}, prompt: {prompt}")
 
         is_directory = isinstance(input_data, str) and os.path.isdir(input_data)

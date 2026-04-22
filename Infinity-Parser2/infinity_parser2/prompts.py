@@ -7,9 +7,9 @@ __all__ = [
     "PROMPT_DOC2MD",
     "SUPPORTED_TASK_TYPES",
 ]
+SUPPORTED_TASK_TYPES = ["doc2json", "doc2md", "custom"]
 
-
-def _resolve_prompt(task_type: str, custom_prompt: Optional[str]) -> str:
+def resolve_prompt(task_type: str, custom_prompt: Optional[str]) -> str:
     """Resolve the prompt to use based on task_type and custom_prompt.
 
     Args:
@@ -31,8 +31,6 @@ def _resolve_prompt(task_type: str, custom_prompt: Optional[str]) -> str:
     # Fallback for unknown task types (should not happen with proper validation)
     return "Please transform the document's contents into Markdown format."
 
-
-SUPPORTED_TASK_TYPES = ["doc2json", "doc2md", "custom"]
 
 
 # doc2json prompt (outputs JSON format)

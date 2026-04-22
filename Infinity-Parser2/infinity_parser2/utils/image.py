@@ -1,22 +1,39 @@
 """Image encoding and loading utilities."""
 
 import base64
+import warnings
 from io import BytesIO
 from pathlib import Path
-from typing import Tuple, Union
+from typing import Tuple, Union, Optional, Callable
 
 from PIL import Image
+from importlib import metadata
 
+# smart_resize is optional - only needed for encode_file_to_base64 with resizing
+smart_resize: Optional[Callable] = None
 try:
-    from importlib import metadata
-
+    from qwen_vl_utils.vision_process import smart_resize
     _qwen_vl_utils_version = metadata.version("qwen-vl-utils")
     if _qwen_vl_utils_version < "0.0.14":
-        _HAS_QWEN_VL = False
-    else:
-        _HAS_QWEN_VL = True
-except (ImportError, metadata.PackageNotFoundError):
-    _HAS_QWEN_VL = False
+        warnings.warn(
+            f"qwen-vl-utils version {_qwen_vl_utils_version} is installed, "
+            f"but version 0.0.14 or higher is recommended. "
+            f"Some features may not work correctly. "
+            f"Upgrade with: pip install qwen-vl-utils>=0.0.14",
+            UserWarning
+        )
+except metadata.PackageNotFoundError:
+    warnings.warn(
+        "qwen-vl-utils is not installed. The encode_file_to_base64 function with "
+        "smart resizing will not be available. Install it with: pip install qwen-vl-utils",
+        UserWarning
+    )
+except ImportError as e:
+    warnings.warn(
+        f"Failed to import qwen-vl-utils: {e}. The encode_file_to_base64 function with "
+        "smart resizing will not be available. Install it with: pip install qwen-vl-utils",
+        UserWarning
+    )
 
 
 # MIME type mapping for common image formats
@@ -68,7 +85,16 @@ def encode_file_to_base64(
 
     Returns:
         Tuple of (base64 string, MIME type string).
+
+    Raises:
+        ImportError: If qwen-vl-utils is not installed.
     """
+    if smart_resize is None:
+        raise ImportError(
+            "encode_file_to_base64 requires qwen-vl-utils. "
+            "Install it with: pip install qwen-vl-utils"
+        )
+
     if isinstance(image_obj, str):
         image = Image.open(image_obj)
         ext = Path(image_obj).suffix.lower()
@@ -83,13 +109,6 @@ def encode_file_to_base64(
             if original_format
             else "image/jpeg"
         )
-
-    if not _HAS_QWEN_VL:
-        raise ImportError(
-            "qwen-vl-utils version 0.0.14 or higher is required for encode_file_to_base64. "
-            "Install it with: pip install qwen-vl-utils"
-        )
-    from qwen_vl_utils.vision_process import smart_resize
 
     resized_height, resized_width = smart_resize(
         height=image.size[1],
