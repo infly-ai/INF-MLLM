@@ -1,6 +1,6 @@
 """Infinity-Parser2: Document parsing Python package."""
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 from .parser import InfinityParser2
 from .backends import (

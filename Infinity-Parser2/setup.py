@@ -32,7 +32,7 @@ install_requires = [
 
 setup(
     name="infinity_parser2",
-    version="0.2.0",
+    version="0.3.0",
     description="Document parsing Python package supporting PDF and image parsing using Infinity-Parser2-Pro model.",
     long_description=open("README.md", "r", encoding="utf-8").read(),
     long_description_content_type="text/markdown",

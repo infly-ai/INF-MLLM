@@ -86,8 +86,11 @@ class InfinityParser2:
         self.kwargs = kwargs
 
         # Initialize model cache and resolve model path (stored separately)
-        cache = get_model_cache(model_cache_dir)
-        self._model_path = cache.resolve_model_path(self.model_name)
+        if self.backend_name == "vllm-server":
+            self._model_path = self.model_name
+        else:
+            cache = get_model_cache(model_cache_dir)
+            self._model_path = cache.resolve_model_path(self.model_name)
 
         self._backend: BaseBackend = self._init_backend()
 
