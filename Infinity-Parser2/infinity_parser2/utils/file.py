@@ -190,6 +190,7 @@ def save_results_json(keys: List[str], results: List[str], output_dir: str) -> N
         folder_name = Path(key).name
         file_dir = os.path.join(output_dir, folder_name)
         os.makedirs(file_dir, exist_ok=True)
+        result_path = os.path.join(file_dir, "result.json")
         with open(result_path, "w", encoding="utf-8") as f:
             f.write(result)
 
@@ -225,9 +226,9 @@ def package_results_as_zip(
     task_type: str, processed_md: str, raw_result: str, bbox_gallery: list
 ) -> str:
     """
-      - processed_result.md   
-      - raw_result.json/.md   
-      - bbox_page_N.png       
+      - processed_result.md
+      - raw_result.json/.md
+      - bbox_page_N.png
 
     Args:
         task_type
@@ -269,7 +270,12 @@ def package_results_as_zip(
     # 3. save bbox images (Gallery return value processing)
     if bbox_gallery:
         for idx, item in enumerate(bbox_gallery, start=1):
-            img = item[0] if isinstance(item, (tuple, list)) else item
+            if isinstance(item, (tuple, list)):
+                img = item[0]
+            elif isinstance(item, dict):
+                img = item.get("image")
+            else:
+                img = item
             if img is None:
                 continue
             bbox_path = out_dir / f"bbox_page_{idx}.png"

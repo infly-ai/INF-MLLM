@@ -84,24 +84,33 @@ def restore_abs_bbox_coordinates(ans: str, origin_h: float, origin_w: float) -> 
     except json.JSONDecodeError:
         return ans
 
-    valid = True
-    for item in data:
-        for key in item:
-            if "bbox" not in key:
-                continue
-            bbox = item[key]
-            if len(bbox) == 4 and all(isinstance(c, (int, float)) for c in bbox):
-                x1, y1, x2, y2 = bbox
-                item[key] = [
-                    int(x1 / 1000.0 * origin_w),
-                    int(y1 / 1000.0 * origin_h),
-                    int(x2 / 1000.0 * origin_w),
-                    int(y2 / 1000.0 * origin_h),
-                ]
-            else:
-                valid = False
+    def process_element(element):
+        """A recursive function to traverse all nodes and find and convert bboxes."""
+        if isinstance(element, list):
+            for el in element:
+                process_element(el)
+        elif isinstance(element, dict):
+            # If the current dictionary has a bbox, convert it directly.
+            if "bbox" in element:
+                bbox = element["bbox"]
+                if len(bbox) == 4 and all(isinstance(c, (int, float)) for c in bbox):
+                    x1, y1, x2, y2 = bbox
+                    element["bbox"] = [
+                        int(x1 / 1000.0 * origin_w),
+                        int(y1 / 1000.0 * origin_h),
+                        int(x2 / 1000.0 * origin_w),
+                        int(y2 / 1000.0 * origin_h),
+                    ]
 
-    return json.dumps(data, ensure_ascii=False) if valid else ans
+            # Continue traversing the other values of the dictionary to prevent deeper nesting.
+            for val in element.values():
+                if isinstance(val, (list, dict)):
+                    process_element(val)
+
+    # Start the recursion.
+    process_element(data)
+
+    return json.dumps(data, ensure_ascii=False)
 
 
 # ---------------------------------------------------------------------------
@@ -110,13 +119,42 @@ def restore_abs_bbox_coordinates(ans: str, origin_h: float, origin_w: float) -> 
 
 
 def convert_json_to_markdown(ans: str, keep_header_footer: bool = False) -> str:
-    """Convert the layout JSON list into a markdown string."""
+    """Convert the layout JSON list into a markdown string.
+
+    Handles both flat lists (single-page) and nested lists (multi-page PDF):
+      - Flat:    [{...}, {...}]
+      - Nested:  [[{...}, {...}], [{...}], ...]  → pages joined with "---"
+    """
     try:
-        items = json.loads(ans)
-        if not isinstance(items, list):
+        data = json.loads(ans)
+        if not isinstance(data, list):
             return ans
+
+        # ── Multi-page: [[{...}], [{...}], ...] ────────────────────────────
+        if len(data) > 0 and isinstance(data[0], list):
+            pages = []
+            for page_list in data:
+                lines = []
+                for sub in page_list:
+                    if "text" not in sub or not sub["text"]:
+                        continue
+                    if keep_header_footer:
+                        lines.append(sub["text"])
+                    else:
+                        if sub.get("category") not in (
+                            "header",
+                            "footer",
+                            "page_footnote",
+                        ):
+                            lines.append(sub["text"])
+                pages.append("\n\n".join(lines) if lines else "")
+            # Filter empty pages and join with page separator
+            pages = [p for p in pages if p]
+            return "".join(pages) if pages else ans
+
+        # ── Single-page: [{...}, {...}] ─────────────────────────────────────
         lines = []
-        for sub in items:
+        for sub in data:
             if "text" not in sub or not sub["text"]:
                 continue
             if keep_header_footer:
@@ -178,8 +216,6 @@ def postprocess_doc2md_result(text: str) -> str:
     return text.strip()
 
 
-
-
 def _get_font(size: int = 14):
     """Try to load a decent font, fall back to default."""
     candidates = [
@@ -198,29 +234,46 @@ def _get_font(size: int = 14):
 def draw_bboxes_on_image(
     image_path: Union[str, Path],
     json_text: str,
+    page_index: int = 1,  # Keep page index parameter to support multi-page PDF.
 ) -> Image.Image | None:
-    """Draw category-colored bounding boxes on a copy of the image."""
+    """Draw category-colored bounding boxes on a copy of the image.
+
+    json_text is expected to be already post-processed: markdown fences removed,
+    truncated if needed, and coordinates already in pixel values (not 0-1000).
+    """
     try:
-        # 提取并清理 JSON 文本，确保它可以被解析
-        cleaned_text = extract_json_content(json_text)
-        cleaned_text, _ = truncate_last_incomplete_element(cleaned_text)
-
         img = Image.open(image_path).convert("RGB")
-        origin_w, origin_h = img.size
-
-        # 将相对坐标 [0-1000] 转为绝对坐标
-        abs_json_text = restore_abs_bbox_coordinates(cleaned_text, origin_h, origin_w)
-        data = json.loads(abs_json_text)
-
-        if not isinstance(data, list):
-            return None
-    except (json.JSONDecodeError, TypeError, IOError):
+    except (IOError, OSError):
         return None
+
+    cleaned = extract_json_content(json_text)
+    cleaned, _ = truncate_last_incomplete_element(cleaned)
+
+    try:
+        data = json.loads(cleaned)
+    except json.JSONDecodeError:
+        return None
+
+    if not isinstance(data, list) or len(data) == 0:
+        return img
+
+    # --- Core: extract data for the current page (compatible with multi-page nested and single-page flat) ---
+    page_data = []
+    if isinstance(data[0], list):
+        # If it's a nested list (multi-page), extract data for the corresponding page based on page_index.
+        if page_index - 1 < len(data):
+            page_data = data[page_index - 1]
+    else:
+        # If it's a flat list (single-page), use the data directly.
+        page_data = data
+
+    if not page_data:
+        return img  # If this page has no boxes, return the original image.
 
     draw = ImageDraw.Draw(img)
     font = _get_font(16)
 
-    for item in data:
+    for item in page_data:
         bbox = item.get("bbox", [])
         category = item.get("category", "unknown")
         if len(bbox) != 4:
@@ -229,35 +282,37 @@ def draw_bboxes_on_image(
         color = CATEGORY_COLORS.get(category, (200, 200, 200))
         x1, y1, x2, y2 = bbox
 
-        # 绘制半透明填充矩形（通过 overlay 实现）
         draw.rectangle([x1, y1, x2, y2], outline=color, width=2)
 
-        # 绘制标签背景 + 文字
         label = category
-        tb = draw.textbbox((x1, y1), label, font=font)
-        draw.rectangle(
-            [tb[0] - 2, tb[1] - 2, tb[2] + 2, tb[3] + 2],
-            fill=color,
-        )
+        try:
+            tb = draw.textbbox((x1, y1), label, font=font)
+            draw.rectangle(
+                [tb[0] - 2, tb[1] - 2, tb[2] + 2, tb[3] + 2],
+                fill=color,
+            )
+        except AttributeError:
+            pass  # Compatible with low version Pillow.
+
         draw.text((x1, y1), label, fill=(255, 255, 255), font=font)
 
-    # 在右上角显示图片大小
+    # Display the image size in the upper right corner.
     size_text = f"Size: {img.width}x{img.height}"
-    # 计算文字的 bounding box
-    tb = draw.textbbox((0, 0), size_text, font=font)
-    text_width = tb[2] - tb[0]
-    text_height = tb[3] - tb[1]
+    try:
+        tb = draw.textbbox((0, 0), size_text, font=font)
+        text_width = tb[2] - tb[0]
+        text_height = tb[3] - tb[1]
 
-    # 获取右上角的位置
-    margin = 10
-    x = img.width - text_width - margin * 2
-    y = margin
+        margin = 10
+        x = img.width - text_width - margin * 2
+        y = margin
 
-    # 绘制背景和文字
-    draw.rectangle(
-        [x, y, x + text_width + margin * 2, y + text_height + margin * 2],
-        fill=(0, 0, 0, 180),  # 黑色半透明背景
-    )
-    draw.text((x + margin, y + margin), size_text, fill=(255, 255, 255), font=font)
+        draw.rectangle(
+            [x, y, x + text_width + margin * 2, y + text_height + margin * 2],
+            fill=(0, 0, 0, 180),
+        )
+        draw.text((x + margin, y + margin), size_text, fill=(255, 255, 255), font=font)
+    except AttributeError:
+        pass
 
     return img

@@ -10,19 +10,11 @@ from .file import (
     compress_directory_to_zip,
     package_results_as_zip,
 )
+from .pdf import convert_pdf_to_images
+from .image import encode_image_to_base64, load_image
+from .model import ModelCache, get_model_cache
 
-try:
-    from .image import encode_file_to_base64, load_image, encode_image, images_to_b64
-    from .model import ModelCache, get_model_cache
-    from .pdf import convert_pdf_to_images, images_to_pdf
 
-    _HAS_TORCH_UTILS = True
-except ImportError:
-    # Fallback definition for pure utility functions that don't need heavy ML frameworks
-    from .image import encode_image, images_to_b64
-    from .pdf import images_to_pdf
-
-    _HAS_TORCH_UTILS = False
 from .utils import (
     convert_json_to_markdown,
     extract_json_content,
@@ -51,18 +43,9 @@ __all__ = [
     "draw_bboxes_on_image",
     "compress_directory_to_zip",
     "package_results_as_zip",
-    "encode_image",
-    "images_to_pdf",
-    "images_to_b64",
+    "load_image",
+    "convert_pdf_to_images",
+    "encode_image_to_base64",
+    "ModelCache",
+    "get_model_cache",
 ]
-
-if _HAS_TORCH_UTILS:
-    __all__.extend(
-        [
-            "convert_pdf_to_images",
-            "encode_file_to_base64",
-            "get_model_cache",
-            "load_image",
-            "ModelCache",
-        ]
-    )

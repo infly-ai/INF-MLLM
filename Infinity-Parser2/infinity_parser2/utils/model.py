@@ -177,7 +177,9 @@ class ModelCache:
 
         print(f"[Infinity-Parser2] Model '{model_name}' not found locally.")
         print(f"[Infinity-Parser2] Starting download to: {target_dir}")
-        print("[Infinity-Parser2] This may take a few minutes depending on model size and network...")
+        print(
+            "[Infinity-Parser2] This may take a few minutes depending on model size and network..."
+        )
 
         # Resolve the best HF endpoint (cached per session)
         resolved_endpoint = _resolve_hf_endpoint()

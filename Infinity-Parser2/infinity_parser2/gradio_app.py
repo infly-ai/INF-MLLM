@@ -1,45 +1,23 @@
-import sys
-import asyncio
+import uuid
 import tempfile
-import subprocess
+import base64
 from pathlib import Path
-
 import httpx
 import os
 import gradio as gr
-from openai import AsyncOpenAI
-import aiohttp
-from pdf2image import convert_from_path
 from utils import (
+    convert_pdf_to_images,
     postprocess_doc2json_result,
     postprocess_doc2md_result,
     draw_bboxes_on_image,
-    encode_image,
-    images_to_pdf,
     package_results_as_zip,
-    images_to_b64,
+    encode_image_to_base64,
 )
-from prompts import resolve_prompt, SUPPORTED_TASK_TYPES
-
-
-def setup_poppler_linux():
-    poppler_dir = "/tmp/poppler"
-    if not os.path.exists(poppler_dir):
-        os.makedirs(poppler_dir, exist_ok=True)
-        subprocess.run(
-            ["bash", "-lc", "rm -f /etc/apt/sources.list.d/*nodesource*.list || true"],
-            check=False,
-        )
-        subprocess.run(["apt-get", "update"], check=True)
-        subprocess.run(["apt-get", "install", "-y", "poppler-utils"], check=True)
-
-
-if sys.platform.startswith("linux"):
-    setup_poppler_linux()
+from prompts import SUPPORTED_TASK_TYPES
 
 
 class GradioApp:
-    """Gradio 应用类，封装 Infinity-Parser2 的 Web UI"""
+    """Gradio Application Class, encapsulating the Web UI of Infinity-Parser2"""
 
     LATEX_DELIMITERS = [
         {"left": "$$", "right": "$$", "display": True},
@@ -49,182 +27,189 @@ class GradioApp:
     ]
 
     def __init__(self):
-        self.openai_api_key = "EMPTY"
         self.openai_api_base = os.environ.get("INFINITY_API_BASE", "")
         self.Authorization = os.environ.get("INFINITY_API_AUTH", "")
-        self._http_client = httpx.AsyncClient(verify=False)
+        self._http_client = httpx.AsyncClient(verify=False, timeout=600.0)
         self.available_models = self._init_models()
         self.demo = None
 
     def _init_models(self):
-        """初始化可用模型"""
-        return {
-            "Infinity-Parser2-Pro": {
-                "name": "Infinity-Parser2-Pro",
-                "client": AsyncOpenAI(
-                    api_key=self.openai_api_key,
-                    base_url=self.openai_api_base.rstrip("/") + "/v1",
-                    http_client=self._http_client,
-                ),
-                "Authorization": self.Authorization,
-            }
-        }
+        return ["Infinity-Parser2-Pro", "Infinity-Parser2-Flash"]
 
     # ==================== core methods ====================
 
-    async def send_pdf_async_aiohttp(
-        self, file_path, server_ip, route="/upload", Authorization=None
+    async def request_with_file_content(
+        self,
+        file_base64,
+        file_name,
+        task_type,
+        custom_prompt,
+        output_format,
+        model_name,
     ):
-        """use aiohttp send pdf"""
-        url = f"{server_ip}{route}"
-        headers = {}
-        if Authorization:
-            headers["Authorization"] = f"Bearer {Authorization}"
+        """Use Base64 string directly to request the Flask API, no local file path needed."""
+        url = f"{self.openai_api_base}/v1/chat/completions"
 
-        try:
-            connector = aiohttp.TCPConnector(ssl=False)
-            async with aiohttp.ClientSession(connector=connector) as session:
-                with open(file_path, "rb") as f:
-                    data = aiohttp.FormData()
-                    data.add_field(
-                        "file",
-                        f,
-                        filename=os.path.basename(file_path),
-                        content_type="application/pdf",
-                    )
-                    async with session.post(
-                        url, data=data, headers=headers
-                    ) as response:
-                        print(
-                            f"PDF sent successfully: {file_path}, status code: {response.status}"
-                        )
-                        return response
-        except Exception as e:
-            print(f"PDF sent failed: {file_path}, error: {e}")
-            return None
+        ext = Path(file_name).suffix.lower()
+        content_type_map = {
+            ".pdf": "application/pdf",
+            ".png": "image/png",
+            ".jpg": "image/jpeg",
+            ".jpeg": "image/jpeg",
+        }
+        content_type = content_type_map.get(ext, "application/octet-stream")
 
-    async def request(self, messages, model_name, client, Authorization):
-        chat_completion_from_base64 = await client.chat.completions.create(
-            messages=messages,
-            extra_headers={"Authorization": f"Bearer {Authorization}"},
-            model=model_name,
-            max_completion_tokens=4096,
-            stream=True,
-            temperature=0.0,
-            top_p=0.95,
+        payload = {
+            "file_base64": file_base64,
+            "file_name": file_name,
+            "content_type": content_type,
+            "task_type": task_type,
+            "output_format": output_format,
+            "model": model_name,
+        }
+        if custom_prompt:
+            payload["custom_prompt"] = custom_prompt
+
+        headers = {"Content-Type": "application/json"}
+        if self.Authorization:
+            headers["Authorization"] = f"Bearer {self.Authorization}"
+
+        response = await self._http_client.post(url, json=payload, headers=headers)
+
+        if response.status_code != 200:
+            raise Exception(f"API error: {response.status_code} - {response.text}")
+
+        data = response.json()
+        content = data["choices"][0]["message"]["content"]
+        return content
+
+    async def infinity_parser2(self, file_state, task_type, custom_prompt, model_name):
+        """Parse using Base64 data in State; fully decouples from original upload path."""
+        if not file_state:
+            raise gr.Error("File state lost, please re-upload.")
+
+        file_base64, file_name = file_state
+        output_format = "json" if task_type == "doc2json" else "md"
+
+        session_id = uuid.uuid4().hex
+        session_dir = Path(tempfile.gettempdir()) / f"infinity_parse_{session_id}"
+        session_dir.mkdir(parents=True, exist_ok=True)
+
+        # Decode Base64 to local temp file, used only for PDF-to-image and bbox drawing.
+        file_bytes = base64.b64decode(file_base64)
+        ext = Path(file_name).suffix.lower()
+
+        img_paths = []
+        if ext == ".pdf":
+            MAX_PAGES = 10
+            temp_pdf = session_dir / file_name
+            with open(temp_pdf, "wb") as f:
+                f.write(file_bytes)
+
+            pages = convert_pdf_to_images(temp_pdf, dpi=300)
+            pages = pages[:MAX_PAGES]
+            for idx, page in enumerate(pages, start=1):
+                img_path = session_dir / f"parse_page_{idx}.png"
+                page.save(img_path, "PNG")
+                img_paths.append(str(img_path))
+        else:
+            temp_img = session_dir / file_name
+            with open(temp_img, "wb") as f:
+                f.write(file_bytes)
+            img_paths = [str(temp_img)]
+
+        # Pass Base64 directly to API.
+        raw_result = await self.request_with_file_content(
+            file_base64, file_name, task_type, custom_prompt, output_format, model_name
         )
 
-        page = ""
-        async for chunk in chat_completion_from_base64:
-            if chunk.choices[0].delta.content:
-                content = chunk.choices[0].delta.content
-                choice = chunk.choices[0]
-                if choice.finish_reason is not None:
-                    print(f"end reason = {choice.finish_reason}")
-                    break
-                page += content
-                yield content
+        all_bbox_images = []
+        if task_type == "doc2json":
+            processed = postprocess_doc2json_result(
+                raw_result, img_paths[0], output_format="md"
+            )
+            for i, img_path in enumerate(img_paths):
+                im = draw_bboxes_on_image(img_path, raw_result, page_index=i + 1)
+                if im is not None:
+                    saved_path = session_dir / f"bbox_page_{i+1}.png"
+                    im.save(str(saved_path), "PNG")
+                    all_bbox_images.append((str(saved_path), f"Page {i+1}"))
+        elif task_type == "doc2md":
+            processed = postprocess_doc2md_result(raw_result)
+        else:
+            processed = raw_result
 
-    def build_message(self, image_path, prompt):
-        content = [
-            {
-                "type": "image_url",
-                "image_url": {
-                    "url": f"data:image/jpeg;base64,{encode_image(image_path)}"
-                },
-            },
-            {"type": "text", "text": prompt},
-        ]
-        return [
-            {"role": "system", "content": "You are a helpful assistant."},
-            {"role": "user", "content": content},
-        ]
-
-    async def infinity_parser2(self, doc_path, task_type, custom_prompt, model_id):
-        model_name = self.available_models[model_id]["name"]
-        client = self.available_models[model_id]["client"]
-        Authorization = self.available_models[model_id]["Authorization"]
-
-        prompt = resolve_prompt(task_type, custom_prompt)
-        doc_path = Path(doc_path)
-        if not doc_path.is_file():
-            raise FileNotFoundError(doc_path)
-
-        with tempfile.TemporaryDirectory() as tmpdir:
-            tmpdir = Path(tmpdir)
-
-            queries = []
-            img_paths = []
-            if doc_path.suffix.lower() == ".pdf":
-                pages = convert_from_path(doc_path, dpi=300)
-                for idx, page in enumerate(pages, start=1):
-                    img_path = tmpdir / f"page_{idx}.png"
-                    page.save(img_path, "PNG")
-                    messages = self.build_message(img_path, prompt)
-                    queries.append(messages)
-                    img_paths.append(img_path)
-            else:
-                messages = self.build_message(doc_path, prompt)
-                queries.append(messages)
-                img_paths.append(doc_path)
-
-            all_pages = []
-            all_pages_raw = []
-            all_bbox_images = []
-
-            for i, query in enumerate(queries):
-                raw_page = ""
-                async for chunk in self.request(
-                    query, model_name, client, Authorization
-                ):
-                    raw_page += chunk
-                    yield raw_page, [], raw_page, raw_page
-
-                if task_type == "doc2json":
-                    processed = postprocess_doc2json_result(
-                        raw_page, img_paths[i], output_format="md"
-                    )
-                    im = draw_bboxes_on_image(img_paths[i], raw_page)
-                    if im is not None:
-                        all_bbox_images.append((im, f"Page {i+1}"))
-                elif task_type == "doc2md":
-                    processed = postprocess_doc2md_result(raw_page)
-                else:
-                    processed = raw_page
-
-                all_pages.append(processed)
-                all_pages_raw.append(raw_page)
-                print(f"[page {i+1}] done, task_type={task_type}")
-
-                final_processed = "\n---\n".join(all_pages)
-                final_raw = "\n\n".join(all_pages_raw)
-                yield final_processed, all_bbox_images, final_processed, final_raw
+        print(f"[parse] done, task_type={task_type}")
+        yield processed, all_bbox_images, processed, raw_result
 
     # ==================== static helper methods ====================
 
     @staticmethod
     def check_task_input(task_type, custom_prompt):
-        """validate: custom mode must fill in prompt"""
         if task_type == "custom" and (not custom_prompt or custom_prompt.strip() == ""):
             raise gr.Error("Please enter a custom prompt before parsing.")
         return task_type
 
-    @staticmethod
-    def to_file(image_path):
-        """Convert image to file path."""
-        if image_path.endswith("Academic_Papers.png"):
-            image_path = image_path.replace(
-                "Academic_Papers.png", "Academic_Papers.pdf"
-            )
-        return image_path
+    def _load_example(self, file_path):
+        """Replace the old to_file: read a server-side example file and wrap it into State."""
+        file_path = Path(file_path)
+        file_name = file_path.name
+
+        # Read file as Base64.
+        with open(file_path, "rb") as f:
+            file_bytes = f.read()
+        file_base64 = base64.b64encode(file_bytes).decode("utf-8")
+
+        # Generate preview images.
+        session_id = uuid.uuid4().hex
+        session_dir = Path(tempfile.gettempdir()) / f"infinity_preview_{session_id}"
+        session_dir.mkdir(parents=True, exist_ok=True)
+
+        img_b64_list = []
+        if file_path.suffix.lower() == ".pdf":
+            MAX_PAGES = 10
+            pages = convert_pdf_to_images(file_path, dpi=300)
+            pages = pages[:MAX_PAGES]
+            for idx, page in enumerate(pages, start=1):
+                img_path = session_dir / f"preview_page_{idx}.png"
+                page.save(img_path, "PNG")
+                img_b64_list.append(self.encode_img_base64(str(img_path)))
+        else:
+            img_b64_list = [self.encode_img_base64(str(file_path))]
+
+        # Return: file_state (Base64, filename), preview list, current page index, rendered HTML.
+        return (
+            (file_base64, file_name),
+            img_b64_list,
+            0,
+            self.render_img_base64(img_b64_list, 0, 1),
+        )
 
     @staticmethod
-    def render_img(b64_list, idx, scale):
-        """Render HTML based on current index idx and scale."""
-        if not b64_list:
+    def encode_img_base64(img_path, min_pixels=None, max_pixels=None):
+        base64_str, mime_type = encode_image_to_base64(img_path, min_pixels, max_pixels)
+        return f"data:{mime_type};base64,{base64_str}"
+
+    @staticmethod
+    def get_pdf_thumbnail(pdf_path, dpi=150):
+        """Generate a thumbnail (first page) from a PDF for use as a Gradio Image component."""
+        pages = convert_pdf_to_images(pdf_path, dpi=dpi)
+        if not pages:
+            return None
+        thumb = pages[0]
+        thumb_id = uuid.uuid4().hex[:8]
+        thumb_dir = Path(tempfile.gettempdir()) / "infinity_thumbs"
+        thumb_dir.mkdir(parents=True, exist_ok=True)
+        thumb_path = thumb_dir / f"thumb_{thumb_id}.png"
+        thumb.save(thumb_path, "PNG")
+        return str(thumb_path)
+
+    @staticmethod
+    def render_img_base64(img_b64_list, idx, scale):
+        if not img_b64_list:
             return "<p style='color:gray'>Please upload an image first.</p>"
-        idx %= len(b64_list)
-        src = b64_list[idx]
+        idx %= len(img_b64_list)
+        src = img_b64_list[idx]
         percent = scale * 100
 
         if scale <= 1:
@@ -243,69 +228,83 @@ class GradioApp:
             )
 
     @staticmethod
-    def check_file(f):
-        if f is None:
+    def check_file_state(file_state):
+        if file_state is None:
             raise gr.Error("Please upload a PDF or image before parsing.")
-        return f
+        return file_state
 
     @staticmethod
     def on_task_change(task_type):
-        """task type change, control custom prompt visibility"""
         return gr.update(visible=(task_type == "custom"))
 
     @staticmethod
     def reset_zoom():
-        """reset zoom value"""
         return gr.update(value=1)
 
     @staticmethod
     def hide_download_file():
-        """hide download file box"""
         return gr.update(value=None, visible=False)
 
     # ==================== callback methods ====================
 
     async def upload_handler(self, files):
-        """file upload handler"""
+        """Convert user-uploaded file to Base64 State."""
         if files is None:
-            return [], 0, ""
+            return None, [], 0, ""
 
-        if files.lower().endswith(".pdf"):
-            asyncio.create_task(
-                self.send_pdf_async_aiohttp(
-                    files,
-                    server_ip=self.openai_api_base,
-                    Authorization=self.Authorization,
-                )
-            )
+        if hasattr(files, "path"):
+            file_path = files.path
+        elif isinstance(files, list) and len(files) > 0:
+            first = files[0]
+            file_path = first.path if hasattr(first, "path") else str(first)
+        else:
+            file_path = str(files)
 
-        b64s = images_to_b64(files)
-        return b64s, 0, self.render_img(b64s, 0, 1)
+        file_name = Path(file_path).name
+        with open(file_path, "rb") as f:
+            file_bytes = f.read()
+        file_base64 = base64.b64encode(file_bytes).decode("utf-8")
 
-    def show_prev(self, b64s, idx, scale):
-        """show previous page"""
+        session_id = uuid.uuid4().hex
+        session_dir = Path(tempfile.gettempdir()) / f"infinity_preview_{session_id}"
+        session_dir.mkdir(parents=True, exist_ok=True)
+
+        img_b64_list = []
+        if file_path.lower().endswith(".pdf"):
+            MAX_PAGES = 10
+            pages = convert_pdf_to_images(file_path, dpi=300)
+            pages = pages[:MAX_PAGES]
+
+            for idx, page in enumerate(pages, start=1):
+                img_path = session_dir / f"preview_page_{idx}.png"
+                page.save(img_path, "PNG")
+                img_b64_list.append(self.encode_img_base64(str(img_path)))
+        else:
+            img_b64_list = [self.encode_img_base64(file_path)]
+
+        # Return state tuple.
+        file_state = (file_base64, file_name)
+        return file_state, img_b64_list, 0, self.render_img_base64(img_b64_list, 0, 1)
+
+    def show_prev(self, img_b64_list, idx, scale):
         idx -= 1
-        return idx, self.render_img(b64s, idx, scale)
+        return idx, self.render_img_base64(img_b64_list, idx, scale)
 
-    def show_next(self, b64s, idx, scale):
-        """show next page"""
+    def show_next(self, img_b64_list, idx, scale):
         idx += 1
-        return idx, self.render_img(b64s, idx, scale)
+        return idx, self.render_img_base64(img_b64_list, idx, scale)
 
-    def on_zoom_change(self, b64s, idx, scale):
-        """zoom change, update view"""
-        return self.render_img(b64s, idx, scale)
+    def on_zoom_change(self, img_b64_list, idx, scale):
+        return self.render_img_base64(img_b64_list, idx, scale)
 
     @staticmethod
     def package_zip(task_type, processed_text, raw_text, bbox_img):
-        """package zip file and return update with visibility"""
         zip_path = package_results_as_zip(task_type, processed_text, raw_text, bbox_img)
         return gr.update(value=zip_path, visible=True)
 
     # ==================== UI components ====================
 
     def _build_left_column(self):
-        """build left column"""
         file = gr.File(
             label="Please upload a PDF or image",
             file_types=[".pdf", ".png", ".jpeg", ".jpg"],
@@ -332,8 +331,8 @@ class GradioApp:
 
         zoom = gr.Slider(0.5, 3, value=1, step=0.1, label="Image Scale")
         with gr.Row():
-            prev_btn = gr.Button("⬅️ Pre")
-            next_btn = gr.Button("Next ➡️")
+            prev_btn = gr.Button(" Pre")
+            next_btn = gr.Button("Next ")
 
         viewer = gr.HTML()
 
@@ -349,50 +348,51 @@ class GradioApp:
             viewer,
         )
 
-    def _build_right_column(self, file, demo_data_root):
-        """build right column"""
+    def _build_right_column(self, demo_data_root):
         model_selector = gr.Dropdown(
-            choices=[(k, k) for k, v in self.available_models.items()],
-            value=list(self.available_models.keys())[0],
+            choices=self.available_models,
+            value=self.available_models[0],
             label="Model Selection",
             info="Select the model to use for parsing",
             interactive=True,
         )
 
-        with gr.Accordion("Examples", open=True):
-            file_paths = [
-                os.path.join(demo_data_root, f)
-                for f in [
-                    "Financial_Reports.png",
-                    "Books.png",
-                    "Magazines.png",
-                    "Academic_Papers.png",
-                ]
-            ]
+        # Core: State for carrying file content in memory.
+        file_state = gr.State(None)
 
+        with gr.Accordion("Examples", open=True):
+            # PDF thumbnail: use the first page as PNG.
+            pdf_thumb = self.get_pdf_thumbnail(
+                os.path.join(demo_data_root, "Academic_Papers.pdf")
+            )
+            demo_thumbs = [
+                os.path.join(demo_data_root, "Financial_Reports.png"),
+                os.path.join(demo_data_root, "Books.png"),
+                os.path.join(demo_data_root, "Magazines.png"),
+                pdf_thumb,
+            ]
+            demo_paths = [
+                os.path.join(demo_data_root, "Financial_Reports.png"),
+                os.path.join(demo_data_root, "Books.png"),
+                os.path.join(demo_data_root, "Magazines.png"),
+                os.path.join(demo_data_root, "Academic_Papers.pdf"),
+            ]
             labels = [
-                "Financial Reports(IMG)",
-                "Books(IMG)",
-                "Magazines(IMG)",
-                "Academic Papers(PDF)",
+                "Financial Reports (IMG)",
+                "Books (IMG)",
+                "Magazines (IMG)",
+                "Academic Papers (PDF)",
             ]
 
             with gr.Row():
                 for i, label in enumerate(labels):
                     with gr.Column(scale=1, min_width=120):
                         gr.Image(
-                            value=file_paths[i],
-                            width=120,
-                            height=90,
-                            show_label=False,
+                            value=demo_thumbs[i], width=120, height=90, show_label=False
                         )
-                        gr.Button(label).click(
-                            fn=self.to_file,
-                            inputs=gr.State(file_paths[i]),
-                            outputs=file,
-                        )
+                        gr.Button(label)
 
-        download_btn = gr.Button("⬇️ Generate download link", size="sm")
+        download_btn = gr.Button(" Generate download link", size="sm")
         output_file = gr.File(
             label="Parse result",
             interactive=False,
@@ -400,13 +400,7 @@ class GradioApp:
             visible=False,
         )
 
-        gr.HTML("""
-            <style>
-            #down-file-box {
-                max-height: 80px;
-            }
-            </style>
-        """)
+        gr.HTML("<style>#down-file-box { max-height: 80px; }</style>")
 
         with gr.Tabs():
             with gr.Tab("Rendered result"):
@@ -438,6 +432,7 @@ class GradioApp:
             bbox_img,
             processed_text,
             raw_text,
+            file_state,
         )
 
     def _bind_events(
@@ -458,107 +453,115 @@ class GradioApp:
         bbox_img,
         processed_text,
         raw_text,
+        file_state,
+        demo_data_root,
     ):
-        """bind all events"""
         img_list_state = gr.State([])
         idx_state = gr.State(0)
 
-        # file upload event
+        # ================= Bind example button events =================
+        demo_paths = [
+            os.path.join(demo_data_root, "Financial_Reports.png"),
+            os.path.join(demo_data_root, "Books.png"),
+            os.path.join(demo_data_root, "Magazines.png"),
+            os.path.join(demo_data_root, "Academic_Papers.pdf"),
+        ]
+
+        # Safely locate demo buttons and bind events.
+        for block in list(self.demo.blocks.values()):
+            if isinstance(block, gr.Button):
+                val = getattr(block, "value", "")
+                labels = [
+                    "Financial Reports (IMG)",
+                    "Books (IMG)",
+                    "Magazines (IMG)",
+                    "Academic Papers (PDF)",
+                ]
+                if val in labels:
+                    idx = labels.index(val)
+                    block.click(
+                        fn=self._load_example,
+                        inputs=gr.State(demo_paths[idx]),
+                        outputs=[file_state, img_list_state, idx_state, viewer],
+                    )
+
+        # ================= Remaining event bindings =================
         file.change(
             self.upload_handler,
             inputs=file,
-            outputs=[img_list_state, idx_state, viewer],
+            outputs=[file_state, img_list_state, idx_state, viewer],
         ).then(
             self.reset_zoom,
             inputs=None,
             outputs=zoom,
         )
 
-        # task type change
         task_selector.change(
-            fn=self.on_task_change,
-            inputs=task_selector,
-            outputs=custom_prompt,
+            self.on_task_change, inputs=task_selector, outputs=custom_prompt
         )
-
-        # prev btn click
         prev_btn.click(
             self.show_prev,
             inputs=[img_list_state, idx_state, zoom],
             outputs=[idx_state, viewer],
         )
-
         next_btn.click(
             self.show_next,
             inputs=[img_list_state, idx_state, zoom],
             outputs=[idx_state, viewer],
         )
-
-        # zoom change
         zoom.change(
             self.on_zoom_change,
             inputs=[img_list_state, idx_state, zoom],
             outputs=viewer,
         )
 
-        # parse button click
         change_bu.click(
             fn=self.check_task_input,
             inputs=[task_selector, custom_prompt],
             outputs=task_selector,
         ).then(
-            fn=self.check_file,
-            inputs=file,
-            outputs=file,
+            fn=self.check_file_state,
+            inputs=file_state,
+            outputs=file_state,
         ).then(
             self.hide_download_file,
             inputs=None,
             outputs=output_file,
         ).then(
             fn=self.infinity_parser2,
-            inputs=[file, task_selector, custom_prompt, model_selector],
+            inputs=[file_state, task_selector, custom_prompt, model_selector],
             outputs=[md, bbox_img, processed_text, raw_text],
         )
 
-        # download button click
         download_btn.click(
             fn=self.package_zip,
             inputs=[task_selector, processed_text, raw_text, bbox_img],
             outputs=output_file,
         )
 
-        # clear button click
         clear_bu.add([file, md, bbox_img, processed_text, raw_text])
 
     def _build_ui(self):
-        """build Gradio UI"""
         demo_data_root = os.path.join(os.path.dirname(__file__), "..", "demo_data")
 
-        with gr.Blocks() as demo:
+        with gr.Blocks() as self.demo:
             with gr.Row():
                 with gr.Column(variant="panel", scale=5):
                     left_components = self._build_left_column()
 
                 with gr.Column(variant="panel", scale=5):
-                    right_components = self._build_right_column(
-                        left_components[0], demo_data_root
-                    )
+                    right_components = self._build_right_column(demo_data_root)
 
-            self._bind_events(
-                *left_components,
-                *right_components,
-            )
+            self._bind_events(*left_components, *right_components, demo_data_root)
 
-        return demo
+        return self.demo
 
     def run(self, server_name="0.0.0.0", share=True):
-        """run Gradio app"""
         self.demo = self._build_ui()
         self.demo.launch(server_name=server_name, share=share)
 
 
 def main():
-    """main function entry"""
     app = GradioApp()
     app.run()
 
