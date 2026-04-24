@@ -85,6 +85,9 @@ class GradioApp:
 
     async def infinity_parser2(self, file_state, task_type, custom_prompt, model_name):
         """Parse using Base64 data in State; fully decouples from original upload path."""
+        import time
+        t0 = time.perf_counter()
+
         if not file_state:
             raise gr.Error("File state lost, please re-upload.")
 
@@ -95,7 +98,7 @@ class GradioApp:
         session_dir = Path(tempfile.gettempdir()) / f"infinity_parse_{session_id}"
         session_dir.mkdir(parents=True, exist_ok=True)
 
-        # Decode Base64 to local temp file, used only for PDF-to-image and bbox drawing.
+        # 1. Decode Base64 to local temp file, used only for PDF-to-image and bbox drawing.
         file_bytes = base64.b64decode(file_base64)
         ext = Path(file_name).suffix.lower()
 
@@ -117,12 +120,15 @@ class GradioApp:
             with open(temp_img, "wb") as f:
                 f.write(file_bytes)
             img_paths = [str(temp_img)]
+        t_decode_done = time.perf_counter()
 
-        # Pass Base64 directly to API.
+        # 2. Pass Base64 directly to API.
         raw_result = await self.request_with_file_content(
             file_base64, file_name, task_type, custom_prompt, output_format, model_name
         )
+        t_api_done = time.perf_counter()
 
+        # 3. Postprocess.
         all_bbox_images = []
         if task_type == "doc2json":
             processed = postprocess_doc2json_result(
@@ -138,8 +144,17 @@ class GradioApp:
             processed = postprocess_doc2md_result(raw_result)
         else:
             processed = raw_result
+        t_postprocess_done = time.perf_counter()
 
-        print(f"[parse] done, task_type={task_type}")
+        t_decode_ms = (t_decode_done - t0) * 1000
+        t_api_ms = (t_api_done - t_decode_done) * 1000
+        t_postprocess_ms = (t_postprocess_done - t_api_done) * 1000
+        t_total_ms = (t_postprocess_done - t0) * 1000
+        print(
+            f"[infinity_parser2] file={file_name} task={task_type} model={model_name}  "
+            f"decode={t_decode_ms:.1f}ms  api={t_api_ms:.1f}ms  "
+            f"postprocess={t_postprocess_ms:.1f}ms  total={t_total_ms:.1f}ms"
+        )
         yield processed, all_bbox_images, processed, raw_result
 
     # ==================== static helper methods ====================
@@ -152,15 +167,23 @@ class GradioApp:
 
     def _load_example(self, file_path):
         """Replace the old to_file: read a server-side example file and wrap it into State."""
+        import time
+        t0 = time.perf_counter()
+
         file_path = Path(file_path)
         file_name = file_path.name
 
-        # Read file as Base64.
+        # 1. Read file bytes.
+        t_read = time.perf_counter()
         with open(file_path, "rb") as f:
             file_bytes = f.read()
-        file_base64 = base64.b64encode(file_bytes).decode("utf-8")
+        t_read_done = time.perf_counter()
 
-        # Generate preview images.
+        # 2. Encode to Base64.
+        file_base64 = base64.b64encode(file_bytes).decode("utf-8")
+        t_encode_done = time.perf_counter()
+
+        # 3. Generate preview images.
         session_id = uuid.uuid4().hex
         session_dir = Path(tempfile.gettempdir()) / f"infinity_preview_{session_id}"
         session_dir.mkdir(parents=True, exist_ok=True)
@@ -176,13 +199,29 @@ class GradioApp:
                 img_b64_list.append(self.encode_img_base64(str(img_path)))
         else:
             img_b64_list = [self.encode_img_base64(str(file_path))]
+        t_preview_done = time.perf_counter()
 
-        # Return: file_state (Base64, filename), preview list, current page index, rendered HTML.
+        # 4. Render HTML.
+        viewer_html = self.render_img_base64(img_b64_list, 0, 1)
+        t_render_done = time.perf_counter()
+
+        t_read_ms = (t_read_done - t_read) * 1000
+        t_encode_ms = (t_encode_done - t_read_done) * 1000
+        t_preview_ms = (t_preview_done - t_encode_done) * 1000
+        t_render_ms = (t_render_done - t_preview_done) * 1000
+        t_total_ms = (t_render_done - t0) * 1000
+        print(
+            f"[_load_example] file={file_name}  "
+            f"read={t_read_ms:.1f}ms  encode={t_encode_ms:.1f}ms  "
+            f"preview={t_preview_ms:.1f}ms  render={t_render_ms:.1f}ms  "
+            f"total={t_total_ms:.1f}ms"
+        )
+
         return (
             (file_base64, file_name),
             img_b64_list,
             0,
-            self.render_img_base64(img_b64_list, 0, 1),
+            viewer_html,
         )
 
     @staticmethod
@@ -249,6 +288,9 @@ class GradioApp:
 
     async def upload_handler(self, files):
         """Convert user-uploaded file to Base64 State."""
+        import time
+        t0 = time.perf_counter()
+
         if files is None:
             return None, [], 0, ""
 
@@ -260,11 +302,18 @@ class GradioApp:
         else:
             file_path = str(files)
 
+        # 1. Read file bytes.
         file_name = Path(file_path).name
+        t_read = time.perf_counter()
         with open(file_path, "rb") as f:
             file_bytes = f.read()
-        file_base64 = base64.b64encode(file_bytes).decode("utf-8")
+        t_read_done = time.perf_counter()
 
+        # 2. Encode to Base64.
+        file_base64 = base64.b64encode(file_bytes).decode("utf-8")
+        t_encode_done = time.perf_counter()
+
+        # 3. Generate preview images.
         session_id = uuid.uuid4().hex
         session_dir = Path(tempfile.gettempdir()) / f"infinity_preview_{session_id}"
         session_dir.mkdir(parents=True, exist_ok=True)
@@ -274,17 +323,32 @@ class GradioApp:
             MAX_PAGES = 10
             pages = convert_pdf_to_images(file_path, dpi=300)
             pages = pages[:MAX_PAGES]
-
             for idx, page in enumerate(pages, start=1):
                 img_path = session_dir / f"preview_page_{idx}.png"
                 page.save(img_path, "PNG")
                 img_b64_list.append(self.encode_img_base64(str(img_path)))
         else:
             img_b64_list = [self.encode_img_base64(file_path)]
+        t_preview_done = time.perf_counter()
 
-        # Return state tuple.
+        # 4. Render HTML.
+        viewer_html = self.render_img_base64(img_b64_list, 0, 1)
+        t_render_done = time.perf_counter()
+
+        t_read_ms = (t_read_done - t_read) * 1000
+        t_encode_ms = (t_encode_done - t_read_done) * 1000
+        t_preview_ms = (t_preview_done - t_encode_done) * 1000
+        t_render_ms = (t_render_done - t_preview_done) * 1000
+        t_total_ms = (t_render_done - t0) * 1000
+        print(
+            f"[upload_handler] file={file_name}  "
+            f"read={t_read_ms:.1f}ms  encode={t_encode_ms:.1f}ms  "
+            f"preview={t_preview_ms:.1f}ms  render={t_render_ms:.1f}ms  "
+            f"total={t_total_ms:.1f}ms"
+        )
+
         file_state = (file_base64, file_name)
-        return file_state, img_b64_list, 0, self.render_img_base64(img_b64_list, 0, 1)
+        return file_state, img_b64_list, 0, viewer_html
 
     def show_prev(self, img_b64_list, idx, scale):
         idx -= 1
