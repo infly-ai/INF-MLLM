@@ -1,6 +1,7 @@
 import uuid
 import tempfile
 import base64
+import io
 from pathlib import Path
 import httpx
 import os
@@ -38,31 +39,48 @@ class GradioApp:
 
     # ==================== core methods ====================
 
+    async def _upload_file(self, file_path: str, file_name: str) -> tuple[str, str]:
+        """
+        POST a file to /upload endpoint.
+        Returns (upload_id, file_name).
+        Raises on failure.
+        """
+        mime_type = self._guess_mime(file_name)
+        with open(file_path, "rb") as f:
+            file_bytes = f.read()
+        response = await self._http_client.post(
+            f"{self.openai_api_base}/upload",
+            files={"file": (file_name, io.BytesIO(file_bytes), mime_type)},
+            headers={"Authorization": f"Bearer {self.Authorization}"},
+            timeout=120.0,
+        )
+        if response.status_code != 200:
+            raise Exception(f"Upload failed {response.status_code}: {response.text}")
+        data = response.json()
+        return data["upload_id"], data["file_name"]
+
+    @staticmethod
+    def _guess_mime(file_name: str) -> str:
+        ext = Path(file_name).suffix.lower()
+        return {".pdf": "application/pdf", ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg"}.get(
+            ext, "application/octet-stream"
+        )
+
     async def request_with_file_content(
         self,
-        file_base64,
+        upload_id,
         file_name,
         task_type,
         custom_prompt,
         output_format,
         model_name,
     ):
-        """Use Base64 string directly to request the Flask API, no local file path needed."""
+        """Use upload_id to request the Flask API."""
         url = f"{self.openai_api_base}/v1/chat/completions"
 
-        ext = Path(file_name).suffix.lower()
-        content_type_map = {
-            ".pdf": "application/pdf",
-            ".png": "image/png",
-            ".jpg": "image/jpeg",
-            ".jpeg": "image/jpeg",
-        }
-        content_type = content_type_map.get(ext, "application/octet-stream")
-
         payload = {
-            "file_base64": file_base64,
+            "upload_id": upload_id,
             "file_name": file_name,
-            "content_type": content_type,
             "task_type": task_type,
             "output_format": output_format,
             "model": model_name,
@@ -84,51 +102,61 @@ class GradioApp:
         return content
 
     async def infinity_parser2(self, file_state, task_type, custom_prompt, model_name):
-        """Parse using Base64 data in State; fully decouples from original upload path."""
+        """
+        Parse using upload_id: call API directly, decode to temp file only
+        when PDF-to-image or bbox drawing is needed.
+        """
         import time
         t0 = time.perf_counter()
 
         if not file_state:
             raise gr.Error("File state lost, please re-upload.")
 
-        file_base64, file_name = file_state
+        upload_id = file_state.get("upload_id") if isinstance(file_state, dict) else file_state[0]
+        file_name = file_state.get("file_name") if isinstance(file_state, dict) else file_state[1]
+        file_path = file_state.get("file_path") if isinstance(file_state, dict) else None
         output_format = "json" if task_type == "doc2json" else "md"
 
         session_id = uuid.uuid4().hex
         session_dir = Path(tempfile.gettempdir()) / f"infinity_parse_{session_id}"
         session_dir.mkdir(parents=True, exist_ok=True)
 
-        # 1. Decode Base64 to local temp file, used only for PDF-to-image and bbox drawing.
-        file_bytes = base64.b64decode(file_base64)
-        ext = Path(file_name).suffix.lower()
+        # 1. Resolve local file path: use cached file_path if available,
+        #    otherwise decode from base64 in file_state.
+        if file_path and os.path.exists(file_path):
+            local_path = file_path
+        else:
+            file_base64 = file_state.get("file_base64") if isinstance(file_state, dict) else None
+            if file_base64:
+                file_bytes = base64.b64decode(file_base64)
+                local_path = session_dir / file_name
+                with open(local_path, "wb") as f:
+                    f.write(file_bytes)
+            else:
+                raise gr.Error("Local file not available for preview rendering.")
 
+        # 2. Build img_paths (for bbox drawing).
+        ext = Path(local_path).suffix.lower()
         img_paths = []
         if ext == ".pdf":
             MAX_PAGES = 10
-            temp_pdf = session_dir / file_name
-            with open(temp_pdf, "wb") as f:
-                f.write(file_bytes)
-
-            pages = convert_pdf_to_images(temp_pdf, dpi=300)
+            pages = convert_pdf_to_images(local_path, dpi=300)
             pages = pages[:MAX_PAGES]
             for idx, page in enumerate(pages, start=1):
                 img_path = session_dir / f"parse_page_{idx}.png"
                 page.save(img_path, "PNG")
                 img_paths.append(str(img_path))
         else:
-            temp_img = session_dir / file_name
-            with open(temp_img, "wb") as f:
-                f.write(file_bytes)
-            img_paths = [str(temp_img)]
+            img_paths = [str(local_path)]
         t_decode_done = time.perf_counter()
 
-        # 2. Pass Base64 directly to API.
+        # 3. Call API with upload_id.
         raw_result = await self.request_with_file_content(
-            file_base64, file_name, task_type, custom_prompt, output_format, model_name
+            upload_id, file_name, task_type, custom_prompt, output_format, model_name
         )
         t_api_done = time.perf_counter()
 
-        # 3. Postprocess.
+        # 4. Postprocess.
         all_bbox_images = []
         if task_type == "doc2json":
             processed = postprocess_doc2json_result(
@@ -165,23 +193,25 @@ class GradioApp:
             raise gr.Error("Please enter a custom prompt before parsing.")
         return task_type
 
-    def _load_example(self, file_path):
-        """Replace the old to_file: read a server-side example file and wrap it into State."""
+    async def _load_example(self, file_path):
+        """POST example file to /upload, then generate preview images."""
         import time
         t0 = time.perf_counter()
 
         file_path = Path(file_path)
         file_name = file_path.name
 
-        # 1. Read file bytes.
+        # 1. Upload → get upload_id.
+        t_upload = time.perf_counter()
+        upload_id, returned_name = await self._upload_file(str(file_path), file_name)
+        t_upload_done = time.perf_counter()
+
+        # 2. Read file bytes (for preview generation).
         t_read = time.perf_counter()
         with open(file_path, "rb") as f:
             file_bytes = f.read()
-        t_read_done = time.perf_counter()
-
-        # 2. Encode to Base64.
         file_base64 = base64.b64encode(file_bytes).decode("utf-8")
-        t_encode_done = time.perf_counter()
+        t_read_done = time.perf_counter()
 
         # 3. Generate preview images.
         session_id = uuid.uuid4().hex
@@ -205,23 +235,26 @@ class GradioApp:
         viewer_html = self.render_img_base64(img_b64_list, 0, 1)
         t_render_done = time.perf_counter()
 
+        t_upload_ms = (t_upload_done - t_upload) * 1000
         t_read_ms = (t_read_done - t_read) * 1000
-        t_encode_ms = (t_encode_done - t_read_done) * 1000
-        t_preview_ms = (t_preview_done - t_encode_done) * 1000
+        t_preview_ms = (t_preview_done - t_read_done) * 1000
         t_render_ms = (t_render_done - t_preview_done) * 1000
         t_total_ms = (t_render_done - t0) * 1000
         print(
             f"[_load_example] file={file_name}  "
-            f"read={t_read_ms:.1f}ms  encode={t_encode_ms:.1f}ms  "
+            f"upload={t_upload_ms:.1f}ms  read={t_read_ms:.1f}ms  "
             f"preview={t_preview_ms:.1f}ms  render={t_render_ms:.1f}ms  "
             f"total={t_total_ms:.1f}ms"
         )
 
+        file_state = {"upload_id": upload_id, "file_name": file_name,
+                      "file_path": str(file_path), "file_base64": file_base64}
         return (
-            (file_base64, file_name),
+            file_state,
             img_b64_list,
             0,
             viewer_html,
+            str(file_path),
         )
 
     @staticmethod
@@ -270,11 +303,17 @@ class GradioApp:
     def check_file_state(file_state):
         if file_state is None:
             raise gr.Error("Please upload a PDF or image before parsing.")
+        if isinstance(file_state, dict):
+            if not file_state.get("upload_id"):
+                raise gr.Error("File upload incomplete, please re-upload.")
+        elif isinstance(file_state, (list, tuple)):
+            if not file_state[0]:
+                raise gr.Error("Please upload a PDF or image before parsing.")
         return file_state
 
     @staticmethod
     def on_task_change(task_type):
-        return gr.update(visible=(task_type == "custom"))
+        return gr.update(visible=(task_type == "custom")), gr.update(visible=(task_type != "doc2md"))
 
     @staticmethod
     def reset_zoom():
@@ -287,7 +326,11 @@ class GradioApp:
     # ==================== callback methods ====================
 
     async def upload_handler(self, files):
-        """Convert user-uploaded file to Base64 State."""
+        """
+        Upload file via /upload endpoint to get upload_id.
+        Still generates preview images locally (no change needed).
+        file_state is now a dict: {upload_id, file_name, file_path, file_base64}
+        """
         import time
         t0 = time.perf_counter()
 
@@ -296,22 +339,27 @@ class GradioApp:
 
         if hasattr(files, "path"):
             file_path = files.path
+            # Prefer orig_name (original filename) over the temp path name.
+            orig_name = getattr(files, "orig_name", None) or Path(file_path).name
         elif isinstance(files, list) and len(files) > 0:
             first = files[0]
             file_path = first.path if hasattr(first, "path") else str(first)
+            orig_name = getattr(first, "orig_name", None) or Path(file_path).name
         else:
             file_path = str(files)
+            orig_name = Path(file_path).name
 
-        # 1. Read file bytes.
-        file_name = Path(file_path).name
+        # 1. POST to /upload → get upload_id.
+        t_upload = time.perf_counter()
+        upload_id, returned_name = await self._upload_file(file_path, orig_name)
+        t_upload_done = time.perf_counter()
+
+        # 2. Read file bytes (for preview generation only, no base64 to API).
         t_read = time.perf_counter()
         with open(file_path, "rb") as f:
             file_bytes = f.read()
-        t_read_done = time.perf_counter()
-
-        # 2. Encode to Base64.
         file_base64 = base64.b64encode(file_bytes).decode("utf-8")
-        t_encode_done = time.perf_counter()
+        t_read_done = time.perf_counter()
 
         # 3. Generate preview images.
         session_id = uuid.uuid4().hex
@@ -319,7 +367,7 @@ class GradioApp:
         session_dir.mkdir(parents=True, exist_ok=True)
 
         img_b64_list = []
-        if file_path.lower().endswith(".pdf"):
+        if orig_name.lower().endswith(".pdf"):
             MAX_PAGES = 10
             pages = convert_pdf_to_images(file_path, dpi=300)
             pages = pages[:MAX_PAGES]
@@ -335,19 +383,19 @@ class GradioApp:
         viewer_html = self.render_img_base64(img_b64_list, 0, 1)
         t_render_done = time.perf_counter()
 
+        t_upload_ms = (t_upload_done - t_upload) * 1000
         t_read_ms = (t_read_done - t_read) * 1000
-        t_encode_ms = (t_encode_done - t_read_done) * 1000
-        t_preview_ms = (t_preview_done - t_encode_done) * 1000
+        t_preview_ms = (t_preview_done - t_read_done) * 1000
         t_render_ms = (t_render_done - t_preview_done) * 1000
         t_total_ms = (t_render_done - t0) * 1000
         print(
-            f"[upload_handler] file={file_name}  "
-            f"read={t_read_ms:.1f}ms  encode={t_encode_ms:.1f}ms  "
-            f"preview={t_preview_ms:.1f}ms  render={t_render_ms:.1f}ms  "
-            f"total={t_total_ms:.1f}ms"
+            f"[upload_handler] file={orig_name} upload={t_upload_ms:.1f}ms  "
+            f"read={t_read_ms:.1f}ms  preview={t_preview_ms:.1f}ms  "
+            f"render={t_render_ms:.1f}ms  total={t_total_ms:.1f}ms"
         )
 
-        file_state = (file_base64, file_name)
+        file_state = {"upload_id": upload_id, "file_name": orig_name,
+                      "file_path": file_path, "file_base64": file_base64}
         return file_state, img_b64_list, 0, viewer_html
 
     def show_prev(self, img_b64_list, idx, scale):
@@ -474,7 +522,7 @@ class GradioApp:
                     latex_delimiters=self.LATEX_DELIMITERS,
                     line_breaks=True,
                 )
-            with gr.Tab("Layout result"):
+            with gr.Tab("Layout result") as layout_tab:
                 bbox_img = gr.Gallery(
                     label="Layout result",
                     columns=1,
@@ -494,6 +542,7 @@ class GradioApp:
             output_file,
             md,
             bbox_img,
+            layout_tab,
             processed_text,
             raw_text,
             file_state,
@@ -515,6 +564,7 @@ class GradioApp:
         output_file,
         md,
         bbox_img,
+        layout_tab,
         processed_text,
         raw_text,
         file_state,
@@ -546,7 +596,7 @@ class GradioApp:
                     block.click(
                         fn=self._load_example,
                         inputs=gr.State(demo_paths[idx]),
-                        outputs=[file_state, img_list_state, idx_state, viewer],
+                        outputs=[file_state, img_list_state, idx_state, viewer, file],
                     )
 
         # ================= Remaining event bindings =================
@@ -561,7 +611,7 @@ class GradioApp:
         )
 
         task_selector.change(
-            self.on_task_change, inputs=task_selector, outputs=custom_prompt
+            self.on_task_change, inputs=task_selector, outputs=[custom_prompt, layout_tab]
         )
         prev_btn.click(
             self.show_prev,
@@ -606,7 +656,7 @@ class GradioApp:
         clear_bu.add([file, md, bbox_img, processed_text, raw_text])
 
     def _build_ui(self):
-        demo_data_root = os.path.join(os.path.dirname(__file__), "..", "demo_data")
+        self.demo_data_root = os.path.join(os.path.dirname(__file__), "..", "demo_data")
 
         with gr.Blocks() as self.demo:
             with gr.Row():
@@ -614,15 +664,15 @@ class GradioApp:
                     left_components = self._build_left_column()
 
                 with gr.Column(variant="panel", scale=5):
-                    right_components = self._build_right_column(demo_data_root)
+                    right_components = self._build_right_column(self.demo_data_root)
 
-            self._bind_events(*left_components, *right_components, demo_data_root)
+            self._bind_events(*left_components, *right_components, self.demo_data_root)
 
         return self.demo
 
     def run(self, server_name="0.0.0.0", share=True):
         self.demo = self._build_ui()
-        self.demo.launch(server_name=server_name, share=share)
+        self.demo.launch(server_name=server_name, share=share, allowed_paths=[self.demo_data_root])
 
 
 def main():
