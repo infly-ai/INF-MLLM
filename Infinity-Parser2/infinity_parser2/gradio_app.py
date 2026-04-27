@@ -74,6 +74,7 @@ class GradioApp:
         custom_prompt,
         output_format,
         model_name,
+        max_pages=10,
     ):
         """Use upload_id to request the Flask API."""
         url = f"{self.openai_api_base}/v1/chat/completions"
@@ -84,6 +85,7 @@ class GradioApp:
             "task_type": task_type,
             "output_format": output_format,
             "model": model_name,
+            "max_pages": int(max_pages),
         }
         if custom_prompt:
             payload["custom_prompt"] = custom_prompt
@@ -101,7 +103,7 @@ class GradioApp:
         content = data["choices"][0]["message"]["content"]
         return content
 
-    async def infinity_parser2(self, file_state, task_type, custom_prompt, model_name):
+    async def infinity_parser2(self, file_state, task_type, custom_prompt, model_name, max_pages=10):
         """
         Parse using upload_id: call API directly, decode to temp file only
         when PDF-to-image or bbox drawing is needed.
@@ -138,10 +140,10 @@ class GradioApp:
         # 2. Build img_paths (for bbox drawing).
         ext = Path(local_path).suffix.lower()
         img_paths = []
+        max_pages = int(max_pages)
         if ext == ".pdf":
-            MAX_PAGES = 10
             pages = convert_pdf_to_images(local_path, dpi=300)
-            pages = pages[:MAX_PAGES]
+            pages = pages[:max_pages]
             for idx, page in enumerate(pages, start=1):
                 img_path = session_dir / f"parse_page_{idx}.png"
                 page.save(img_path, "PNG")
@@ -152,7 +154,8 @@ class GradioApp:
 
         # 3. Call API with upload_id.
         raw_result = await self.request_with_file_content(
-            upload_id, file_name, task_type, custom_prompt, output_format, model_name
+            upload_id, file_name, task_type, custom_prompt, output_format, model_name,
+            max_pages=max_pages,
         )
         t_api_done = time.perf_counter()
 
@@ -193,13 +196,14 @@ class GradioApp:
             raise gr.Error("Please enter a custom prompt before parsing.")
         return task_type
 
-    async def _load_example(self, file_path):
+    async def _load_example(self, file_path, max_pages=10):
         """POST example file to /upload, then generate preview images."""
         import time
         t0 = time.perf_counter()
 
         file_path = Path(file_path)
         file_name = file_path.name
+        max_pages = int(max_pages)
 
         # 1. Upload → get upload_id.
         t_upload = time.perf_counter()
@@ -218,11 +222,11 @@ class GradioApp:
         session_dir = Path(tempfile.gettempdir()) / f"infinity_preview_{session_id}"
         session_dir.mkdir(parents=True, exist_ok=True)
 
+        is_pdf = file_path.suffix.lower() == ".pdf"
         img_b64_list = []
-        if file_path.suffix.lower() == ".pdf":
-            MAX_PAGES = 10
+        if is_pdf:
             pages = convert_pdf_to_images(file_path, dpi=300)
-            pages = pages[:MAX_PAGES]
+            pages = pages[:max_pages]
             for idx, page in enumerate(pages, start=1):
                 img_path = session_dir / f"preview_page_{idx}.png"
                 page.save(img_path, "PNG")
@@ -232,7 +236,7 @@ class GradioApp:
         t_preview_done = time.perf_counter()
 
         # 4. Render HTML.
-        viewer_html = self.render_img_base64(img_b64_list, 0, 1)
+        viewer_html = self.render_img_base64(img_b64_list, 0)
         t_render_done = time.perf_counter()
 
         t_upload_ms = (t_upload_done - t_upload) * 1000
@@ -249,12 +253,15 @@ class GradioApp:
 
         file_state = {"upload_id": upload_id, "file_name": file_name,
                       "file_path": str(file_path), "file_base64": file_base64}
+        # Show/hide pdf_pages slider based on file type
+        pdf_pages_update = gr.update(visible=is_pdf)
         return (
             file_state,
             img_b64_list,
             0,
             viewer_html,
             str(file_path),
+            pdf_pages_update,
         )
 
     @staticmethod
@@ -277,27 +284,18 @@ class GradioApp:
         return str(thumb_path)
 
     @staticmethod
-    def render_img_base64(img_b64_list, idx, scale):
+    def render_img_base64(img_b64_list, idx):
         if not img_b64_list:
             return "<p style='color:gray'>Please upload an image first.</p>"
         idx %= len(img_b64_list)
         src = img_b64_list[idx]
-        percent = scale * 100
-
-        if scale <= 1:
-            return f"""
-                <div style="width:100%;height:800px;overflow:auto;border:1px solid #ccc;">
-                  <div style="min-width:100%;display:flex;justify-content:center;">
-                    <img src="{src}" style="width:{percent}%;height:auto;display:block;">
-                  </div>
-                </div>
-                """
-        else:
-            return (
-                f'<div style="overflow:auto;border:1px solid #ccc;width:100%;height:800px;">'
-                f'  <img src="{src}" style="width:{percent}%;max-width:none;height:auto;display:block;" />'
-                f"</div>"
-            )
+        return f"""
+            <div style="width:100%;height:800px;overflow:auto;border:1px solid #ccc;">
+              <div style="min-width:100%;display:flex;justify-content:center;">
+                <img src="{src}" style="width:100%;height:auto;display:block;">
+              </div>
+            </div>
+            """
 
     @staticmethod
     def check_file_state(file_state):
@@ -316,16 +314,12 @@ class GradioApp:
         return gr.update(visible=(task_type == "custom")), gr.update(visible=(task_type != "doc2md"))
 
     @staticmethod
-    def reset_zoom():
-        return gr.update(value=1)
-
-    @staticmethod
     def hide_download_file():
         return gr.update(value=None, visible=False)
 
     # ==================== callback methods ====================
 
-    async def upload_handler(self, files):
+    async def upload_handler(self, files, max_pages=10):
         """
         Upload file via /upload endpoint to get upload_id.
         Still generates preview images locally (no change needed).
@@ -335,7 +329,7 @@ class GradioApp:
         t0 = time.perf_counter()
 
         if files is None:
-            return None, [], 0, ""
+            return None, [], 0, "", gr.update(visible=False)
 
         if hasattr(files, "path"):
             file_path = files.path
@@ -348,6 +342,8 @@ class GradioApp:
         else:
             file_path = str(files)
             orig_name = Path(file_path).name
+
+        max_pages = int(max_pages)
 
         # 1. POST to /upload → get upload_id.
         t_upload = time.perf_counter()
@@ -366,11 +362,11 @@ class GradioApp:
         session_dir = Path(tempfile.gettempdir()) / f"infinity_preview_{session_id}"
         session_dir.mkdir(parents=True, exist_ok=True)
 
+        is_pdf = orig_name.lower().endswith(".pdf")
         img_b64_list = []
-        if orig_name.lower().endswith(".pdf"):
-            MAX_PAGES = 10
+        if is_pdf:
             pages = convert_pdf_to_images(file_path, dpi=300)
-            pages = pages[:MAX_PAGES]
+            pages = pages[:max_pages]
             for idx, page in enumerate(pages, start=1):
                 img_path = session_dir / f"preview_page_{idx}.png"
                 page.save(img_path, "PNG")
@@ -380,7 +376,7 @@ class GradioApp:
         t_preview_done = time.perf_counter()
 
         # 4. Render HTML.
-        viewer_html = self.render_img_base64(img_b64_list, 0, 1)
+        viewer_html = self.render_img_base64(img_b64_list, 0)
         t_render_done = time.perf_counter()
 
         t_upload_ms = (t_upload_done - t_upload) * 1000
@@ -396,18 +392,44 @@ class GradioApp:
 
         file_state = {"upload_id": upload_id, "file_name": orig_name,
                       "file_path": file_path, "file_base64": file_base64}
-        return file_state, img_b64_list, 0, viewer_html
+        # Show/hide pdf_pages slider based on file type
+        pdf_pages_update = gr.update(visible=is_pdf)
+        return file_state, img_b64_list, 0, viewer_html, pdf_pages_update
 
-    def show_prev(self, img_b64_list, idx, scale):
+    def show_prev(self, img_b64_list, idx):
         idx -= 1
-        return idx, self.render_img_base64(img_b64_list, idx, scale)
+        return idx, self.render_img_base64(img_b64_list, idx)
 
-    def show_next(self, img_b64_list, idx, scale):
+    def show_next(self, img_b64_list, idx):
         idx += 1
-        return idx, self.render_img_base64(img_b64_list, idx, scale)
+        return idx, self.render_img_base64(img_b64_list, idx)
 
-    def on_zoom_change(self, img_b64_list, idx, scale):
-        return self.render_img_base64(img_b64_list, idx, scale)
+    def _on_pdf_pages_change(self, file_state, max_pages):
+        """Re-generate preview images when the PDF pages slider changes."""
+        if not file_state:
+            return [], 0, ""
+        file_path = file_state.get("file_path") if isinstance(file_state, dict) else None
+        file_name = file_state.get("file_name") if isinstance(file_state, dict) else None
+        if not file_path or not os.path.exists(file_path):
+            return [], 0, ""
+        if not file_name or not file_name.lower().endswith(".pdf"):
+            return [], 0, ""
+
+        max_pages = int(max_pages)
+        session_id = uuid.uuid4().hex
+        session_dir = Path(tempfile.gettempdir()) / f"infinity_preview_{session_id}"
+        session_dir.mkdir(parents=True, exist_ok=True)
+
+        pages = convert_pdf_to_images(file_path, dpi=300)
+        pages = pages[:max_pages]
+        img_b64_list = []
+        for idx, page in enumerate(pages, start=1):
+            img_path = session_dir / f"preview_page_{idx}.png"
+            page.save(img_path, "PNG")
+            img_b64_list.append(self.encode_img_base64(str(img_path)))
+
+        viewer_html = self.render_img_base64(img_b64_list, 0)
+        return img_b64_list, 0, viewer_html
 
     @staticmethod
     def package_zip(task_type, processed_text, raw_text, bbox_img):
@@ -441,7 +463,12 @@ class GradioApp:
             change_bu = gr.Button("Parse")
             clear_bu = gr.ClearButton(value="Clear")
 
-        zoom = gr.Slider(0.5, 3, value=1, step=0.1, label="Image Scale")
+        pdf_pages = gr.Slider(
+            1, 10, value=10, step=1,
+            label="PDF Pages",
+            info="Number of PDF pages to parse (1–10)",
+            visible=False,
+        )
         with gr.Row():
             prev_btn = gr.Button(" Pre")
             next_btn = gr.Button("Next ")
@@ -454,7 +481,7 @@ class GradioApp:
             custom_prompt,
             change_bu,
             clear_bu,
-            zoom,
+            pdf_pages,
             prev_btn,
             next_btn,
             viewer,
@@ -555,7 +582,7 @@ class GradioApp:
         custom_prompt,
         change_bu,
         clear_bu,
-        zoom,
+        pdf_pages,
         prev_btn,
         next_btn,
         viewer,
@@ -595,19 +622,22 @@ class GradioApp:
                     idx = labels.index(val)
                     block.click(
                         fn=self._load_example,
-                        inputs=gr.State(demo_paths[idx]),
-                        outputs=[file_state, img_list_state, idx_state, viewer, file],
+                        inputs=[gr.State(demo_paths[idx]), pdf_pages],
+                        outputs=[file_state, img_list_state, idx_state, viewer, file, pdf_pages],
                     )
 
         # ================= Remaining event bindings =================
         file.change(
             self.upload_handler,
-            inputs=file,
-            outputs=[file_state, img_list_state, idx_state, viewer],
-        ).then(
-            self.reset_zoom,
-            inputs=None,
-            outputs=zoom,
+            inputs=[file, pdf_pages],
+            outputs=[file_state, img_list_state, idx_state, viewer, pdf_pages],
+        )
+
+        # When the pdf_pages slider changes, re-generate preview with new page count.
+        pdf_pages.change(
+            self._on_pdf_pages_change,
+            inputs=[file_state, pdf_pages],
+            outputs=[img_list_state, idx_state, viewer],
         )
 
         task_selector.change(
@@ -615,18 +645,13 @@ class GradioApp:
         )
         prev_btn.click(
             self.show_prev,
-            inputs=[img_list_state, idx_state, zoom],
+            inputs=[img_list_state, idx_state],
             outputs=[idx_state, viewer],
         )
         next_btn.click(
             self.show_next,
-            inputs=[img_list_state, idx_state, zoom],
+            inputs=[img_list_state, idx_state],
             outputs=[idx_state, viewer],
-        )
-        zoom.change(
-            self.on_zoom_change,
-            inputs=[img_list_state, idx_state, zoom],
-            outputs=viewer,
         )
 
         change_bu.click(
@@ -643,7 +668,7 @@ class GradioApp:
             outputs=output_file,
         ).then(
             fn=self.infinity_parser2,
-            inputs=[file_state, task_selector, custom_prompt, model_selector],
+            inputs=[file_state, task_selector, custom_prompt, model_selector, pdf_pages],
             outputs=[md, bbox_img, processed_text, raw_text],
         )
 
