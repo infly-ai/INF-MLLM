@@ -231,10 +231,10 @@ def package_results_as_zip(
       - bbox_page_N.png
 
     Args:
-        task_type
-        processed_md
-        raw_result
-        bbox_gallery
+        task_type: doc2md or doc2json
+        processed_md: processed result
+        raw_result: raw result
+        bbox_gallery: bbox gallery
 
     Returns:
          zip file path
