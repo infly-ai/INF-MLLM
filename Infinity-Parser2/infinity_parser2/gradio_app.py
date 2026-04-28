@@ -1,5 +1,5 @@
 import uuid
-import asyncio
+import threading
 import tempfile
 import base64
 import io
@@ -137,7 +137,7 @@ class GradioApp:
 
         return len(PdfReader(file_path).pages)
 
-    async def _sync_upload_remaining(
+    def _sync_upload_remaining(
         self,
         remaining_path: str,
         file_name: str,
@@ -145,8 +145,8 @@ class GradioApp:
         model_name: str,
     ) -> bool:
         """
-        Upload the remaining pages to the server.
-        The server will merge it with the existing upload via append_to.
+        Upload the remaining pages to the server (SYNCHRONOUS).
+        Designed to run in a background thread — no event loop needed.
         Returns True on success, False on failure.
         """
         import time as _time
@@ -169,23 +169,22 @@ class GradioApp:
                         auth if auth.startswith("Bearer ") else f"Bearer {auth}"
                     )
 
-                response = await self._http_client.post(
-                    f"{base_url}/upload",
-                    files={
-                        "file": (file_name, io.BytesIO(file_bytes), "application/pdf")
-                    },
-                    data={"append_to": upload_id},
-                    headers=headers,
-                    timeout=300.0,
-                )
+                with httpx.Client(verify=False, timeout=300.0) as client:
+                    response = client.post(
+                        f"{base_url}/upload",
+                        files={
+                            "file": (file_name, io.BytesIO(file_bytes), "application/pdf")
+                        },
+                        data={"append_to": upload_id},
+                        headers=headers,
+                    )
                 if response.status_code == 200:
                     return True
             except Exception:
                 pass
 
             if attempt < max_retries - 1:
-                wait = 2**attempt
-                await _time.sleep(wait)
+                _time.sleep(2 ** attempt)
 
         return False
 
@@ -310,13 +309,14 @@ class GradioApp:
             max_pages=max_pages,
         )
 
-        # Upload remaining pages in background — doesn't block user from seeing results.
+        # Upload remaining pages in background thread (sync, no event loop needed).
         if remaining_path:
-            asyncio.create_task(
-                self._sync_upload_remaining(
-                    remaining_path, file_name, upload_id, model_name
-                )
-            )
+            _rp, _fn, _uid, _mn = remaining_path, file_name, upload_id, model_name
+            threading.Thread(
+                target=self._sync_upload_remaining,
+                args=(_rp, _fn, _uid, _mn),
+                daemon=True,
+            ).start()
 
         # Postprocess.
         all_bbox_images = []
