@@ -49,6 +49,7 @@ class GradioApp:
         self.available_models = list(self.model_configs.keys())
         self._http_client = httpx.AsyncClient(verify=False, timeout=600.0)
         self.demo = None
+        self._skip_file_change = False  # guard to prevent double-upload from example clicks
 
     def _init_models(self):
         return self.available_models
@@ -93,6 +94,9 @@ class GradioApp:
             ".png": "image/png",
             ".jpg": "image/jpeg",
             ".jpeg": "image/jpeg",
+            ".gif": "image/gif",
+            ".webp": "image/webp",
+            ".bmp": "image/bmp",
         }.get(ext, "application/octet-stream")
 
     @staticmethod
@@ -345,77 +349,40 @@ class GradioApp:
         return task_type
 
     async def _load_example(self, file_path, model_name, max_pages=10):
-        """POST example file to /upload of the selected model, then generate preview images."""
-        file_path = Path(file_path)
-        file_name = file_path.name
-        max_pages = int(max_pages)
+        """POST example file to /upload of the selected model, then generate preview images.
 
-        # For large PDFs, split before uploading
-        is_pdf = file_path.suffix.lower() == ".pdf"
-        preview_path = file_path
-        remaining_path = None
-        if is_pdf:
-            try:
-                total_pages = self._get_pdf_page_count(file_path)
-                if total_pages > max_pages:
-                    preview_path, remaining_path = self._split_pdf(
-                        str(file_path), max_pages
-                    )
-            except Exception as exc:
-                preview_path = str(file_path)
-                remaining_path = None
+        Delegates to upload_handler() to avoid duplicating upload/preview logic.
+        """
+        file_path = str(file_path)
 
-        # Upload preview to the selected model's backend -> get upload_id.
-        upload_id, returned_name = await self._upload_file(
-            str(preview_path), file_name, model_name
+        # Build a lightweight namespace that mimics a Gradio UploadFile object.
+        class _FakeFile:
+            def __init__(self, path):
+                self.path = path
+                self.orig_name = Path(path).name
+
+        fake_file = _FakeFile(file_path)
+
+        # Reuse upload_handler — returns (file_state, img_b64_list, idx, viewer_html, pdf_pages_update)
+        file_state, img_b64_list, idx, viewer_html, pdf_pages_update = (
+            await self.upload_handler(fake_file, model_name, max_pages)
         )
 
-        # Read file bytes for preview generation.
-        file_base64 = self._file_to_base64(preview_path)
+        # Patch file_path back to the original example file (upload_handler may
+        # store preview_path for large PDFs, but _load_example callers need the
+        # full original path for later processing).
+        if file_state is not None:
+            file_state["file_path"] = file_path
 
-        # Generate preview images — always fixed at 10 pages (does not use max_pages).
-        session_id = uuid.uuid4().hex
-        session_dir = Path(tempfile.gettempdir()) / f"infinity_preview_{session_id}"
-        session_dir.mkdir(parents=True, exist_ok=True)
+        # Set guard so the subsequent file.change won't trigger upload_handler again.
+        self._skip_file_change = True
 
-        img_b64_list = []
-        if is_pdf:
-            pages = convert_pdf_to_images(preview_path, dpi=100)
-            for page in pages:
-                buf = io.BytesIO()
-                page.save(buf, format="PNG")
-                page_b64 = base64.b64encode(buf.getvalue()).decode("utf-8")
-                img_b64_list.append(f"data:image/png;base64,{page_b64}")
-        else:
-            ext = Path(file_name).suffix.lower()
-            mime_map = {
-                ".png": "image/png",
-                ".jpg": "image/jpeg",
-                ".jpeg": "image/jpeg",
-                ".gif": "image/gif",
-                ".webp": "image/webp",
-                ".bmp": "image/bmp",
-            }
-            mime = mime_map.get(ext, "application/octet-stream")
-            img_b64_list.append(f"data:{mime};base64,{file_base64}")
-
-        viewer_html = self.render_img_base64(img_b64_list, 0)
-
-        file_state = {
-            "upload_id": upload_id,
-            "file_name": file_name,
-            "file_path": str(file_path),
-            "file_base64": file_base64,
-            "remaining_path": remaining_path,
-        }
-        # Show/hide pdf_pages slider based on file type
-        pdf_pages_update = gr.update(visible=is_pdf)
         return (
             file_state,
             img_b64_list,
-            0,
+            idx,
             viewer_html,
-            str(file_path),
+            file_path,
             pdf_pages_update,
         )
 
@@ -488,6 +455,17 @@ class GradioApp:
           3. Upload remaining in background (async, non-blocking)
         """
 
+        # Guard: skip if this was triggered by _load_example updating gr.File.
+        if self._skip_file_change:
+            self._skip_file_change = False
+            return (
+                gr.update(),   # file_state — keep unchanged
+                gr.update(),   # img_list_state
+                gr.update(),   # idx_state
+                gr.update(),   # viewer
+                gr.update(),   # pdf_pages
+            )
+
         if files is None:
             return None, [], 0, "", gr.update(visible=False)
 
@@ -542,16 +520,7 @@ class GradioApp:
                 page_b64 = base64.b64encode(buf.getvalue()).decode("utf-8")
                 img_b64_list.append(f"data:image/png;base64,{page_b64}")
         else:
-            ext = Path(orig_name).suffix.lower()
-            mime_map = {
-                ".png": "image/png",
-                ".jpg": "image/jpeg",
-                ".jpeg": "image/jpeg",
-                ".gif": "image/gif",
-                ".webp": "image/webp",
-                ".bmp": "image/bmp",
-            }
-            mime = mime_map.get(ext, "application/octet-stream")
+            mime = self._guess_mime(orig_name)
             img_b64_list.append(f"data:{mime};base64,{file_base64}")
 
         # Render HTML.
