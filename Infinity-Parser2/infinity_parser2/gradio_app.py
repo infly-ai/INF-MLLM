@@ -352,15 +352,15 @@ class GradioApp:
         max_pages = int(max_pages)
 
         # For large PDFs, split before uploading
+        is_pdf = file_path.suffix.lower() == ".pdf"
         preview_path = file_path
         remaining_path = None
         if is_pdf:
             try:
                 total_pages = self._get_pdf_page_count(file_path)
-                SPLIT_THRESHOLD = PREVIEW_PAGES
-                if total_pages > SPLIT_THRESHOLD:
+                if total_pages > max_pages:
                     preview_path, remaining_path = self._split_pdf(
-                        str(file_path), SPLIT_THRESHOLD
+                        str(file_path), max_pages
                     )
             except Exception as exc:
                 preview_path = str(file_path)
@@ -384,7 +384,7 @@ class GradioApp:
         img_b64_list = []
         if is_pdf:
             pages = convert_pdf_to_images(preview_path, dpi=72)
-            pages = pages[:PREVIEW_PAGES]
+            pages = pages[:max_pages]
             for idx, page in enumerate(pages, start=1):
                 img_path = session_dir / f"preview_page_{idx}.jpg"
                 page.save(img_path, "JPEG", quality=60)
