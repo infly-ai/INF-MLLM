@@ -1,4 +1,5 @@
 import uuid
+import asyncio
 import tempfile
 import base64
 import io
@@ -7,6 +8,7 @@ from PIL import Image
 import httpx
 import os
 import gradio as gr
+from PyPDF2 import PdfReader, PdfWriter
 from utils import (
     convert_pdf_to_images,
     postprocess_doc2json_result,
@@ -94,6 +96,99 @@ class GradioApp:
             ".jpeg": "image/jpeg",
         }.get(ext, "application/octet-stream")
 
+    @staticmethod
+    def _split_pdf(file_path: str, first_n: int) -> tuple[str, str]:
+        """
+        Split a PDF into two parts: first_n pages and the rest.
+        Returns (preview_path, remaining_path) — both saved to temp files.
+        """
+
+        reader = PdfReader(file_path)
+        total = len(reader.pages)
+        if total <= first_n:
+            return file_path, None  # No split needed
+
+        preview_writer = PdfWriter()
+        for i in range(first_n):
+            preview_writer.add_page(reader.pages[i])
+
+        session_id = uuid.uuid4().hex
+        session_dir = Path(tempfile.gettempdir()) / f"infinity_split_{session_id}"
+        session_dir.mkdir(parents=True, exist_ok=True)
+
+        base_stem = Path(file_path).stem
+        preview_path = str(session_dir / f"{base_stem}_preview.pdf")
+        with open(preview_path, "wb") as f:
+            preview_writer.write(f)
+
+        remaining_writer = PdfWriter()
+        for i in range(first_n, total):
+            remaining_writer.add_page(reader.pages[i])
+        remaining_path = str(session_dir / f"{base_stem}_remaining.pdf")
+        with open(remaining_path, "wb") as f:
+            remaining_writer.write(f)
+
+        return preview_path, remaining_path
+
+    @staticmethod
+    def _get_pdf_page_count(file_path: str) -> int:
+        """Return the total page count of a PDF file."""
+        from PyPDF2 import PdfReader
+
+        return len(PdfReader(file_path).pages)
+
+    async def _sync_upload_remaining(
+        self,
+        remaining_path: str,
+        file_name: str,
+        upload_id: str,
+        model_name: str,
+    ) -> bool:
+        """
+        Upload the remaining pages to the server.
+        The server will merge it with the existing upload via append_to.
+        Returns True on success, False on failure.
+        """
+        import time as _time
+
+        config = self.model_configs.get(model_name)
+        if not config:
+            return False
+        base_url = config["api_base"]
+        auth = config["auth"]
+
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                with open(remaining_path, "rb") as f:
+                    file_bytes = f.read()
+
+                headers = {}
+                if auth:
+                    headers["Authorization"] = (
+                        auth if auth.startswith("Bearer ") else f"Bearer {auth}"
+                    )
+
+                response = await self._http_client.post(
+                    f"{base_url}/upload",
+                    files={
+                        "file": (file_name, io.BytesIO(file_bytes), "application/pdf")
+                    },
+                    data={"append_to": upload_id},
+                    headers=headers,
+                    timeout=300.0,
+                )
+                if response.status_code == 200:
+                    return True
+            except Exception:
+                pass
+
+            if attempt < max_retries - 1:
+                wait = 2**attempt
+                await _time.sleep(wait)
+
+        return False
+
     async def request_with_file_content(
         self,
         upload_id,
@@ -144,6 +239,9 @@ class GradioApp:
         """
         Parse using upload_id: call API directly, decode to temp file only
         when PDF-to-image or bbox drawing is needed.
+
+        For large PDFs that were split on upload, the remaining pages are
+        uploaded in the background before parsing begins.
         """
 
         if not file_state:
@@ -161,6 +259,9 @@ class GradioApp:
         )
         file_path = (
             file_state.get("file_path") if isinstance(file_state, dict) else None
+        )
+        remaining_path = (
+            file_state.get("remaining_path") if isinstance(file_state, dict) else None
         )
         output_format = "json" if task_type == "doc2json" else "md"
 
@@ -198,7 +299,7 @@ class GradioApp:
         else:
             img_paths = [str(local_path)]
 
-        # Call API with upload_id.
+        # Call API with upload_id (server has only the preview pages, no truncation needed).
         raw_result = await self.request_with_file_content(
             upload_id,
             file_name,
@@ -208,6 +309,14 @@ class GradioApp:
             model_name,
             max_pages=max_pages,
         )
+
+        # Upload remaining pages in background — doesn't block user from seeing results.
+        if remaining_path:
+            asyncio.create_task(
+                self._sync_upload_remaining(
+                    remaining_path, file_name, upload_id, model_name
+                )
+            )
 
         # Postprocess.
         all_bbox_images = []
@@ -242,13 +351,28 @@ class GradioApp:
         file_name = file_path.name
         max_pages = int(max_pages)
 
-        # Upload to the selected model's backend -> get upload_id.
+        # For large PDFs, split before uploading
+        preview_path = file_path
+        remaining_path = None
+        if is_pdf:
+            try:
+                total_pages = self._get_pdf_page_count(file_path)
+                SPLIT_THRESHOLD = PREVIEW_PAGES
+                if total_pages > SPLIT_THRESHOLD:
+                    preview_path, remaining_path = self._split_pdf(
+                        str(file_path), SPLIT_THRESHOLD
+                    )
+            except Exception as exc:
+                preview_path = str(file_path)
+                remaining_path = None
+
+        # Upload preview to the selected model's backend -> get upload_id.
         upload_id, returned_name = await self._upload_file(
-            str(file_path), file_name, model_name
+            str(preview_path), file_name, model_name
         )
 
         # Read file bytes for preview generation.
-        with open(file_path, "rb") as f:
+        with open(preview_path, "rb") as f:
             file_bytes = f.read()
         file_base64 = base64.b64encode(file_bytes).decode("utf-8")
 
@@ -257,18 +381,16 @@ class GradioApp:
         session_dir = Path(tempfile.gettempdir()) / f"infinity_preview_{session_id}"
         session_dir.mkdir(parents=True, exist_ok=True)
 
-        PREVIEW_PAGES = 10
-        is_pdf = file_path.suffix.lower() == ".pdf"
         img_b64_list = []
         if is_pdf:
-            pages = convert_pdf_to_images(file_path, dpi=72)
+            pages = convert_pdf_to_images(preview_path, dpi=72)
             pages = pages[:PREVIEW_PAGES]
             for idx, page in enumerate(pages, start=1):
                 img_path = session_dir / f"preview_page_{idx}.jpg"
                 page.save(img_path, "JPEG", quality=60)
                 img_b64_list.append(self.encode_img_base64(str(img_path)))
         else:
-            img = Image.open(file_path).convert("RGB")
+            img = Image.open(preview_path).convert("RGB")
             buf = io.BytesIO()
             img.save(buf, format="JPEG", quality=60)
             img_b64 = base64.b64encode(buf.getvalue()).decode("utf-8")
@@ -281,6 +403,7 @@ class GradioApp:
             "file_name": file_name,
             "file_path": str(file_path),
             "file_base64": file_base64,
+            "remaining_path": remaining_path,
         }
         # Show/hide pdf_pages slider based on file type
         pdf_pages_update = gr.update(visible=is_pdf)
@@ -353,6 +476,11 @@ class GradioApp:
     async def upload_handler(self, files, model_name, max_pages=10):
         """
         Upload file to the selected model's backend via /upload endpoint.
+
+        For large PDFs (> max_pages pages):
+          1. Split into preview (first max_pages) + remaining
+          2. Upload preview immediately
+          3. Upload remaining in background (async, non-blocking)
         """
 
         if files is None:
@@ -370,34 +498,48 @@ class GradioApp:
             orig_name = Path(file_path).name
 
         max_pages = int(max_pages)
+        is_pdf = orig_name.lower().endswith(".pdf")
 
-        # POST to /upload of the selected model -> get upload_id.
+        # For large PDFs, split before uploading
+        preview_path = file_path
+        remaining_path = None
+        if is_pdf:
+            try:
+                total_pages = self._get_pdf_page_count(file_path)
+                SPLIT_THRESHOLD = max_pages
+                if total_pages > SPLIT_THRESHOLD:
+                    preview_path, remaining_path = self._split_pdf(
+                        file_path, SPLIT_THRESHOLD
+                    )
+            except Exception as exc:
+                preview_path = file_path
+                remaining_path = None
+
+        # POST preview (or whole file for non-PDF/small PDF) to /upload -> get upload_id.
         upload_id, returned_name = await self._upload_file(
-            file_path, orig_name, model_name
+            preview_path, orig_name, model_name
         )
 
         # Read file bytes for preview generation.
-        with open(file_path, "rb") as f:
+        with open(preview_path, "rb") as f:
             file_bytes = f.read()
         file_base64 = base64.b64encode(file_bytes).decode("utf-8")
 
-        # Generate preview images — always fixed at 10 pages (does not use max_pages).
+        # Generate preview images — always fixed at max_pages pages.
         session_id = uuid.uuid4().hex
         session_dir = Path(tempfile.gettempdir()) / f"infinity_preview_{session_id}"
         session_dir.mkdir(parents=True, exist_ok=True)
 
-        PREVIEW_PAGES = 10
-        is_pdf = orig_name.lower().endswith(".pdf")
         img_b64_list = []
         if is_pdf:
-            pages = convert_pdf_to_images(file_path, dpi=72)
-            pages = pages[:PREVIEW_PAGES]
+            pages = convert_pdf_to_images(preview_path, dpi=72)
+            pages = pages[:max_pages]
             for idx, page in enumerate(pages, start=1):
                 img_path = session_dir / f"preview_page_{idx}.jpg"
                 page.save(img_path, "JPEG", quality=60)
                 img_b64_list.append(self.encode_img_base64(str(img_path)))
         else:
-            img = Image.open(file_path).convert("RGB")
+            img = Image.open(preview_path).convert("RGB")
             buf = io.BytesIO()
             img.save(buf, format="JPEG", quality=60)
             img_b64 = base64.b64encode(buf.getvalue()).decode("utf-8")
@@ -409,8 +551,9 @@ class GradioApp:
         file_state = {
             "upload_id": upload_id,
             "file_name": orig_name,
-            "file_path": file_path,
+            "file_path": preview_path,
             "file_base64": file_base64,
+            "remaining_path": remaining_path,
         }
         pdf_pages_update = gr.update(visible=is_pdf)
         return file_state, img_b64_list, 0, viewer_html, pdf_pages_update
@@ -488,6 +631,7 @@ class GradioApp:
             info="Number of PDF pages to parse (1–10)",
             visible=False,
         )
+
         with gr.Row():
             prev_btn = gr.Button(" Pre")
             next_btn = gr.Button("Next ")
