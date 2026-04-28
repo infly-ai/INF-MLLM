@@ -11,7 +11,7 @@ from tqdm import tqdm
 from vllm import LLM, SamplingParams
 
 from .base import BaseBackend
-from ..utils import encode_file_to_base64
+from ..utils import encode_image_to_base64
 
 
 class VLLMEngineBackend(BaseBackend):
@@ -99,7 +99,7 @@ class VLLMEngineBackend(BaseBackend):
 
         all_messages = []
         for item in input_data:
-            base64_data, mime_type = encode_file_to_base64(item, min_pixels=self.min_pixels, max_pixels=self.max_pixels)
+            base64_data, mime_type = encode_image_to_base64(item, min_pixels=self.min_pixels, max_pixels=self.max_pixels)
             all_messages.append(self._build_messages(base64_data, mime_type, prompt))
 
         results = [None] * len(input_data)

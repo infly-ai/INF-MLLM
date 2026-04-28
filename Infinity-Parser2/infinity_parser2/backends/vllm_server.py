@@ -12,7 +12,7 @@ from PIL import Image
 from tqdm import tqdm
 
 from .base import BaseBackend
-from ..utils import encode_file_to_base64
+from ..utils import encode_image_to_base64
 
 
 class VLLMServerBackend(BaseBackend):
@@ -101,7 +101,7 @@ class VLLMServerBackend(BaseBackend):
         }
 
         def parse_one(item: Union[str, Image.Image]) -> str:
-            base64_data, mime_type = encode_file_to_base64(item, min_pixels=self.min_pixels, max_pixels=self.max_pixels)
+            base64_data, mime_type = encode_image_to_base64(item, min_pixels=self.min_pixels, max_pixels=self.max_pixels)
             messages = [
                 {
                     "role": "user",

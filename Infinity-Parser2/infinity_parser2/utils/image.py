@@ -1,21 +1,37 @@
 """Image encoding and loading utilities."""
 
 import base64
+import warnings
 from io import BytesIO
 from pathlib import Path
 from typing import Tuple, Union
-
 from PIL import Image
-
-from qwen_vl_utils.vision_process import smart_resize
+from importlib import metadata
 
 try:
-    from importlib import metadata
+    from qwen_vl_utils.vision_process import smart_resize
+
     _qwen_vl_utils_version = metadata.version("qwen-vl-utils")
     if _qwen_vl_utils_version < "0.0.14":
-        raise ImportError("qwen-vl-utils version 0.0.14 or higher is required")
+        warnings.warn(
+            f"qwen-vl-utils version {_qwen_vl_utils_version} is installed, "
+            f"but version 0.0.14 or higher is recommended. "
+            f"Some features may not work correctly. "
+            f"Upgrade with: pip install qwen-vl-utils>=0.0.14",
+            UserWarning,
+        )
 except metadata.PackageNotFoundError:
-    raise ImportError("qwen-vl-utils is not installed. Install it with: pip install qwen-vl-utils")
+    warnings.warn(
+        "qwen-vl-utils is not installed. The encode_image_to_base64 function with "
+        "smart resizing will not be available. Install it with: pip install qwen-vl-utils",
+        UserWarning,
+    )
+except ImportError as e:
+    warnings.warn(
+        f"Failed to import qwen-vl-utils: {e}. The encode_image_to_base64 function with "
+        "smart resizing will not be available. Install it with: pip install qwen-vl-utils",
+        UserWarning,
+    )
 
 
 # MIME type mapping for common image formats
@@ -53,7 +69,7 @@ def load_image(
         raise TypeError(f"Unsupported input type: {type(input_data)}")
 
 
-def encode_file_to_base64(
+def encode_image_to_base64(
     image_obj: Union[Image.Image, str],
     min_pixels: int = 2048,
     max_pixels: int = 16777216,
@@ -77,7 +93,11 @@ def encode_file_to_base64(
         original_format = image_obj.format
         image = image_obj.copy()
         # Try to get format from original PIL Image, default to jpeg
-        mime_type = IMAGE_MIME_TYPES.get(f".{original_format}".lower(), "image/jpeg") if original_format else "image/jpeg"
+        mime_type = (
+            IMAGE_MIME_TYPES.get(f".{original_format}".lower(), "image/jpeg")
+            if original_format
+            else "image/jpeg"
+        )
 
     resized_height, resized_width = smart_resize(
         height=image.size[1],

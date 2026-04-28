@@ -14,9 +14,8 @@ from .backends import (
     VLLMEngineBackend,
     VLLMServerBackend,
 )
-from .prompts import PROMPT_DOC2JSON, PROMPT_DOC2MD, SUPPORTED_TASK_TYPES
+from .prompts import SUPPORTED_TASK_TYPES, resolve_prompt
 from .utils import *
-
 
 BACKEND_REGISTRY = {
     "transformers": TransformersBackend,
@@ -110,32 +109,19 @@ class InfinityParser2:
             **self.kwargs,
         }
         if self.backend_name == "vllm-server":
-            backend_kwargs = {**common_kwargs, "api_url": self.api_url, "api_key": self.api_key}
+            backend_kwargs = {
+                **common_kwargs,
+                "api_url": self.api_url,
+                "api_key": self.api_key,
+            }
         elif self.backend_name == "vllm-engine":
-            backend_kwargs = {**common_kwargs, "tensor_parallel_size": self.tensor_parallel_size}
+            backend_kwargs = {
+                **common_kwargs,
+                "tensor_parallel_size": self.tensor_parallel_size,
+            }
         else:  # transformers
             backend_kwargs = common_kwargs
         return backend_cls(**backend_kwargs)
-
-    def _resolve_prompt(self, task_type: str, custom_prompt: Optional[str]) -> str:
-        """Resolve the prompt to use based on task_type and custom_prompt.
-
-        Args:
-            task_type: The task type (e.g., "doc2json", "doc2md", "custom").
-            custom_prompt: Custom prompt, only used when task_type is "custom".
-
-        Returns:
-            The resolved prompt string.
-        """
-        if task_type == "custom":
-            assert custom_prompt is not None, "custom_prompt must be provided when task_type='custom'"
-            return custom_prompt
-        if task_type == "doc2json":
-            return PROMPT_DOC2JSON
-        if task_type == "doc2md":
-            return PROMPT_DOC2MD
-        # Fallback for unknown task types (should not happen with proper validation)
-        return "Please transform the document's contents into Markdown format."
 
     def parse(
         self,
@@ -195,10 +181,14 @@ class InfinityParser2:
             >>> parser.parse("demo_data/demo.pdf", output_dir="./output")
         """
         if task_type not in SUPPORTED_TASK_TYPES:
-            raise ValueError(f"task_type must be one of {SUPPORTED_TASK_TYPES}, got '{task_type}'")
+            raise ValueError(
+                f"task_type must be one of {SUPPORTED_TASK_TYPES}, got '{task_type}'"
+            )
 
         if output_format not in SUPPORTED_OUTPUT_FORMATS:
-            raise ValueError(f"output_format must be one of {SUPPORTED_OUTPUT_FORMATS}, got '{output_format}'")
+            raise ValueError(
+                f"output_format must be one of {SUPPORTED_OUTPUT_FORMATS}, got '{output_format}'"
+            )
 
         if output_format == "json" and task_type != "doc2json":
             raise ValueError(
@@ -206,7 +196,7 @@ class InfinityParser2:
                 "For other task types, output_format must be 'md'."
             )
 
-        prompt = self._resolve_prompt(task_type, custom_prompt)
+        prompt = resolve_prompt(task_type, custom_prompt)
         print(f"[Infinity-Parser2] task_type: {task_type}, prompt: {prompt}")
 
         is_directory = isinstance(input_data, str) and os.path.isdir(input_data)
@@ -217,8 +207,11 @@ class InfinityParser2:
 
         if output_dir is not None:
             save_results(
-                file_paths, file_results, output_dir,
-                task_type=task_type, output_format=output_format
+                file_paths,
+                file_results,
+                output_dir,
+                task_type=task_type,
+                output_format=output_format,
             )
         elif is_directory:
             return dict(zip(file_paths, file_results))
@@ -250,7 +243,9 @@ class InfinityParser2:
 
         # parse batch
         raw_inputs = [entry[1] for entry in batch_entries]
-        batch_results = self._backend.parse_batch(raw_inputs, prompt, batch_size=batch_size, **kwargs)
+        batch_results = self._backend.parse_batch(
+            raw_inputs, prompt, batch_size=batch_size, **kwargs
+        )
 
         # aggregate batch results
         num_files = len({entry[0] for entry in batch_entries})
@@ -262,7 +257,9 @@ class InfinityParser2:
 
             # postprocess result
             if task_type == "doc2json":
-                text = postprocess_doc2json_result(raw_result, image_input, output_format)
+                text = postprocess_doc2json_result(
+                    raw_result, image_input, output_format
+                )
             elif task_type == "doc2md":
                 text = postprocess_doc2md_result(raw_result)
             else:

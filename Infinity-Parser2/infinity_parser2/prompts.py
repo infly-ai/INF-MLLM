@@ -1,12 +1,36 @@
 """Prompts for Infinity-Parser2."""
 
+from typing import Optional
+
 __all__ = [
     "PROMPT_DOC2JSON",
     "PROMPT_DOC2MD",
     "SUPPORTED_TASK_TYPES",
 ]
-
 SUPPORTED_TASK_TYPES = ["doc2json", "doc2md", "custom"]
+
+def resolve_prompt(task_type: str, custom_prompt: Optional[str]) -> str:
+    """Resolve the prompt to use based on task_type and custom_prompt.
+
+    Args:
+        task_type: The task type (e.g., "doc2json", "doc2md", "custom").
+        custom_prompt: Custom prompt, only used when task_type is "custom".
+
+    Returns:
+        The resolved prompt string.
+    """
+    if task_type == "custom":
+        assert (
+            custom_prompt is not None
+        ), "custom_prompt must be provided when task_type='custom'"
+        return custom_prompt
+    if task_type == "doc2json":
+        return PROMPT_DOC2JSON
+    if task_type == "doc2md":
+        return PROMPT_DOC2MD
+    # Fallback for unknown task types (should not happen with proper validation)
+    return "Please transform the document's contents into Markdown format."
+
 
 
 # doc2json prompt (outputs JSON format)
@@ -54,4 +78,3 @@ You are an AI assistant specialized in converting PDF images to Markdown format.
 
 Please strictly follow these guidelines to ensure accuracy and consistency in the conversion. Your task is to accurately convert the content of the PDF image into Markdown format without adding any extra explanations or comments.
 """
-

@@ -12,7 +12,7 @@ from PIL import Image
 
 from infinity_parser2.utils import (
     convert_pdf_to_images,
-    encode_file_to_base64,
+    encode_image_to_base64,
     extract_json_content,
     load_image,
     truncate_last_incomplete_element,
@@ -70,7 +70,7 @@ class TestLoadImage(unittest.TestCase):
 
 
 class TestEncodeFileToBase64(unittest.TestCase):
-    """Tests for encode_file_to_base64 utility function."""
+    """Tests for encode_image_to_base64 utility function."""
 
     def setUp(self):
         """Set up test fixtures."""
@@ -85,7 +85,7 @@ class TestEncodeFileToBase64(unittest.TestCase):
         """Test encoding PNG file to base64."""
         png_path = os.path.join(self.temp_dir, "test.png")
         Image.new("RGB", (100, 100), color="green").save(png_path)
-        base64_str, mime_type = encode_file_to_base64(png_path)
+        base64_str, mime_type = encode_image_to_base64(png_path)
         self.assertIsInstance(base64_str, str)
         self.assertTrue(len(base64_str) > 0)
         self.assertEqual(mime_type, "image/png")
@@ -94,7 +94,7 @@ class TestEncodeFileToBase64(unittest.TestCase):
         """Test encoding JPG file to base64."""
         jpg_path = os.path.join(self.temp_dir, "test.jpg")
         Image.new("RGB", (100, 100), color="yellow").save(jpg_path, "JPEG")
-        base64_str, mime_type = encode_file_to_base64(jpg_path)
+        base64_str, mime_type = encode_image_to_base64(jpg_path)
         self.assertIsInstance(base64_str, str)
         self.assertTrue(len(base64_str) > 0)
         self.assertEqual(mime_type, "image/jpeg")
@@ -103,27 +103,27 @@ class TestEncodeFileToBase64(unittest.TestCase):
         """Test encoding JPEG file with .jpeg extension."""
         jpeg_path = os.path.join(self.temp_dir, "test.jpeg")
         Image.new("RGB", (100, 100), color="orange").save(jpeg_path, "JPEG")
-        base64_str, mime_type = encode_file_to_base64(jpeg_path)
+        base64_str, mime_type = encode_image_to_base64(jpeg_path)
         self.assertEqual(mime_type, "image/jpeg")
 
     def test_encode_webp_file(self):
         """Test encoding WebP file."""
         webp_path = os.path.join(self.temp_dir, "test.webp")
         Image.new("RGB", (100, 100), color="purple").save(webp_path, "WEBP")
-        base64_str, mime_type = encode_file_to_base64(webp_path)
+        base64_str, mime_type = encode_image_to_base64(webp_path)
         self.assertEqual(mime_type, "image/webp")
 
     def test_encode_bmp_file(self):
         """Test encoding BMP file."""
         bmp_path = os.path.join(self.temp_dir, "test.bmp")
         Image.new("RGB", (100, 100), color="cyan").save(bmp_path, "BMP")
-        base64_str, mime_type = encode_file_to_base64(bmp_path)
+        base64_str, mime_type = encode_image_to_base64(bmp_path)
         self.assertEqual(mime_type, "image/bmp")
 
     def test_encode_pil_image(self):
         """Test encoding PIL Image object."""
         img = Image.new("RGB", (100, 100), color="magenta")
-        base64_str, mime_type = encode_file_to_base64(img)
+        base64_str, mime_type = encode_image_to_base64(img)
         self.assertIsInstance(base64_str, str)
         self.assertTrue(len(base64_str) > 0)
         self.assertEqual(mime_type, "image/jpeg")  # Default for PIL without format
@@ -132,21 +132,21 @@ class TestEncodeFileToBase64(unittest.TestCase):
         """Test encoding PIL Image with explicit format."""
         img = Image.new("RGB", (100, 100), color="white")
         self.assertIsNone(img.format)
-        _, mime_type = encode_file_to_base64(img)
+        _, mime_type = encode_image_to_base64(img)
         self.assertEqual(mime_type, "image/jpeg")
 
         png_path = os.path.join(self.temp_dir, "test.png")
         Image.new("RGB", (100, 100), color="white").save(png_path)
         with Image.open(png_path) as loaded_img:
             self.assertEqual(loaded_img.format, "PNG")
-            _, mime_type = encode_file_to_base64(loaded_img)
+            _, mime_type = encode_image_to_base64(loaded_img)
             self.assertEqual(mime_type, "image/png")
 
     def test_encode_with_custom_min_max_pixels(self):
         """Test encoding with custom min_pixels and max_pixels parameters."""
         large_path = os.path.join(self.temp_dir, "large.png")
         Image.new("RGB", (1000, 1000), color="blue").save(large_path)
-        base64_str, _ = encode_file_to_base64(large_path, min_pixels=100, max_pixels=50000)
+        base64_str, _ = encode_image_to_base64(large_path, min_pixels=100, max_pixels=50000)
         self.assertIsInstance(base64_str, str)
         self.assertTrue(len(base64_str) > 0)
 
@@ -154,7 +154,7 @@ class TestEncodeFileToBase64(unittest.TestCase):
         """Test that unknown extension defaults to image/jpeg."""
         unknown_path = os.path.join(self.temp_dir, "test.unknown")
         Image.new("RGB", (100, 100), color="gray").save(unknown_path, format="PNG")
-        _, mime_type = encode_file_to_base64(unknown_path)
+        _, mime_type = encode_image_to_base64(unknown_path)
         self.assertEqual(mime_type, "image/jpeg")
 
     def test_base64_decoding(self):
@@ -163,7 +163,7 @@ class TestEncodeFileToBase64(unittest.TestCase):
         png_path = os.path.join(self.temp_dir, "test.png")
         original = Image.new("RGB", (100, 100), color="red")
         original.save(png_path)
-        base64_str, _ = encode_file_to_base64(png_path)
+        base64_str, _ = encode_image_to_base64(png_path)
         decoded_bytes = base64.b64decode(base64_str)
         decoded_image = Image.open(io.BytesIO(decoded_bytes))
         self.assertIsInstance(decoded_image, Image.Image)
