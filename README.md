@@ -10,7 +10,7 @@ INF-MLLM is a series of open-source multimodal large language models developed b
 
 ## Updates
 
-- [2026-04-14] We uploaded the quick start guide for [Infinity-Parser2](Infinity-Parser2). Feel free to contact us if you have any questions.
+- [2026-04-28] We uploaded the demo and quick start guide for [Infinity-Parser2](Infinity-Parser2). Feel free to contact us if you have any questions.
 - [2026-04-11] We released [Infinity-Parser2-Pro](https://huggingface.co/infly/Infinity-Parser2-Pro), our flagship document parsing model — now available as a preview. Stay tuned: the official release, the lightweight Infinity-Parser2-Flash, and our multimodal parsing dataset Infinity-Doc2-10M are coming soon.
 - [2026/04/08] Infinity-Parser has been accepted as a Findings paper at ACL 2026.
 - [2025/11/03] The [Infinity-Parser-7B](https://huggingface.co/infly/Infinity-Parser-7B), [Infinity-Doc-400K dataset](https://huggingface.co/datasets/infly/Infinity-Doc-400K), and synthetic data [generation code](https://github.com/infly-ai/INF-MLLM/tree/main/Infinity-Parser/Infinity-Synth) have been released.
