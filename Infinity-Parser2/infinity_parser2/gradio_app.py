@@ -383,18 +383,19 @@ class GradioApp:
 
         img_b64_list = []
         if is_pdf:
-            pages = convert_pdf_to_images(preview_path, dpi=72)
-            pages = pages[:max_pages]
-            for idx, page in enumerate(pages, start=1):
-                img_path = session_dir / f"preview_page_{idx}.jpg"
-                page.save(img_path, "JPEG", quality=60)
-                img_b64_list.append(self.encode_img_base64(str(img_path)))
+            img_b64_list.append(f"data:application/pdf;base64,{file_base64}")
         else:
-            img = Image.open(preview_path).convert("RGB")
-            buf = io.BytesIO()
-            img.save(buf, format="JPEG", quality=60)
-            img_b64 = base64.b64encode(buf.getvalue()).decode("utf-8")
-            img_b64_list.append(f"data:image/jpeg;base64,{img_b64}")
+            ext = Path(file_name).suffix.lower()
+            mime_map = {
+                ".png": "image/png",
+                ".jpg": "image/jpeg",
+                ".jpeg": "image/jpeg",
+                ".gif": "image/gif",
+                ".webp": "image/webp",
+                ".bmp": "image/bmp",
+            }
+            mime = mime_map.get(ext, "application/octet-stream")
+            img_b64_list.append(f"data:{mime};base64,{file_base64}")
 
         viewer_html = self.render_img_base64(img_b64_list, 0)
 
@@ -438,9 +439,15 @@ class GradioApp:
     @staticmethod
     def render_img_base64(img_b64_list, idx):
         if not img_b64_list:
-            return "<p style='color:gray'>Please upload an image first.</p>"
+            return "<p style='color:gray'>Please upload a PDF or image first.</p>"
         idx %= len(img_b64_list)
         src = img_b64_list[idx]
+        if src.startswith("data:application/pdf"):
+            return f"""
+                <div style="width:100%;height:800px;border:1px solid #ccc;">
+                  <embed src="{src}" type="application/pdf" width="100%" height="100%" />
+                </div>
+                """
         return f"""
             <div style="width:100%;height:800px;overflow:auto;border:1px solid #ccc;">
               <div style="min-width:100%;display:flex;justify-content:center;">
@@ -532,18 +539,19 @@ class GradioApp:
 
         img_b64_list = []
         if is_pdf:
-            pages = convert_pdf_to_images(preview_path, dpi=72)
-            pages = pages[:max_pages]
-            for idx, page in enumerate(pages, start=1):
-                img_path = session_dir / f"preview_page_{idx}.jpg"
-                page.save(img_path, "JPEG", quality=60)
-                img_b64_list.append(self.encode_img_base64(str(img_path)))
+            img_b64_list.append(f"data:application/pdf;base64,{file_base64}")
         else:
-            img = Image.open(preview_path).convert("RGB")
-            buf = io.BytesIO()
-            img.save(buf, format="JPEG", quality=60)
-            img_b64 = base64.b64encode(buf.getvalue()).decode("utf-8")
-            img_b64_list.append(f"data:image/jpeg;base64,{img_b64}")
+            ext = Path(orig_name).suffix.lower()
+            mime_map = {
+                ".png": "image/png",
+                ".jpg": "image/jpeg",
+                ".jpeg": "image/jpeg",
+                ".gif": "image/gif",
+                ".webp": "image/webp",
+                ".bmp": "image/bmp",
+            }
+            mime = mime_map.get(ext, "application/octet-stream")
+            img_b64_list.append(f"data:{mime};base64,{file_base64}")
 
         # Render HTML.
         viewer_html = self.render_img_base64(img_b64_list, 0)
