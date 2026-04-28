@@ -1,7 +1,6 @@
 """PDF to image conversion utility."""
 
 import io
-from pathlib import Path
 from typing import List, Union
 
 from PIL import Image

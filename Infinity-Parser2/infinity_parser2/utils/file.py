@@ -225,10 +225,7 @@ def compress_directory_to_zip(directory_path: str, output_zip_path: str) -> int:
 def package_results_as_zip(
     task_type: str, processed_md: str, raw_result: str, bbox_gallery: list
 ) -> str:
-    """
-      - processed_result.md
-      - raw_result.json/.md
-      - bbox_page_N.png
+    """Packages parsed markdown, raw results, and bbox gallery images into a single ZIP file for download.
 
     Args:
         task_type: doc2md or doc2json

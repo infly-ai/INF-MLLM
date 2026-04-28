@@ -95,44 +95,35 @@ def encode_image_to_base64(
         ImportError: If resizing is requested but qwen-vl-utils is not installed.
     """
     if isinstance(image_obj, str):
-        raw_bytes = Path(image_obj).read_bytes()
+        image = Image.open(image_obj)
         ext = Path(image_obj).suffix.lower()
         mime_type = IMAGE_MIME_TYPES.get(ext, "image/jpeg")
     else:
+        # Note: image.copy() loses the format attribute, so get it before copying
         original_format = image_obj.format
+        image = image_obj.copy()
+        # Try to get format from original PIL Image, default to jpeg
         mime_type = (
             IMAGE_MIME_TYPES.get(f".{original_format}".lower(), "image/jpeg")
             if original_format
             else "image/jpeg"
         )
-        buf = BytesIO()
-        image_obj.save(buf, format=original_format or "PNG")
-        raw_bytes = buf.getvalue()
 
-    if min_pixels is not None and max_pixels is not None:
-        if smart_resize is None:
-            raise ImportError(
-                "encode_image_to_base64 with resizing requires qwen-vl-utils. "
-                "Install it with: pip install qwen-vl-utils"
-            )
-        if isinstance(image_obj, str):
-            image = Image.open(image_obj)
-        else:
-            image = image_obj.copy()
-        resized_height, resized_width = smart_resize(
-            height=image.size[1],
-            width=image.size[0],
-            factor=32,
-            min_pixels=min_pixels,
-            max_pixels=max_pixels,
-        )
-        image = image.resize((resized_width, resized_height))
-        if image.mode != "RGB":
-            image = image.convert("RGB")
-        output_buffer = BytesIO()
-        image.save(output_buffer, format="PNG")
-        byte_data = output_buffer.getvalue()
-    else:
-        byte_data = raw_bytes
+    resized_height, resized_width = smart_resize(
+        height=image.size[1],
+        width=image.size[0],
+        factor=32,
+        min_pixels=min_pixels,
+        max_pixels=max_pixels,
+    )
+    image = image.resize((resized_width, resized_height))
 
-    return base64.b64encode(byte_data).decode("utf-8"), mime_type
+    if image.mode != "RGB":
+        image = image.convert("RGB")
+
+    output_buffer = BytesIO()
+    image.save(output_buffer, format="PNG")
+    byte_data = output_buffer.getvalue()
+
+    base64_str = base64.b64encode(byte_data).decode("utf-8")
+    return base64_str, mime_type

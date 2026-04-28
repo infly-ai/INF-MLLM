@@ -118,6 +118,22 @@ def restore_abs_bbox_coordinates(ans: str, origin_h: float, origin_w: float) -> 
 # ---------------------------------------------------------------------------
 
 
+def _extract_page_text(elements: list, keep_header_footer: bool) -> str:
+    """Extract and join text from a single page's element list.
+
+    Filters out empty entries and optionally skips header/footer categories.
+    Returns the joined text (empty string if no text was collected).
+    """
+    _SKIP_CATEGORIES = {"header", "footer", "page_footnote"}
+    lines = []
+    for sub in elements:
+        if "text" not in sub or not sub["text"]:
+            continue
+        if keep_header_footer or sub.get("category") not in _SKIP_CATEGORIES:
+            lines.append(sub["text"])
+    return "\n\n".join(lines)
+
+
 def convert_json_to_markdown(ans: str, keep_header_footer: bool = False) -> str:
     """Convert the layout JSON list into a markdown string.
 
@@ -132,37 +148,15 @@ def convert_json_to_markdown(ans: str, keep_header_footer: bool = False) -> str:
 
         # ── Multi-page: [[{...}], [{...}], ...] ────────────────────────────
         if len(data) > 0 and isinstance(data[0], list):
-            pages = []
-            for page_list in data:
-                lines = []
-                for sub in page_list:
-                    if "text" not in sub or not sub["text"]:
-                        continue
-                    if keep_header_footer:
-                        lines.append(sub["text"])
-                    else:
-                        if sub.get("category") not in (
-                            "header",
-                            "footer",
-                            "page_footnote",
-                        ):
-                            lines.append(sub["text"])
-                pages.append("\n\n".join(lines) if lines else "")
-            # Filter empty pages and join with page separator
+            pages = [
+                _extract_page_text(page_list, keep_header_footer) for page_list in data
+            ]
             pages = [p for p in pages if p]
             return "".join(pages) if pages else ans
 
         # ── Single-page: [{...}, {...}] ─────────────────────────────────────
-        lines = []
-        for sub in data:
-            if "text" not in sub or not sub["text"]:
-                continue
-            if keep_header_footer:
-                lines.append(sub["text"])
-            else:
-                if sub.get("category") not in ("header", "footer", "page_footnote"):
-                    lines.append(sub["text"])
-        return "\n\n".join(lines) if lines else ans
+        result = _extract_page_text(data, keep_header_footer)
+        return result if result else ans
     except Exception:
         return ans
 

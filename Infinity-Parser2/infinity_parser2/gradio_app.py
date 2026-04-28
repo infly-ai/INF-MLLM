@@ -4,7 +4,6 @@ import tempfile
 import base64
 import io
 from pathlib import Path
-from PIL import Image
 import httpx
 import os
 import gradio as gr
