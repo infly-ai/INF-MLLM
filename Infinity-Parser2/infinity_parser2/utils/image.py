@@ -4,13 +4,10 @@ import base64
 import warnings
 from io import BytesIO
 from pathlib import Path
-from typing import Tuple, Union, Optional, Callable
-
+from typing import Tuple, Union
 from PIL import Image
 from importlib import metadata
 
-# smart_resize is optional - only needed for encode_image_to_base64 with resizing
-smart_resize: Optional[Callable] = None
 try:
     from qwen_vl_utils.vision_process import smart_resize
 
