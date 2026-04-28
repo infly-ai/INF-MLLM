@@ -14,8 +14,7 @@ from utils import (
     postprocess_doc2json_result,
     postprocess_doc2md_result,
     draw_bboxes_on_image,
-    package_results_as_zip,
-    encode_image_to_base64,
+    package_results_as_zip
 )
 from prompts import SUPPORTED_TASK_TYPES
 
@@ -372,9 +371,7 @@ class GradioApp:
         )
 
         # Read file bytes for preview generation.
-        with open(preview_path, "rb") as f:
-            file_bytes = f.read()
-        file_base64 = base64.b64encode(file_bytes).decode("utf-8")
+        file_base64 = self._file_to_base64(preview_path)
 
         # Generate preview images — always fixed at 10 pages (does not use max_pages).
         session_id = uuid.uuid4().hex
@@ -383,7 +380,12 @@ class GradioApp:
 
         img_b64_list = []
         if is_pdf:
-            img_b64_list.append(f"data:application/pdf;base64,{file_base64}")
+            pages = convert_pdf_to_images(preview_path, dpi=100)
+            for page in pages:
+                buf = io.BytesIO()
+                page.save(buf, format="PNG")
+                page_b64 = base64.b64encode(buf.getvalue()).decode("utf-8")
+                img_b64_list.append(f"data:image/png;base64,{page_b64}")
         else:
             ext = Path(file_name).suffix.lower()
             mime_map = {
@@ -418,9 +420,11 @@ class GradioApp:
         )
 
     @staticmethod
-    def encode_img_base64(img_path, min_pixels=None, max_pixels=None):
-        base64_str, mime_type = encode_image_to_base64(img_path, min_pixels, max_pixels)
-        return f"data:{mime_type};base64,{base64_str}"
+    def _file_to_base64(file_path: str) -> str:
+        """Read a file and return its base64-encoded content as a string."""
+        with open(file_path, "rb") as f:
+            file_bytes = f.read()
+        return base64.b64encode(file_bytes).decode("utf-8")
 
     @staticmethod
     def get_pdf_thumbnail(pdf_path, dpi=150):
@@ -442,12 +446,6 @@ class GradioApp:
             return "<p style='color:gray'>Please upload a PDF or image first.</p>"
         idx %= len(img_b64_list)
         src = img_b64_list[idx]
-        if src.startswith("data:application/pdf"):
-            return f"""
-                <div style="width:100%;height:800px;border:1px solid #ccc;">
-                  <embed src="{src}" type="application/pdf" width="100%" height="100%" />
-                </div>
-                """
         return f"""
             <div style="width:100%;height:800px;overflow:auto;border:1px solid #ccc;">
               <div style="min-width:100%;display:flex;justify-content:center;">
@@ -528,9 +526,7 @@ class GradioApp:
         )
 
         # Read file bytes for preview generation.
-        with open(preview_path, "rb") as f:
-            file_bytes = f.read()
-        file_base64 = base64.b64encode(file_bytes).decode("utf-8")
+        file_base64 = self._file_to_base64(preview_path)
 
         # Generate preview images — always fixed at max_pages pages.
         session_id = uuid.uuid4().hex
@@ -539,7 +535,12 @@ class GradioApp:
 
         img_b64_list = []
         if is_pdf:
-            img_b64_list.append(f"data:application/pdf;base64,{file_base64}")
+            pages = convert_pdf_to_images(preview_path, dpi=100)
+            for page in pages:
+                buf = io.BytesIO()
+                page.save(buf, format="PNG")
+                page_b64 = base64.b64encode(buf.getvalue()).decode("utf-8")
+                img_b64_list.append(f"data:image/png;base64,{page_b64}")
         else:
             ext = Path(orig_name).suffix.lower()
             mime_map = {
