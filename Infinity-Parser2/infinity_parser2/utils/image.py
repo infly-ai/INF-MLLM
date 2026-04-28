@@ -74,25 +74,18 @@ def load_image(
 
 def encode_image_to_base64(
     image_obj: Union[Image.Image, str],
-    min_pixels: Optional[int] = None,
-    max_pixels: Optional[int] = None,
+    min_pixels: int = 2048,
+    max_pixels: int = 16777216,
 ) -> Tuple[str, str]:
-    """Encode image to base64 string.
-
-    If both min_pixels and max_pixels are provided, the image is resized via
-    smart_resize (requires qwen-vl-utils) and encoded as PNG. Otherwise the
-    raw file bytes are encoded as-is.
+    """Encode image to base64 string and determine its MIME type.
 
     Args:
         image_obj: File path or PIL Image.
-        min_pixels: Minimum number of pixels for resizing. Ignored if None.
-        max_pixels: Maximum number of pixels for resizing. Ignored if None.
+        min_pixels: Minimum number of pixels for resizing.
+        max_pixels: Maximum number of pixels for resizing.
 
     Returns:
         Tuple of (base64 string, MIME type string).
-
-    Raises:
-        ImportError: If resizing is requested but qwen-vl-utils is not installed.
     """
     if isinstance(image_obj, str):
         image = Image.open(image_obj)
