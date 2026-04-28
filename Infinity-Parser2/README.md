@@ -8,7 +8,7 @@
 🤗 <a href="https://huggingface.co/infly/Infinity-Parser2-Pro">Model</a> |
 📊 <a>Dataset (coming soon...)</a> |
 📄 <a>Paper (coming soon...)</a> |
-🚀 <a>Demo (coming soon...)</a>
+🚀 <a href="https://huggingface.co/spaces/infly/Infinity-Parser-Demo">Demo</a>
 </p>
 
 ## Introduction
