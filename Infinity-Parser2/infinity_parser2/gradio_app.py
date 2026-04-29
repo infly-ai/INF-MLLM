@@ -1,3 +1,4 @@
+import json
 import uuid
 import threading
 import tempfile
@@ -13,7 +14,9 @@ from utils import (
     postprocess_doc2json_result,
     postprocess_doc2md_result,
     draw_bboxes_on_image,
-    package_results_as_zip
+    convert_json_to_markdown,
+    extract_json_content,
+    package_results_as_zip,
 )
 from prompts import SUPPORTED_TASK_TYPES
 
@@ -48,7 +51,9 @@ class GradioApp:
         self.available_models = list(self.model_configs.keys())
         self._http_client = httpx.AsyncClient(verify=False, timeout=600.0)
         self.demo = None
-        self._skip_file_change = False  # guard to prevent double-upload from example clicks
+        self._skip_file_change = (
+            False  # guard to prevent double-upload from example clicks
+        )
 
     def _init_models(self):
         return self.available_models
@@ -175,7 +180,11 @@ class GradioApp:
                     response = client.post(
                         f"{base_url}/upload",
                         files={
-                            "file": (file_name, io.BytesIO(file_bytes), "application/pdf")
+                            "file": (
+                                file_name,
+                                io.BytesIO(file_bytes),
+                                "application/pdf",
+                            )
                         },
                         data={"append_to": upload_id},
                         headers=headers,
@@ -186,7 +195,7 @@ class GradioApp:
                 pass
 
             if attempt < max_retries - 1:
-                _time.sleep(2 ** attempt)
+                _time.sleep(2**attempt)
 
         return False
 
@@ -323,15 +332,33 @@ class GradioApp:
         # Postprocess.
         all_bbox_images = []
         if task_type == "doc2json":
-            processed = postprocess_doc2json_result(
-                raw_result, img_paths[0], output_format="md"
-            )
-            for i, img_path in enumerate(img_paths):
-                im = draw_bboxes_on_image(img_path, raw_result, page_index=i + 1)
+            # Split raw_result into per-page JSON strings.
+            cleaned = extract_json_content(raw_result)
+            try:
+                data = json.loads(cleaned)
+            except json.JSONDecodeError:
+                data = None
+
+            if isinstance(data, list) and len(data) > 0 and isinstance(data[0], list):
+                # Multi-page nested: [[page1_items], [page2_items], ...]
+                page_jsons = [json.dumps(page, ensure_ascii=False) for page in data]
+            elif isinstance(data, list):
+                # Single-page flat: [item1, item2, ...]
+                page_jsons = [json.dumps(data, ensure_ascii=False)]
+            else:
+                page_jsons = [raw_result]
+
+            processed_parts = []
+            for i, (page_raw, img_path) in enumerate(zip(page_jsons, img_paths)):
+                page_processed = postprocess_doc2json_result(page_raw, img_path)
+                im = draw_bboxes_on_image(img_path, page_raw)
                 if im is not None:
                     saved_path = session_dir / f"bbox_page_{i+1}.png"
                     im.save(str(saved_path), "PNG")
                     all_bbox_images.append((str(saved_path), f"Page {i+1}"))
+                page_md = convert_json_to_markdown(page_processed)
+                processed_parts.append(page_md)
+            processed = "\n\n".join(processed_parts)
         elif task_type == "doc2md":
             processed = postprocess_doc2md_result(raw_result)
         else:
@@ -362,9 +389,9 @@ class GradioApp:
 
         fake_file = _FakeFile(file_path)
 
-        # Reuse upload_handler — returns (file_state, img_b64_list, idx, viewer_html, pdf_pages_update)
-        file_state, img_b64_list, idx, viewer_html, pdf_pages_update = (
-            await self.upload_handler(fake_file, model_name, max_pages)
+        # Reuse upload_handler — returns (file_state, img_b64_list, idx, viewer_html)
+        file_state, img_b64_list, idx, viewer_html = await self.upload_handler(
+            fake_file, model_name, max_pages
         )
 
         # Patch file_path back to the original example file (upload_handler may
@@ -382,7 +409,6 @@ class GradioApp:
             idx,
             viewer_html,
             file_path,
-            pdf_pages_update,
         )
 
     @staticmethod
@@ -407,16 +433,15 @@ class GradioApp:
         return str(thumb_path)
 
     @staticmethod
-    def render_img_base64(img_b64_list, idx):
+    def render_img_base64(img_b64_list, idx, zoom=100):
         if not img_b64_list:
             return "<p style='color:gray'>Please upload a PDF or image first.</p>"
         idx %= len(img_b64_list)
         src = img_b64_list[idx]
+        w = int(zoom)
         return f"""
             <div style="width:100%;height:800px;overflow:auto;border:1px solid #ccc;">
-              <div style="min-width:100%;display:flex;justify-content:center;">
-                <img src="{src}" style="width:100%;height:auto;display:block;">
-              </div>
+              <img src="{src}" style="width:{w}%;max-width:none;height:auto;display:block;">
             </div>
             """
 
@@ -458,11 +483,11 @@ class GradioApp:
         if self._skip_file_change:
             self._skip_file_change = False
             return (
-                gr.update(),   # file_state — keep unchanged
-                gr.update(),   # img_list_state
-                gr.update(),   # idx_state
-                gr.update(),   # viewer
-                gr.update(),   # pdf_pages
+                gr.update(),  # file_state — keep unchanged
+                gr.update(),  # img_list_state
+                gr.update(),  # idx_state
+                gr.update(),  # viewer
+                gr.update(),  # pdf_pages
             )
 
         if files is None:
@@ -532,16 +557,19 @@ class GradioApp:
             "file_base64": file_base64,
             "remaining_path": remaining_path,
         }
-        pdf_pages_update = gr.update(visible=is_pdf)
-        return file_state, img_b64_list, 0, viewer_html, pdf_pages_update
+        return file_state, img_b64_list, 0, viewer_html
 
-    def show_prev(self, img_b64_list, idx):
+    def show_prev(self, img_b64_list, idx, zoom):
         idx -= 1
-        return idx, self.render_img_base64(img_b64_list, idx)
+        return idx, self.render_img_base64(img_b64_list, idx, zoom)
 
-    def show_next(self, img_b64_list, idx):
+    def show_next(self, img_b64_list, idx, zoom):
         idx += 1
-        return idx, self.render_img_base64(img_b64_list, idx)
+        return idx, self.render_img_base64(img_b64_list, idx, zoom)
+
+    def zoom_viewer(self, img_b64_list, idx, zoom):
+        """Re-render the viewer at the given zoom level."""
+        return self.render_img_base64(img_b64_list, idx, zoom)
 
     @staticmethod
     def package_zip(task_type, processed_text, raw_text, bbox_img):
@@ -606,12 +634,20 @@ class GradioApp:
             step=1,
             label="PDF Pages",
             info="Number of PDF pages to parse (1–10)",
-            visible=False,
         )
 
         with gr.Row():
             prev_btn = gr.Button(" Pre")
             next_btn = gr.Button("Next ")
+
+        zoom_slider = gr.Slider(
+            50,
+            300,
+            value=100,
+            step=10,
+            label="Zoom %",
+            info="Adjust image zoom level",
+        )
 
         viewer = gr.HTML()
 
@@ -624,6 +660,7 @@ class GradioApp:
             pdf_pages,
             prev_btn,
             next_btn,
+            zoom_slider,
             viewer,
         )
 
@@ -696,6 +733,7 @@ class GradioApp:
                     height=1100,
                     object_fit="contain",
                     preview=True,
+                    interactive=False,
                 )
             with gr.Tab("Processed result"):
                 processed_text = gr.TextArea(lines=45, label="Processed result")
@@ -724,6 +762,7 @@ class GradioApp:
         pdf_pages,
         prev_btn,
         next_btn,
+        zoom_slider,
         viewer,
         model_selector,
         download_btn,
@@ -768,7 +807,6 @@ class GradioApp:
                             idx_state,
                             viewer,
                             file,
-                            pdf_pages,
                         ],
                     )
 
@@ -776,7 +814,7 @@ class GradioApp:
         file.change(
             self.upload_handler,
             inputs=[file, model_selector, pdf_pages],
-            outputs=[file_state, img_list_state, idx_state, viewer, pdf_pages],
+            outputs=[file_state, img_list_state, idx_state, viewer],
         )
 
         # Slider only controls parse page count, no preview re-generation.
@@ -787,13 +825,18 @@ class GradioApp:
         )
         prev_btn.click(
             self.show_prev,
-            inputs=[img_list_state, idx_state],
+            inputs=[img_list_state, idx_state, zoom_slider],
             outputs=[idx_state, viewer],
         )
         next_btn.click(
             self.show_next,
-            inputs=[img_list_state, idx_state],
+            inputs=[img_list_state, idx_state, zoom_slider],
             outputs=[idx_state, viewer],
+        )
+        zoom_slider.change(
+            self.zoom_viewer,
+            inputs=[img_list_state, idx_state, zoom_slider],
+            outputs=viewer,
         )
 
         change_bu.click(

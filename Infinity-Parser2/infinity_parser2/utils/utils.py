@@ -41,7 +41,7 @@ def truncate_last_incomplete_element(text: str) -> tuple[str, bool]:
     Truncate the response at the last complete dict entry so the JSON is always parseable.
     Returns (cleaned_text, was_truncated).
     """
-    needs_truncation = len(text) > 160 * 1024 or not text.rstrip().endswith("]")
+    needs_truncation = len(text) > 65, 536 or not text.rstrip().endswith("]")
 
     if not needs_truncation:
         return text, False
@@ -84,33 +84,24 @@ def restore_abs_bbox_coordinates(ans: str, origin_h: float, origin_w: float) -> 
     except json.JSONDecodeError:
         return ans
 
-    def process_element(element):
-        """A recursive function to traverse all nodes and find and convert bboxes."""
-        if isinstance(element, list):
-            for el in element:
-                process_element(el)
-        elif isinstance(element, dict):
-            # If the current dictionary has a bbox, convert it directly.
-            if "bbox" in element:
-                bbox = element["bbox"]
-                if len(bbox) == 4 and all(isinstance(c, (int, float)) for c in bbox):
-                    x1, y1, x2, y2 = bbox
-                    element["bbox"] = [
-                        int(x1 / 1000.0 * origin_w),
-                        int(y1 / 1000.0 * origin_h),
-                        int(x2 / 1000.0 * origin_w),
-                        int(y2 / 1000.0 * origin_h),
-                    ]
+    valid = True
+    for item in data:
+        for key in item:
+            if "bbox" not in key:
+                continue
+            bbox = item[key]
+            if len(bbox) == 4 and all(isinstance(c, (int, float)) for c in bbox):
+                x1, y1, x2, y2 = bbox
+                item[key] = [
+                    int(x1 / 1000.0 * origin_w),
+                    int(y1 / 1000.0 * origin_h),
+                    int(x2 / 1000.0 * origin_w),
+                    int(y2 / 1000.0 * origin_h),
+                ]
+            else:
+                valid = False
 
-            # Continue traversing the other values of the dictionary to prevent deeper nesting.
-            for val in element.values():
-                if isinstance(val, (list, dict)):
-                    process_element(val)
-
-    # Start the recursion.
-    process_element(data)
-
-    return json.dumps(data, ensure_ascii=False)
+    return json.dumps(data, ensure_ascii=False) if valid else ans
 
 
 # ---------------------------------------------------------------------------
@@ -118,45 +109,22 @@ def restore_abs_bbox_coordinates(ans: str, origin_h: float, origin_w: float) -> 
 # ---------------------------------------------------------------------------
 
 
-def _extract_page_text(elements: list, keep_header_footer: bool) -> str:
-    """Extract and join text from a single page's element list.
-
-    Filters out empty entries and optionally skips header/footer categories.
-    Returns the joined text (empty string if no text was collected).
-    """
-    _SKIP_CATEGORIES = {"header", "footer", "page_footnote"}
-    lines = []
-    for sub in elements:
-        if "text" not in sub or not sub["text"]:
-            continue
-        if keep_header_footer or sub.get("category") not in _SKIP_CATEGORIES:
-            lines.append(sub["text"])
-    return "\n\n".join(lines)
-
-
 def convert_json_to_markdown(ans: str, keep_header_footer: bool = False) -> str:
-    """Convert the layout JSON list into a markdown string.
-
-    Handles both flat lists (single-page) and nested lists (multi-page PDF):
-      - Flat:    [{...}, {...}]
-      - Nested:  [[{...}, {...}], [{...}], ...]  → pages joined with "---"
-    """
+    """Convert the layout JSON list into a markdown string."""
     try:
-        data = json.loads(ans)
-        if not isinstance(data, list):
+        items = json.loads(ans)
+        if not isinstance(items, list):
             return ans
-
-        # ── Multi-page: [[{...}], [{...}], ...] ────────────────────────────
-        if len(data) > 0 and isinstance(data[0], list):
-            pages = [
-                _extract_page_text(page_list, keep_header_footer) for page_list in data
-            ]
-            pages = [p for p in pages if p]
-            return "".join(pages) if pages else ans
-
-        # ── Single-page: [{...}, {...}] ─────────────────────────────────────
-        result = _extract_page_text(data, keep_header_footer)
-        return result if result else ans
+        lines = []
+        for sub in items:
+            if "text" not in sub or not sub["text"]:
+                continue
+            if keep_header_footer:
+                lines.append(sub["text"])
+            else:
+                if sub.get("category") not in ("header", "footer", "page_footnote"):
+                    lines.append(sub["text"])
+        return "\n\n".join(lines) if lines else ans
     except Exception:
         return ans
 
@@ -228,46 +196,29 @@ def _get_font(size: int = 14):
 def draw_bboxes_on_image(
     image_path: Union[str, Path],
     json_text: str,
-    page_index: int = 1,  # Keep page index parameter to support multi-page PDF.
 ) -> Image.Image | None:
     """Draw category-colored bounding boxes on a copy of the image.
 
-    json_text is expected to be already post-processed: markdown fences removed,
-    truncated if needed, and coordinates already in pixel values (not 0-1000).
+    json_text is expected to be already post-processed (single-page flat list)
+    with pixel-coordinate bboxes.
     """
     try:
         img = Image.open(image_path).convert("RGB")
     except (IOError, OSError):
         return None
 
-    cleaned = extract_json_content(json_text)
-    cleaned, _ = truncate_last_incomplete_element(cleaned)
-
     try:
-        data = json.loads(cleaned)
+        data = json.loads(json_text)
     except json.JSONDecodeError:
         return None
 
     if not isinstance(data, list) or len(data) == 0:
         return img
 
-    # --- Core: extract data for the current page (compatible with multi-page nested and single-page flat) ---
-    page_data = []
-    if isinstance(data[0], list):
-        # If it's a nested list (multi-page), extract data for the corresponding page based on page_index.
-        if page_index - 1 < len(data):
-            page_data = data[page_index - 1]
-    else:
-        # If it's a flat list (single-page), use the data directly.
-        page_data = data
-
-    if not page_data:
-        return img  # If this page has no boxes, return the original image.
-
     draw = ImageDraw.Draw(img)
     font = _get_font(16)
 
-    for item in page_data:
+    for item in data:
         bbox = item.get("bbox", [])
         category = item.get("category", "unknown")
         if len(bbox) != 4:
