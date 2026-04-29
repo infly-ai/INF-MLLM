@@ -41,7 +41,7 @@ def truncate_last_incomplete_element(text: str) -> tuple[str, bool]:
     Truncate the response at the last complete dict entry so the JSON is always parseable.
     Returns (cleaned_text, was_truncated).
     """
-    needs_truncation = len(text) > 65, 536 or not text.rstrip().endswith("]")
+    needs_truncation = len(text) > 65536 or not text.rstrip().endswith("]")
 
     if not needs_truncation:
         return text, False
