@@ -590,9 +590,7 @@ class GradioApp:
     def on_model_change(self, model_name, file_state):
         """When user switches model, clear result display if file_state exists, but do not delete file_state."""
         if file_state and file_state.get("upload_id"):
-            gr.Info(
-                f"Model switched to {model_name}, click 'Parse' to re-parse."
-            )
+            gr.Info(f"Model switched to {model_name}, click 'Parse' to re-parse.")
             # Return updates: keep file_state unchanged via gr.update(), clear result display
             return (
                 gr.update(),  # file_state unchanged
@@ -661,6 +659,7 @@ class GradioApp:
         )
 
         viewer = gr.HTML(elem_id="doc-viewer")
+        upload_status = gr.HTML(value="", visible=False)
 
         return (
             file,
@@ -673,9 +672,15 @@ class GradioApp:
             next_btn,
             zoom_slider,
             viewer,
+            upload_status,
         )
 
     def _build_right_column(self, demo_data_root):
+        gr.HTML(
+            '<div style="padding:12px 16px;background:#FFF8E1;border-left:4px solid #FF9800;border-radius:6px;margin-bottom:8px;font-size:14px;color:#E65100;">'
+            "Please note: Uploading and parsing may take longer than usual due to network instability. Thank you for your patience."
+            "</div>"
+        )
         model_selector = gr.Dropdown(
             choices=self.available_models,
             value=self.available_models[0],
@@ -775,6 +780,7 @@ class GradioApp:
         next_btn,
         zoom_slider,
         viewer,
+        upload_status,
         model_selector,
         download_btn,
         output_file,
@@ -810,6 +816,13 @@ class GradioApp:
                 if val in labels:
                     idx = labels.index(val)
                     block.click(
+                        fn=lambda: gr.update(
+                            value='<div style="font-size:14px;text-align:right;">loading File...</div>',
+                            visible=True,
+                        ),
+                        inputs=None,
+                        outputs=upload_status,
+                    ).then(
                         fn=self._load_example,
                         inputs=[gr.State(demo_paths[idx]), model_selector, pdf_pages],
                         outputs=[
@@ -819,13 +832,27 @@ class GradioApp:
                             viewer,
                             file,
                         ],
+                    ).then(
+                        fn=lambda: gr.update(value="", visible=False),
+                        inputs=None,
+                        outputs=upload_status,
                     )
-
         # ================= Remaining event bindings =================
         file.change(
+            fn=lambda: gr.update(
+                value='<div style="font-size:14px;text-align:right;">loading File...</div>',
+                visible=True,
+            ),
+            inputs=None,
+            outputs=upload_status,
+        ).then(
             self.upload_handler,
             inputs=[file, model_selector, pdf_pages],
             outputs=[file_state, img_list_state, idx_state, viewer],
+        ).then(
+            fn=lambda: gr.update(value="", visible=False),
+            inputs=None,
+            outputs=upload_status,
         )
 
         # Slider only controls parse page count, no preview re-generation.
