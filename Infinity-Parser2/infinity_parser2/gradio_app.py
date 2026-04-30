@@ -208,6 +208,7 @@ class GradioApp:
         output_format,
         model_name,
         max_pages=10,
+        file_base64=None,
     ):
         """Use upload_id to request the Flask API of the specified model."""
         config = self.model_configs.get(model_name)
@@ -225,6 +226,8 @@ class GradioApp:
             "model": model_name,
             "max_pages": int(max_pages),
         }
+        if file_base64:
+            payload["file_base64"] = file_base64
         if custom_prompt:
             payload["custom_prompt"] = custom_prompt
 
@@ -279,6 +282,13 @@ class GradioApp:
         session_dir = Path(tempfile.gettempdir()) / f"infinity_parse_{session_id}"
         session_dir.mkdir(parents=True, exist_ok=True)
 
+        # If model was switched after upload, pass file_base64 to avoid re-upload
+        extra_base64 = None
+        if isinstance(file_state, dict):
+            upload_model = file_state.get("model_name")
+            if upload_model and upload_model != model_name:
+                extra_base64 = file_state.get("file_base64")
+
         # 1. Resolve local file path: use cached file_path if available,
         #    otherwise decode from base64 in file_state.
         if file_path and os.path.exists(file_path):
@@ -309,7 +319,7 @@ class GradioApp:
         else:
             img_paths = [str(local_path)]
 
-        # Call API with upload_id (server has only the preview pages, no truncation needed).
+        # Call API with upload_id; include file_base64 as fallback if model was switched
         raw_result = await self.request_with_file_content(
             upload_id,
             file_name,
@@ -318,6 +328,7 @@ class GradioApp:
             output_format,
             model_name,
             max_pages=max_pages,
+            file_base64=extra_base64,
         )
 
         # Upload remaining pages in background thread (sync, no event loop needed).
@@ -487,11 +498,10 @@ class GradioApp:
                 gr.update(),  # img_list_state
                 gr.update(),  # idx_state
                 gr.update(),  # viewer
-                gr.update(),  # pdf_pages
             )
 
         if files is None:
-            return None, [], 0, "", gr.update(visible=False)
+            return None, [], 0, ""
 
         if hasattr(files, "path"):
             file_path = files.path
@@ -556,6 +566,7 @@ class GradioApp:
             "file_path": preview_path,
             "file_base64": file_base64,
             "remaining_path": remaining_path,
+            "model_name": model_name,
         }
         return file_state, img_b64_list, 0, viewer_html
 
@@ -580,7 +591,7 @@ class GradioApp:
         """When user switches model, clear result display if file_state exists, but do not delete file_state."""
         if file_state and file_state.get("upload_id"):
             gr.Info(
-                f"Model switched to {model_name}, click 'Parse' to re-parse (no need to re-upload)."
+                f"Model switched to {model_name}, click 'Parse' to re-parse."
             )
             # Return updates: keep file_state unchanged via gr.update(), clear result display
             return (
@@ -649,7 +660,7 @@ class GradioApp:
             info="Adjust image zoom level",
         )
 
-        viewer = gr.HTML()
+        viewer = gr.HTML(elem_id="doc-viewer")
 
         return (
             file,

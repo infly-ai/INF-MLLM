@@ -6,19 +6,19 @@ from typing import Union
 from PIL import Image, ImageDraw, ImageFont
 
 CATEGORY_COLORS = {
-    "header": (255, 107, 107),
-    "title": (78, 205, 196),
-    "text": (69, 183, 209),
-    "figure": (150, 206, 180),
-    "table": (255, 234, 167),
-    "formula": (162, 155, 254),
-    "figure_caption": (253, 203, 110),
-    "table_caption": (0, 184, 148),
-    "formula_caption": (108, 92, 231),
-    "figure_footnote": (214, 48, 49),
-    "table_footnote": (9, 132, 227),
-    "page_footnote": (253, 121, 168),
-    "footer": (116, 185, 255),
+    "header": (204, 60, 60),
+    "title": (40, 170, 160),
+    "text": (30, 140, 180),
+    "figure": (90, 170, 130),
+    "table": (210, 190, 90),
+    "formula": (120, 110, 220),
+    "figure_caption": (210, 160, 60),
+    "table_caption": (0, 150, 120),
+    "formula_caption": (80, 60, 200),
+    "figure_footnote": (180, 30, 30),
+    "table_footnote": (0, 100, 200),
+    "page_footnote": (210, 80, 130),
+    "footer": (70, 140, 220),
 }
 # ---------------------------------------------------------------------------
 # JSON extraction & cleanup
@@ -231,15 +231,26 @@ def draw_bboxes_on_image(
 
         label = category
         try:
-            tb = draw.textbbox((x1, y1), label, font=font)
+            # Measure label dimensions.
+            tb0 = draw.textbbox((0, 0), label, font=font)
+            tw = tb0[2] - tb0[0]
+            th = tb0[3] - tb0[1]
+            pad = 3
+
+            # Place label above the bbox; fall back to inside if near top edge.
+            lx = x1
+            if y1 - th - pad * 2 >= 0:
+                ly = y1 - th - pad * 2
+            else:
+                ly = y1
+
             draw.rectangle(
-                [tb[0] - 2, tb[1] - 2, tb[2] + 2, tb[3] + 2],
+                [lx, ly, lx + tw + pad * 2, ly + th + pad * 2],
                 fill=color,
             )
+            draw.text((lx + pad, ly + pad), label, fill=(255, 255, 255), font=font)
         except AttributeError:
-            pass  # Compatible with low version Pillow.
-
-        draw.text((x1, y1), label, fill=(255, 255, 255), font=font)
+            draw.text((x1, y1), label, fill=(255, 255, 255), font=font)
 
     # Display the image size in the upper right corner.
     size_text = f"Size: {img.width}x{img.height}"
