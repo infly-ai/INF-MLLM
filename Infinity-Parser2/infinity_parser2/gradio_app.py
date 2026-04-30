@@ -817,7 +817,7 @@ class GradioApp:
                     idx = labels.index(val)
                     block.click(
                         fn=lambda: gr.update(
-                            value='<div style="font-size:14px;text-align:right;">loading File...</div>',
+                            value='<div style="font-size:14px;text-align:right;">Loading file...</div>',
                             visible=True,
                         ),
                         inputs=None,
@@ -840,7 +840,7 @@ class GradioApp:
         # ================= Remaining event bindings =================
         file.change(
             fn=lambda: gr.update(
-                value='<div style="font-size:14px;text-align:right;">loading File...</div>',
+                value='<div style="font-size:14px;text-align:right;">Loading file...</div>',
                 visible=True,
             ),
             inputs=None,
