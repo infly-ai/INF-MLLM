@@ -584,8 +584,9 @@ class GradioApp:
 
     @staticmethod
     def package_zip(task_type, processed_text, raw_text, bbox_img):
+        yield gr.update(visible=True)
         zip_path = package_results_as_zip(task_type, processed_text, raw_text, bbox_img)
-        return gr.update(value=zip_path, visible=True)
+        yield gr.update(value=zip_path, visible=True)
 
     def on_model_change(self, model_name, file_state):
         """When user switches model, clear result display if file_state exists, but do not delete file_state."""
@@ -860,6 +861,7 @@ class GradioApp:
             self.on_task_change,
             inputs=task_selector,
             outputs=[custom_prompt, layout_tab],
+            show_progress="hidden"
         )
         prev_btn.click(
             self.show_prev,
