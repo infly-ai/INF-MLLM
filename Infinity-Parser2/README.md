@@ -626,11 +626,7 @@ print(cache.resolve_model_path("infly/Infinity-Parser2-Pro"))
 
 ## Limitations
 
-- Infinity-Parser2 may exhibit reduced accuracy when processing charts with complex layouts.
-- Infinity-Parser2 does not support fine-grained text formatting (e.g., bold, italic, strikethrough).
-- Infinity-Parser2 primarily supports English and Chinese documents, with degraded performance on multilingual documents.
-- Infinity-Parser2 struggles to parse documents with multi-oriented elements.
-- Infinity-Parser2 demonstrates suboptimal multimodal instruction-following capability.
+Infinity-Parser2 has several known limitations to consider. It primarily supports English and Chinese documents, and performance degrades when processing multilingual content. Accuracy may also be reduced when parsing charts with complex layouts, as well as documents containing multi-oriented elements such as table rotated at varying angles. Additionally, the model does not capture fine-grained text formatting (e.g., bold, italic, strikethrough) and exhibits suboptimal multimodal instruction-following capability, meaning it may not always reliably follow complex multi-step visual instructions.
 
 ## Acknowledgments
 
