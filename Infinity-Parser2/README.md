@@ -5,7 +5,8 @@
 <p>
 
 <p align="center">
-🤗 <a href="https://huggingface.co/infly/Infinity-Parser2-Pro">Model</a> |
+🤗 <a href="https://huggingface.co/infly/Infinity-Parser2-Pro">Infinity-Parser2-Pro</a> |
+🤗 <a href="https://huggingface.co/infly/Infinity-Parser2-Flash">Infinity-Parser2-Flash</a> |
 📊 <a href="https://huggingface.co/datasets/infly/Infinity-Doc2-5M">Dataset</a> |
 📄 <a>Paper (coming soon...)</a> |
 🚀 <a href="https://huggingface.co/spaces/infly/Infinity-Parser2-Demo">Demo</a>
@@ -13,13 +14,13 @@
 
 ## Introduction
 
-We are excited to release Infinity-Parser2, our latest flagship document understanding model. We offer two distinct variants to address diverse deployment constraints: Infinity-Parser2-Pro, optimized for maximum accuracy in precision-critical tasks, achieves state-of-the-art results on olmOCR-Bench (87.6%) and ParseBench (74.3%), surpassing frontier models including DeepSeek-OCR-2, PaddleOCR-VL, and dots.mocr. Infinity-Parser2-Flash, engineered for low-latency inference, delivers a 3.68x speedup over our previous Infinity-Parser-7B model. With significant upgrades to both our data engine and multi-task reinforcement learning approach, the model consolidates robust multi-modal parsing capabilities into a unified architecture, unlocking brand-new zero-shot capabilities across a wide range of real-world business scenarios.
+We are excited to release Infinity-Parser2, our latest flagship document understanding model. We offer two distinct variants to address diverse deployment constraints: Infinity-Parser2-Pro, optimized for maximum accuracy in precision-critical tasks, achieves state-of-the-art results on olmOCR-Bench (87.6%) and ParseBench (74.3%), surpassing frontier models including DeepSeek-OCR-2, PaddleOCR-VL-1.5, and MinerU-2.5. Infinity-Parser2-Flash, engineered for low-latency inference, delivers a 3.68x speedup over our previous Infinity-Parser-7B model. With significant upgrades to both our data engine and multi-task reinforcement learning approach, the model consolidates robust multi-modal parsing capabilities into a unified architecture, unlocking brand-new zero-shot capabilities across a wide range of real-world business scenarios.
 
 ### Key Features
 
 - **Upgraded Data Engine**: We have comprehensively enhanced our synthetic data engine to support both fixed-layout and flexible-layout document formats. By curating nearly 5 million diverse document parsing samples across a wide range of layouts, combined with a dynamic adaptive sampling strategy, we ensure highly balanced and robust multi-task learning across various document types.
 - **Multi-Task Reinforcement Learning**: We designed a novel verifiable reward system to support Joint Reinforcement Learning (RL), enabling seamless and simultaneous co-optimization of multiple complex tasks, including document parsing, element parsing, chart parsing, chemical formula parsing, document vqa, and general multimodal understanding.
-- **Breakthrough Parsing Performance**: Infinity-Parser2-Pro substantially outperforms our previous 7B model, achieving 87.6% on olmOCR-Bench and 74.3% on ParseBench, surpassing frontier models such as DeepSeek-OCR-2, PaddleOCR-VL, and dots.mocr.
+- **Breakthrough Parsing Performance**: Infinity-Parser2-Pro substantially outperforms our previous 7B model, achieving 87.6% on olmOCR-Bench and 74.3% on ParseBench, surpassing frontier models such as DeepSeek-OCR-2, PaddleOCR-VL, and MinerU-2.5.
 - **Inference Acceleration**: Infinity-Parser2-Flash delivers significantly higher efficiency than Infinity-Parser-7B, with inference throughput increased by 3.68x (from 441 to 1,624 tokens/sec), reducing both deployment latency and costs.
 
 ## Performance
