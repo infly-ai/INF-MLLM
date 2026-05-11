@@ -5,28 +5,261 @@
 <p>
 
 <p align="center">
-🤗 <a href="https://huggingface.co/infly/Infinity-Parser2-Pro">Model</a> |
-📊 <a>Dataset (coming soon...)</a> |
+🤗 <a href="https://huggingface.co/infly/Infinity-Parser2-Pro">Infinity-Parser2-Pro</a> |
+🤗 <a href="https://huggingface.co/infly/Infinity-Parser2-Flash">Infinity-Parser2-Flash</a> |
+📊 <a href="https://huggingface.co/datasets/infly/Infinity-Doc2-5M">Dataset</a> |
 📄 <a>Paper (coming soon...)</a> |
-🚀 <a href="https://huggingface.co/spaces/infly/Infinity-Parser-Demo">Demo</a>
+🚀 <a href="https://huggingface.co/spaces/infly/Infinity-Parser2-Demo">Demo</a>
 </p>
 
 ## Introduction
 
-We are excited to release Infinity-Parser2-Pro, our latest flagship document understanding model that achieves a new state-of-the-art on olmOCR-Bench with a score of 86.7%, surpassing frontier models such as DeepSeek-OCR-2, PaddleOCR-VL, and dots.mocr. Building on our previous model Infinity-Parser-7B, we have significantly enhanced our data engine and multi-task reinforcement learning approach. This enables the model to consolidate robust multi-modal parsing capabilities into a unified architecture, delivering brand-new zero-shot capabilities for diverse real-world business scenarios.
+We are excited to release Infinity-Parser2, our latest flagship document understanding model. We offer two distinct variants to address diverse deployment constraints: Infinity-Parser2-Pro, optimized for maximum accuracy in precision-critical tasks, achieves state-of-the-art results on olmOCR-Bench (87.6%) and ParseBench (74.3%), surpassing frontier models including DeepSeek-OCR-2, PaddleOCR-VL-1.5, and MinerU-2.5. Infinity-Parser2-Flash, engineered for low-latency inference, delivers a 3.68x speedup over our previous Infinity-Parser-7B model. With significant upgrades to both our data engine and multi-task reinforcement learning approach, the model consolidates robust multi-modal parsing capabilities into a unified architecture, unlocking brand-new zero-shot capabilities across a wide range of real-world business scenarios.
 
 ### Key Features
 
-- **Upgraded Data Engine**: We have comprehensively enhanced our synthetic data engine to support both fixed-layout and flexible-layout document formats. By generating over 1 million diverse full-text samples covering a wide range of document layouts, combined with a dynamic adaptive sampling strategy, we ensure highly balanced and robust multi-task learning across various document types.
-- **Multi-Task Reinforcement Learning**: We designed a novel verifiable reward system to support Joint Reinforcement Learning (RL), enabling seamless and simultaneous co-optimization of multiple complex tasks, including doc2json and doc2markdown.
-- **Breakthrough Parsing Performance**: It substantially outperforms our previous 7B model, achieving 86.7% on olmOCR-Bench, surpassing frontier models such as DeepSeek-OCR-2, PaddleOCR-VL, and dots.mocr.
-- **Inference Acceleration**: By adopting the highly efficient MoE architecture, our inference throughput has increased by 21% (from 441 to 534 tokens/sec), reducing deployment latency and costs.
+- **Upgraded Data Engine**: We have comprehensively enhanced our synthetic data engine to support both fixed-layout and flexible-layout document formats. By curating nearly 5 million diverse document parsing samples across a wide range of layouts, combined with a dynamic adaptive sampling strategy, we ensure highly balanced and robust multi-task learning across various document types.
+- **Multi-Task Reinforcement Learning**: We designed a novel verifiable reward system to support Joint Reinforcement Learning (RL), enabling seamless and simultaneous co-optimization of multiple complex tasks, including document parsing, element parsing, chart parsing, chemical formula parsing, document vqa, and general multimodal understanding.
+- **Breakthrough Parsing Performance**: Infinity-Parser2-Pro substantially outperforms our previous 7B model, achieving 87.6% on olmOCR-Bench and 74.3% on ParseBench, surpassing frontier models such as DeepSeek-OCR-2, PaddleOCR-VL, and MinerU-2.5.
+- **Inference Acceleration**: Infinity-Parser2-Flash delivers significantly higher efficiency than Infinity-Parser-7B, with inference throughput increased by 3.68x (from 441 to 1,624 tokens/sec), reducing both deployment latency and costs.
 
 ## Performance
 
 <p align="left">
-    <img src="https://raw.githubusercontent.com/infly-ai/INF-MLLM/main/Infinity-Parser2/assets/document_parsing_performance_evaluation.png" width="1200"/>
+    <img src="https://raw.githubusercontent.com/infly-ai/INF-MLLM/main/Infinity-Parser2/assets/olmocr_bench_perf.png" width="1200"/>
 <p>
+
+<p align="left">
+    <img src="https://raw.githubusercontent.com/infly-ai/INF-MLLM/main/Infinity-Parser2/assets/parsebench_perf.png" width="1200"/>
+<p>
+
+<table align="center">
+  <thead>
+    <tr>
+      <th>Task</th>
+      <th>Infinity-Parser2-Pro</th>
+      <th>Infinity-Parser2-Flash</th>
+      <th>PaddleOCR-VL-1.5</th>
+      <th>DeepSeek-OCR-2</th>
+      <th>MinerU-2.5</th>
+      <th>Gemini-3-Pro</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td colspan=7><b>Document Parsing</b></td>
+    </tr>
+    <tr>
+      <td>olmOCR-bench</td>
+      <td><b>87.6</b></td>
+      <td>86.0</td>
+      <td>80.0†</td>
+      <td>76.3</td>
+      <td>75.2</td>
+      <td>-</td>
+    </tr>
+    <tr>
+      <td>ParseBench</td>
+      <td><b>74.3</b></td>
+      <td>72.2</td>
+      <td>40.9†</td>
+      <td>41.2</td>
+      <td>45.9</td>
+      <td>69.1‡</td>
+    </tr>
+    <tr>
+      <td>OmniDocBench-v1.6</td>
+      <td>93.95</td>
+      <td>91.98</td>
+      <td><b>94.87</b></td>
+      <td>90.17</td>
+      <td>92.98</td>
+      <td>92.85</td>
+    </tr>
+    <tr>
+      <td colspan=7>Layout Analysis (mIoU)</td>
+    </tr>
+    <tr>
+      <td>DocLayNet</td>
+      <td>64.93*</td>
+      <td>64.97*</td>
+      <td><b>71.05*</b></td>
+      <td>45.62*</td>
+      <td>67.74*</td>
+      <td>-</td>
+    </tr>
+    <tr>
+      <td>D4LA</td>
+      <td><b>52.41*</b></td>
+      <td>46.05*</td>
+      <td>50.21*</td>
+      <td>33.03*</td>
+      <td>51.62*</td>
+      <td>-</td>
+    </tr>
+    <tr>
+      <td>OmniDocBench-v1.5-Layout</td>
+      <td>74.56*</td>
+      <td>73.07*</td>
+      <td>74.80*</td>
+      <td>55.28*</td>
+      <td><b>76.28*</b></td>
+      <td>-</td>
+    </tr>
+    <tr>
+      <td colspan=7>Element Parsing</td>
+    </tr>
+    <tr>
+      <td>OmniDocBench-v1.5-TextBlock</td>
+      <td>93.66</td>
+      <td>93.53</td>
+      <td><b>94.97*</b></td>
+      <td>84.13*</td>
+      <td>86.00</td>
+      <td>-</td>
+    </tr>
+    <tr>
+      <td>PubTabNet (val)</td>
+      <td><b>94.76</b></td>
+      <td>92.41</td>
+      <td>84.60</td>
+      <td>89.53*</td>
+      <td>89.07</td>
+      <td>91.40</td>
+    </tr>
+    <tr>
+      <td>UniMERNet</td>
+      <td><b>97.7</b></td>
+      <td>96.5</td>
+      <td>95.8*</td>
+      <td>79.8*</td>
+      <td>96.5</td>
+      <td>96.4</td>
+    </tr>
+    <tr>
+      <td colspan=7>Chart Parsing</td>
+    </tr>
+    <tr>
+      <td>Chart2Table</td>
+      <td>80.45</td>
+      <td>80.49</td>
+      <td><b>86.2*</b></td>
+      <td>-</td>
+      <td>-</td>
+      <td>-</td>
+    </tr>
+    <tr>
+      <td>Chart2Json</td>
+      <td><b>73.69</b></td>
+      <td>67.66</td>
+      <td>-</td>
+      <td>-</td>
+      <td>-</td>
+      <td>-</td>
+    </tr>
+    <tr>
+      <td colspan=7>Chemical Formula Parsing</td>
+    </tr>
+    <tr>
+      <td>CoSyn_Chemical</td>
+      <td><b>71.48</b></td>
+      <td>62.08</td>
+      <td>-</td>
+      <td>52.16*</td>
+      <td>-</td>
+      <td>-</td>
+    </tr>
+    <tr>
+      <td colspan=7>Document VQA</td>
+    </tr>
+    <tr>
+      <td>DocVQA (val)</td>
+      <td><b>96.43</b></td>
+      <td>93.16</td>
+      <td>-</td>
+      <td>43.42*</td>
+      <td>-</td>
+      <td>93.68*</td>
+    </tr>
+    <tr>
+      <td>InfoVQA (val)</td>
+      <td><b>86.26</b></td>
+      <td>75.94</td>
+      <td>-</td>
+      <td>22.07*</td>
+      <td>-</td>
+      <td>85.24*</td>
+    </tr>
+    <tr>
+      <td colspan=7>General Multimodal Understanding</td>
+    </tr>
+    <tr>
+      <td>AI2D</td>
+      <td>88.89</td>
+      <td>79.53</td>
+      <td>-</td>
+      <td>37.66*</td>
+      <td>-</td>
+      <td><b>91.87*</b></td>
+    </tr>
+    <tr>
+      <td>MathVista (testmini)</td>
+      <td>71.4</td>
+      <td>59.5</td>
+      <td>-</td>
+      <td>-</td>
+      <td>-</td>
+      <td><b>81.8*</b></td>
+    </tr>
+    <tr>
+      <td>MMBench-EN (dev)</td>
+      <td>87.54</td>
+      <td>77.92</td>
+      <td>-</td>
+      <td>-</td>
+      <td>-</td>
+      <td><b>90.29*</b></td>
+    </tr>
+    <tr>
+      <td>MMBench-CN (dev)</td>
+      <td>86.43</td>
+      <td>75.77</td>
+      <td>-</td>
+      <td>-</td>
+      <td>-</td>
+      <td><b>90.98*</b></td>
+    </tr>
+    <tr>
+      <td>MMMU (val)</td>
+      <td><b>61.89</b></td>
+      <td>45.89</td>
+      <td>-</td>
+      <td>-</td>
+      <td>-</td>
+      <td>56.00*</td>
+    </tr>
+    <tr>
+      <td>MMStar</td>
+      <td>69.66</td>
+      <td>57.13</td>
+      <td>-</td>
+      <td>-</td>
+      <td>-</td>
+      <td><b>83.78*</b></td>
+    </tr>
+    <tr>
+      <td>OCRBench</td>
+      <td>86.20</td>
+      <td>81.60</td>
+      <td>-</td>
+      <td>47.20*</td>
+      <td>-</td>
+      <td><b>89.30*</b></td>
+    </tr>
+  </tbody>
+</table>
+
+Note: '*' denotes results evaluated using our internal evaluation tools. Results marked with '†' are from PaddleOCR-VL. '‡' denotes results from the Gemini-3.1-Pro.
 
 ## Quick Start
 
@@ -389,6 +622,10 @@ print(cache.resolve_model_path("infly/Infinity-Parser2-Pro"))
 - Python 3.12+
 - CUDA-compatible GPU
 - See `setup.py` for full dependency list.
+
+## Limitations
+
+Infinity-Parser2 has several known limitations to consider. It primarily supports English and Chinese documents, and performance degrades when processing multilingual content. Accuracy may also be reduced when parsing charts with complex layouts, as well as documents containing multi-oriented elements such as table rotated at varying angles. Additionally, the model does not capture fine-grained text formatting (e.g., bold, italic, strikethrough) and exhibits suboptimal multimodal instruction-following capability, meaning it may not always reliably follow complex multi-step visual instructions.
 
 ## Acknowledgments
 
