@@ -33,8 +33,6 @@ We are excited to release Infinity-Parser2, our latest flagship document underst
     <img src="https://raw.githubusercontent.com/infly-ai/INF-MLLM/main/Infinity-Parser2/assets/parsebench_perf.png" width="1200"/>
 <p>
 
-'*' denotes results evaluated using our internal evaluation tools. Results marked with '†' are from PaddleOCR-VL. '‡' denotes results from the Gemini-3.1-Pro.
-
 <table align="center" style="table-layout:fixed;width:100%;font-size:10px">
   <thead>
     <tr>
@@ -261,6 +259,7 @@ We are excited to release Infinity-Parser2, our latest flagship document underst
   </tbody>
 </table>
 
+Note: '*' denotes results evaluated using our internal evaluation tools. Results marked with '†' are from PaddleOCR-VL. '‡' denotes results from the Gemini-3.1-Pro.
 
 ## Quick Start
 
