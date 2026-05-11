@@ -33,7 +33,7 @@ We are excited to release Infinity-Parser2, our latest flagship document underst
     <img src="https://raw.githubusercontent.com/infly-ai/INF-MLLM/main/Infinity-Parser2/assets/parsebench_perf.png" width="1200"/>
 <p>
 
-<table align="center" style="table-layout:fixed;width:100%;font-size:10px">
+<table align="center">
   <thead>
     <tr>
       <th>Task</th>
