@@ -286,18 +286,18 @@ pil_image = Image.open("demo_data/demo.png").convert("RGB")
 min_pixels = 2048  # 32 * 64
 max_pixels = 16777216  # 4096 * 4096
 prompt = """
-Please output the layout information from the PDF image, including each layout element's bbox, its category, and the corresponding text content within the bbox.
-1. Bbox format: [x1, y1, x2, y2]
-2. Layout Categories: The possible categories are ['header', 'title', 'text', 'figure', 'table', 'formula', 'figure_caption', 'table_caption', 'formula_caption', 'figure_footnote', 'table_footnote', 'page_footnote', 'footer'].
-3. Text Extraction & Formatting Rules:
-    - Figure: For the 'figure' category, the text field should be empty string.
-    - Formula: Format its text as LaTeX.
-    - Table: Format its text as HTML.
-    - All Others (Text, Title, etc.): Format their text as Markdown.
-4. Constraints:
-    - The output text must be the original text from the image, with no translation.
-    - All layout elements must be sorted according to human reading order.
-5. Final Output: The entire output must be a single JSON object.
+- Extract layout information from the provided PDF image.
+- For each layout element, output its bbox, category, and the text content within the bbox.
+- Bbox format: [x1, y1, x2, y2].
+- Allowed layout categories: ['header', 'title', 'text', 'figure', 'table', 'formula', 'figure_caption', 'table_caption', 'formula_caption', 'figure_footnote', 'table_footnote', 'page_footnote', 'footer'].
+- Text extraction and formatting:
+  1) For 'figure', the text field must be an empty string.
+  2) For 'formula', format text as LaTeX.
+  3) For 'table', format text as HTML.
+  4) For all other categories (e.g., text, title), format text as Markdown.
+- The output text must be exactly the original text from the image, with no translation or rewriting.
+- Sort all layout elements in human reading order.
+- Final output must be a single JSON object.
 """
 
 messages = [
