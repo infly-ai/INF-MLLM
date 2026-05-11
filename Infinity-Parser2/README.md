@@ -167,7 +167,7 @@ We are excited to release Infinity-Parser2, our latest flagship document underst
       <td><b>71.48</b></td>
       <td>62.08</td>
       <td>-</td>
-      <td>47.02*</td>
+      <td>52.16*</td>
       <td>-</td>
       <td>-</td>
     </tr>
