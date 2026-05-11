@@ -10,7 +10,7 @@ INF-MLLM is a series of open-source multimodal large language models developed b
 
 ## Updates
 
-- [2026-05-09] Released flagship document parsing models: [Infinity-Parser2-Pro](https://huggingface.co/infly/Infinity-Parser2-Pro), [Infinity-Parser2-Flash](https://huggingface.co/infly/Infinity-Parser2-Flash), and the dataset [Infinity-Doc2-5M](https://huggingface.co/datasets/infly/Infinity-Doc2-5M). [Infinity-Parser2](Infinity-Parser2) achieves SOTA results on olmOCR-bench and ParseBench.
+- [2026-05-11] Released flagship document parsing models: [Infinity-Parser2-Pro](https://huggingface.co/infly/Infinity-Parser2-Pro), [Infinity-Parser2-Flash](https://huggingface.co/infly/Infinity-Parser2-Flash), and the dataset [Infinity-Doc2-5M](https://huggingface.co/datasets/infly/Infinity-Doc2-5M). [Infinity-Parser2](Infinity-Parser2) achieves SOTA results on olmOCR-bench and ParseBench.
 - [2026/04/08] Infinity-Parser has been accepted as a Findings paper at ACL 2026. 👏
 - [2025/11/03] [Infinity-Parser](Infinity-Parser) models released: [Infinity-Parser-7B](https://huggingface.co/infly/Infinity-Parser-7B), [Infinity-Doc-400K dataset](https://huggingface.co/datasets/infly/Infinity-Doc-400K), synthetic data [generation code](https://github.com/infly-ai/INF-MLLM/tree/main/Infinity-Parser/Infinity-Synth), and [web demo](https://huggingface.co/spaces/infly/Infinity-Parser-Demo).
 - [2025/09/19] VL-Rethinker has been accepted as a Spotlight paper at NeurIPS 2025. 👏👏
