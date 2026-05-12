@@ -77,7 +77,7 @@ We are excited to release Infinity-Parser2, our latest flagship document underst
       <td>92.85</td>
     </tr>
     <tr>
-      <td colspan=7>Layout Analysis (mIoU)</td>
+      <td colspan=7><b>Layout Analysis (mIoU)</b></td>
     </tr>
     <tr>
       <td>DocLayNet</td>
@@ -107,7 +107,7 @@ We are excited to release Infinity-Parser2, our latest flagship document underst
       <td>-</td>
     </tr>
     <tr>
-      <td colspan=7>Element Parsing</td>
+      <td colspan=7><b>Element Parsing</b></td>
     </tr>
     <tr>
       <td>OmniDocBench-v1.5-TextBlock</td>
@@ -137,7 +137,7 @@ We are excited to release Infinity-Parser2, our latest flagship document underst
       <td>96.4</td>
     </tr>
     <tr>
-      <td colspan=7>Chart Parsing</td>
+      <td colspan=7><b>Chart Parsing</b></td>
     </tr>
     <tr>
       <td>Chart2Table</td>
@@ -158,7 +158,7 @@ We are excited to release Infinity-Parser2, our latest flagship document underst
       <td>-</td>
     </tr>
     <tr>
-      <td colspan=7>Chemical Formula Parsing</td>
+      <td colspan=7><b>Chemical Formula Parsing</b></td>
     </tr>
     <tr>
       <td>CoSyn_Chemical</td>
@@ -170,7 +170,7 @@ We are excited to release Infinity-Parser2, our latest flagship document underst
       <td>-</td>
     </tr>
     <tr>
-      <td colspan=7>Document VQA</td>
+      <td colspan=7><b>Document VQA</b></td>
     </tr>
     <tr>
       <td>DocVQA (val)</td>
@@ -191,7 +191,7 @@ We are excited to release Infinity-Parser2, our latest flagship document underst
       <td>85.24*</td>
     </tr>
     <tr>
-      <td colspan=7>General Multimodal Understanding</td>
+      <td colspan=7><b>General Multimodal Understanding</b></td>
     </tr>
     <tr>
       <td>AI2D</td>
