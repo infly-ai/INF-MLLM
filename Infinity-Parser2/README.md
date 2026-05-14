@@ -16,12 +16,57 @@
 
 We are excited to release Infinity-Parser2, our latest flagship document understanding model. We offer two distinct variants to address diverse deployment constraints: Infinity-Parser2-Pro, optimized for maximum accuracy in precision-critical tasks, achieves state-of-the-art results on olmOCR-Bench (87.6%) and ParseBench (74.3%), surpassing frontier models including DeepSeek-OCR-2, PaddleOCR-VL-1.5, and MinerU-2.5. Infinity-Parser2-Flash, engineered for low-latency inference, delivers a 3.68x speedup over our previous Infinity-Parser-7B model. With significant upgrades to both our data engine and multi-task reinforcement learning approach, the model consolidates robust multi-modal parsing capabilities into a unified architecture, unlocking brand-new zero-shot capabilities across a wide range of real-world business scenarios.
 
+<p align="center">
+    <img src="https://raw.githubusercontent.com/infly-ai/INF-MLLM/main/Infinity-Parser2/assets/newspaper_1.png" width="1200"/>
+</p>
+
 ### Key Features
 
 - **Upgraded Data Engine**: We have comprehensively enhanced our synthetic data engine to support both fixed-layout and flexible-layout document formats. By curating nearly 5 million diverse document parsing samples across a wide range of layouts, combined with a dynamic adaptive sampling strategy, we ensure highly balanced and robust multi-task learning across various document types.
 - **Multi-Task Reinforcement Learning**: We designed a novel verifiable reward system to support Joint Reinforcement Learning (RL), enabling seamless and simultaneous co-optimization of multiple complex tasks, including document parsing, element parsing, chart parsing, chemical formula parsing, document vqa, and general multimodal understanding.
 - **Breakthrough Parsing Performance**: Infinity-Parser2-Pro substantially outperforms our previous 7B model, achieving 87.6% on olmOCR-Bench and 74.3% on ParseBench, surpassing frontier models such as DeepSeek-OCR-2, PaddleOCR-VL, and MinerU-2.5.
 - **Inference Acceleration**: Infinity-Parser2-Flash delivers significantly higher efficiency than Infinity-Parser-7B, with inference throughput increased by 3.68x (from 441 to 1,624 tokens/sec), reducing both deployment latency and costs.
+
+## Visual Parsing Examples
+
+<table align="center">
+  <thead>
+    <tr>
+      <th align="center">Category</th>
+      <th align="center">Visualization</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td align="center"><b>A-Share Financial Report</b></td>
+      <td align="center"><img src="https://raw.githubusercontent.com/infly-ai/INF-MLLM/main/Infinity-Parser2/assets/a_stock.png" width="800"/></td>
+    </tr>
+    <tr>
+      <td align="center"><b>Multi-Column Layout</b></td>
+      <td align="center"><img src="https://raw.githubusercontent.com/infly-ai/INF-MLLM/main/Infinity-Parser2/assets/muti_column.png" width="800"/></td>
+    </tr>
+    <tr>
+      <td align="center"><b>Historical Newspaper</b></td>
+      <td align="center"><img src="https://raw.githubusercontent.com/infly-ai/INF-MLLM/main/Infinity-Parser2/assets/newspaper_2.png" width="800"/></td>
+    </tr>
+    <tr>
+      <td align="center"><b>US Stock Financial Report</b></td>
+      <td align="center"><img src="https://raw.githubusercontent.com/infly-ai/INF-MLLM/main/Infinity-Parser2/assets/us_stock.png" width="800"/></td>
+    </tr>
+    <tr>
+      <td align="center"><b>Academic Paper (arXiv)</b></td>
+      <td align="center"><img src="https://raw.githubusercontent.com/infly-ai/INF-MLLM/main/Infinity-Parser2/assets/arxiv.png" width="800"/></td>
+    </tr>
+    <tr>
+      <td align="center"><b>Magazine Page</b></td>
+      <td align="center"><img src="https://raw.githubusercontent.com/infly-ai/INF-MLLM/main/Infinity-Parser2/assets/magazine.png" width="800"/></td>
+    </tr>
+    <tr>
+      <td align="center"><b>Scanned Mathematics</b></td>
+      <td align="center"><img src="https://raw.githubusercontent.com/infly-ai/INF-MLLM/main/Infinity-Parser2/assets/old_scan_math.png" width="800"/></td>
+    </tr>
+  </tbody>
+</table>
 
 ## Performance
 
