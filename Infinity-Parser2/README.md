@@ -27,47 +27,6 @@ We are excited to release Infinity-Parser2, our latest flagship document underst
 - **Breakthrough Parsing Performance**: Infinity-Parser2-Pro substantially outperforms our previous 7B model, achieving 87.6% on olmOCR-Bench and 74.3% on ParseBench, surpassing frontier models such as DeepSeek-OCR-2, PaddleOCR-VL, and MinerU-2.5.
 - **Inference Acceleration**: Infinity-Parser2-Flash delivers significantly higher efficiency than Infinity-Parser-7B, with inference throughput increased by 3.68x (from 441 to 1,624 tokens/sec), reducing both deployment latency and costs.
 
-## Visual Parsing Examples
-
-<table align="center">
-  <thead>
-    <tr>
-      <th align="center">Category</th>
-      <th align="center">Visualization</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td align="center"><b>A-Share Financial Report</b></td>
-      <td align="center"><img src="https://raw.githubusercontent.com/infly-ai/INF-MLLM/main/Infinity-Parser2/assets/a_stock.png" width="800"/></td>
-    </tr>
-    <tr>
-      <td align="center"><b>Multi-Column Layout</b></td>
-      <td align="center"><img src="https://raw.githubusercontent.com/infly-ai/INF-MLLM/main/Infinity-Parser2/assets/muti_column.png" width="800"/></td>
-    </tr>
-    <tr>
-      <td align="center"><b>Historical Newspaper</b></td>
-      <td align="center"><img src="https://raw.githubusercontent.com/infly-ai/INF-MLLM/main/Infinity-Parser2/assets/newspaper_2.png" width="800"/></td>
-    </tr>
-    <tr>
-      <td align="center"><b>US Stock Financial Report</b></td>
-      <td align="center"><img src="https://raw.githubusercontent.com/infly-ai/INF-MLLM/main/Infinity-Parser2/assets/us_stock.png" width="800"/></td>
-    </tr>
-    <tr>
-      <td align="center"><b>Academic Paper (arXiv)</b></td>
-      <td align="center"><img src="https://raw.githubusercontent.com/infly-ai/INF-MLLM/main/Infinity-Parser2/assets/arxiv.png" width="800"/></td>
-    </tr>
-    <tr>
-      <td align="center"><b>Magazine Page</b></td>
-      <td align="center"><img src="https://raw.githubusercontent.com/infly-ai/INF-MLLM/main/Infinity-Parser2/assets/magazine.png" width="800"/></td>
-    </tr>
-    <tr>
-      <td align="center"><b>Scanned Mathematics</b></td>
-      <td align="center"><img src="https://raw.githubusercontent.com/infly-ai/INF-MLLM/main/Infinity-Parser2/assets/old_scan_math.png" width="800"/></td>
-    </tr>
-  </tbody>
-</table>
-
 ## Performance
 
 <p align="left">
@@ -661,6 +620,47 @@ markdown = convert_json_to_markdown(json_string)
 cache = get_model_cache()
 print(cache.resolve_model_path("infly/Infinity-Parser2-Pro"))
 ```
+
+### Visual Parsing Examples
+
+<table align="center">
+  <thead>
+    <tr>
+      <th align="center">Category</th>
+      <th align="center">Visualization</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td align="center"><b>A-Share Financial Report</b></td>
+      <td align="center"><img src="https://raw.githubusercontent.com/infly-ai/INF-MLLM/main/Infinity-Parser2/assets/a_stock.png" width="800"/></td>
+    </tr>
+    <tr>
+      <td align="center"><b>Multi-Column Layout</b></td>
+      <td align="center"><img src="https://raw.githubusercontent.com/infly-ai/INF-MLLM/main/Infinity-Parser2/assets/muti_column.png" width="800"/></td>
+    </tr>
+    <tr>
+      <td align="center"><b>Historical Newspaper</b></td>
+      <td align="center"><img src="https://raw.githubusercontent.com/infly-ai/INF-MLLM/main/Infinity-Parser2/assets/newspaper_2.png" width="800"/></td>
+    </tr>
+    <tr>
+      <td align="center"><b>US Stock Financial Report</b></td>
+      <td align="center"><img src="https://raw.githubusercontent.com/infly-ai/INF-MLLM/main/Infinity-Parser2/assets/us_stock.png" width="800"/></td>
+    </tr>
+    <tr>
+      <td align="center"><b>Academic Paper (arXiv)</b></td>
+      <td align="center"><img src="https://raw.githubusercontent.com/infly-ai/INF-MLLM/main/Infinity-Parser2/assets/arxiv.png" width="800"/></td>
+    </tr>
+    <tr>
+      <td align="center"><b>Magazine Page</b></td>
+      <td align="center"><img src="https://raw.githubusercontent.com/infly-ai/INF-MLLM/main/Infinity-Parser2/assets/magazine.png" width="800"/></td>
+    </tr>
+    <tr>
+      <td align="center"><b>Scanned Mathematics</b></td>
+      <td align="center"><img src="https://raw.githubusercontent.com/infly-ai/INF-MLLM/main/Infinity-Parser2/assets/old_scan_math.png" width="800"/></td>
+    </tr>
+  </tbody>
+</table>
 
 ## Requirements
 
