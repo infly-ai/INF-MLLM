@@ -218,7 +218,7 @@ def draw_bboxes_on_image(
     draw = ImageDraw.Draw(img)
     font = _get_font(16)
 
-    for item in data:
+    for idx, item in enumerate(data):
         bbox = item.get("bbox", [])
         category = item.get("category", "unknown")
         if len(bbox) != 4:
@@ -229,7 +229,7 @@ def draw_bboxes_on_image(
 
         draw.rectangle([x1, y1, x2, y2], outline=color, width=2)
 
-        label = category
+        label = f"{idx}:{category}"
         try:
             # Measure label dimensions.
             tb0 = draw.textbbox((0, 0), label, font=font)
