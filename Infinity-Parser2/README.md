@@ -623,44 +623,15 @@ print(cache.resolve_model_path("infly/Infinity-Parser2-Pro"))
 
 ### Visual Parsing Examples
 
-<table align="center">
-  <thead>
-    <tr>
-      <th align="center">Category</th>
-      <th align="center">Visualization</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td align="center"><b>A-Share Financial Report</b></td>
-      <td align="center"><a href=="https://raw.githubusercontent.com/infly-ai/INF-MLLM/main/Infinity-Parser2/assets/a_stock.png">A-Share Financial Report</td>
-    </tr>
-    <tr>
-      <td align="center"><b>Multi-Column Layout</b></td>
-      <td align="center"><a href=="https://raw.githubusercontent.com/infly-ai/INF-MLLM/main/Infinity-Parser2/assets/muti_column.png">Multi-Column Layout</td>
-    </tr>
-    <tr>
-      <td align="center"><b>Historical Newspaper</b></td>
-      <td align="center"><a href=="https://raw.githubusercontent.com/infly-ai/INF-MLLM/main/Infinity-Parser2/assets/newspaper_2.png">Historical Newspaper</td>
-    </tr>
-    <tr>
-      <td align="center"><b>US Stock Financial Report</b></td>
-      <td align="center"><a href=="https://raw.githubusercontent.com/infly-ai/INF-MLLM/main/Infinity-Parser2/assets/us_stock.png">Historical Newspaper</td>
-    </tr>
-    <tr>
-      <td align="center"><b>Academic Paper (arXiv)</b></td>
-      <td align="center"><a href=="https://raw.githubusercontent.com/infly-ai/INF-MLLM/main/Infinity-Parser2/assets/arxiv.png">Academic Paper (arXiv)</td>
-    </tr>
-    <tr>
-      <td align="center"><b>Magazine Page</b></td>
-      <td align="center"><a href=="https://raw.githubusercontent.com/infly-ai/INF-MLLM/main/Infinity-Parser2/assets/magazine.png">Magazine Page</td>
-    </tr>
-    <tr>
-      <td align="center"><b>Scanned Mathematics</b></td>
-      <td align="center"><a href=="https://raw.githubusercontent.com/infly-ai/INF-MLLM/main/Infinity-Parser2/assets/old_scan_math.png">Scanned Mathematics</td>
-    </tr>
-  </tbody>
-</table>
+| Visualization | Note |
+| --- | --- | 
+| [A-Stock](https://raw.githubusercontent.com/infly-ai/INF-MLLM/main/Infinity-Parser2/assets/a_stock.png) | Easy to miscount colspan in tables |
+| [Multi-Column Layout](https://raw.githubusercontent.com/infly-ai/INF-MLLM/main/Infinity-Parser2/assets/muti_column.png) | Complex layout analysis and reading order recovery. |
+| [Historical Newspaper](https://raw.githubusercontent.com/infly-ai/INF-MLLM/main/Infinity-Parser2/assets/newspaper_2.png) | High probability of bounding box omission caused by ultra-dense text distribution, narrow column margins, and microscopic fonts. |
+| [US-Stock](https://raw.githubusercontent.com/infly-ai/INF-MLLM/main/Infinity-Parser2/assets/us_stock.png) | Precise row alignment across wide frameless spaces and capturing the hierarchical semantics of indented headers. |
+| [Academic Paper (arXiv)](https://raw.githubusercontent.com/infly-ai/INF-MLLM/main/Infinity-Parser2/assets/arxiv.png) | Accurate structural preservation of complex multi-line mathematical formulas, dense inline notations, and deeply nested subscripts/superscripts. |
+| [Magazine Page](https://raw.githubusercontent.com/infly-ai/INF-MLLM/main/Infinity-Parser2/assets/magazine.png) | Complex reading order recovery in an asymmetric multi-column layout. |
+| [Scanned Mathematics](https://raw.githubusercontent.com/infly-ai/INF-MLLM/main/Infinity-Parser2/assets/old_scan_math.png) | Degraded and blurred print |
 
 ## Requirements
 
