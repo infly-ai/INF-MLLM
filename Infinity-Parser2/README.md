@@ -16,6 +16,10 @@
 
 We are excited to release Infinity-Parser2, our latest flagship document understanding model. We offer two distinct variants to address diverse deployment constraints: Infinity-Parser2-Pro, optimized for maximum accuracy in precision-critical tasks, achieves state-of-the-art results on olmOCR-Bench (87.6%) and ParseBench (74.3%), surpassing frontier models including DeepSeek-OCR-2, PaddleOCR-VL-1.5, and MinerU-2.5. Infinity-Parser2-Flash, engineered for low-latency inference, delivers a 3.68x speedup over our previous Infinity-Parser-7B model. With significant upgrades to both our data engine and multi-task reinforcement learning approach, the model consolidates robust multi-modal parsing capabilities into a unified architecture, unlocking brand-new zero-shot capabilities across a wide range of real-world business scenarios.
 
+<p align="center">
+    <img src="https://raw.githubusercontent.com/infly-ai/INF-MLLM/main/Infinity-Parser2/assets/newspaper_1.png" width="1200"/>
+</p>
+
 ### Key Features
 
 - **Upgraded Data Engine**: We have comprehensively enhanced our synthetic data engine to support both fixed-layout and flexible-layout document formats. By curating nearly 5 million diverse document parsing samples across a wide range of layouts, combined with a dynamic adaptive sampling strategy, we ensure highly balanced and robust multi-task learning across various document types.
@@ -616,6 +620,18 @@ markdown = convert_json_to_markdown(json_string)
 cache = get_model_cache()
 print(cache.resolve_model_path("infly/Infinity-Parser2-Pro"))
 ```
+
+### Visual Parsing Examples
+
+| Visualization | Note |
+| --- | --- | 
+| [A-Stock](https://raw.githubusercontent.com/infly-ai/INF-MLLM/main/Infinity-Parser2/assets/a_stock.png) | Easy to miscount colspan in tables |
+| [Multi-Column Layout](https://raw.githubusercontent.com/infly-ai/INF-MLLM/main/Infinity-Parser2/assets/muti_column.png) | Complex layout analysis and reading order recovery. |
+| [Historical Newspaper](https://raw.githubusercontent.com/infly-ai/INF-MLLM/main/Infinity-Parser2/assets/newspaper_2.png) | High probability of bounding box omission caused by ultra-dense text distribution, narrow column margins, and microscopic fonts. |
+| [US-Stock](https://raw.githubusercontent.com/infly-ai/INF-MLLM/main/Infinity-Parser2/assets/us_stock.png) | Precise row alignment across wide frameless spaces and capturing the hierarchical semantics of indented headers. |
+| [Academic Paper (arXiv)](https://raw.githubusercontent.com/infly-ai/INF-MLLM/main/Infinity-Parser2/assets/arxiv.png) | Accurate structural preservation of complex multi-line mathematical formulas, dense inline notations, and deeply nested subscripts/superscripts. |
+| [Magazine Page](https://raw.githubusercontent.com/infly-ai/INF-MLLM/main/Infinity-Parser2/assets/magazine.png) | Complex reading order recovery in an asymmetric multi-column layout. |
+| [Scanned Mathematics](https://raw.githubusercontent.com/infly-ai/INF-MLLM/main/Infinity-Parser2/assets/old_scan_math.png) | Degraded and blurred print |
 
 ## Requirements
 

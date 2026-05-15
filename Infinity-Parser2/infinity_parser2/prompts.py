@@ -38,16 +38,13 @@ PROMPT_DOC2JSON = """
 - Extract layout information from the provided PDF image.
 - For each layout element, output its bbox, category, and the text content within the bbox.
 - Bbox format: [x1, y1, x2, y2].
-- Allowed layout categories: ['header', 'title', 'text', 'figure', 'table', 'formula',
-  'figure_caption', 'table_caption', 'formula_caption', 'figure_footnote',
-  'table_footnote', 'page_footnote', 'footer'].
+- Allowed layout categories: ['header', 'title', 'text', 'figure', 'table', 'formula', 'figure_caption', 'table_caption', 'formula_caption', 'figure_footnote', 'table_footnote', 'page_footnote', 'footer'].
 - Text extraction and formatting:
   1) For 'figure', the text field must be an empty string.
   2) For 'formula', format text as LaTeX.
   3) For 'table', format text as HTML.
   4) For all other categories (e.g., text, title), format text as Markdown.
-- The output text must be exactly the original text from the image,
-  with no translation or rewriting.
+- The output text must be exactly the original text from the image, with no translation or rewriting.
 - Sort all layout elements in human reading order.
 - Final output must be a single JSON object.
 """
