@@ -625,6 +625,12 @@ cache = get_model_cache()
 print(cache.resolve_model_path("infly/Infinity-Parser2-Pro"))
 ```
 
+## Requirements
+
+- Python 3.12+
+- CUDA-compatible GPU
+- See `setup.py` for full dependency list.
+
 ### Visual Parsing Examples
 
 | Visualization | Note |
@@ -636,12 +642,6 @@ print(cache.resolve_model_path("infly/Infinity-Parser2-Pro"))
 | [Academic Paper (arXiv)](https://raw.githubusercontent.com/infly-ai/INF-MLLM/main/Infinity-Parser2/assets/arxiv.png) | Accurate structural preservation of complex multi-line mathematical formulas, dense inline notations, and deeply nested subscripts/superscripts. |
 | [Magazine Page](https://raw.githubusercontent.com/infly-ai/INF-MLLM/main/Infinity-Parser2/assets/magazine.png) | Complex reading order recovery in an asymmetric multi-column layout. |
 | [Scanned Mathematics](https://raw.githubusercontent.com/infly-ai/INF-MLLM/main/Infinity-Parser2/assets/old_scan_math.png) | Degraded and blurred print |
-
-## Requirements
-
-- Python 3.12+
-- CUDA-compatible GPU
-- See `setup.py` for full dependency list.
 
 ## Limitations
 
