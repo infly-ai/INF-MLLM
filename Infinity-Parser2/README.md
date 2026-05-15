@@ -633,31 +633,31 @@ print(cache.resolve_model_path("infly/Infinity-Parser2-Pro"))
   <tbody>
     <tr>
       <td align="center"><b>A-Share Financial Report</b></td>
-      <td align="center"><img src="https://raw.githubusercontent.com/infly-ai/INF-MLLM/main/Infinity-Parser2/assets/a_stock.png" width="800"/></td>
+      <td align="center"><a href=="https://raw.githubusercontent.com/infly-ai/INF-MLLM/main/Infinity-Parser2/assets/a_stock.png">A-Share Financial Report</td>
     </tr>
     <tr>
       <td align="center"><b>Multi-Column Layout</b></td>
-      <td align="center"><img src="https://raw.githubusercontent.com/infly-ai/INF-MLLM/main/Infinity-Parser2/assets/muti_column.png" width="800"/></td>
+      <td align="center"><a href=="https://raw.githubusercontent.com/infly-ai/INF-MLLM/main/Infinity-Parser2/assets/muti_column.png">Multi-Column Layout</td>
     </tr>
     <tr>
       <td align="center"><b>Historical Newspaper</b></td>
-      <td align="center"><img src="https://raw.githubusercontent.com/infly-ai/INF-MLLM/main/Infinity-Parser2/assets/newspaper_2.png" width="800"/></td>
+      <td align="center"><a href=="https://raw.githubusercontent.com/infly-ai/INF-MLLM/main/Infinity-Parser2/assets/newspaper_2.png">Historical Newspaper</td>
     </tr>
     <tr>
       <td align="center"><b>US Stock Financial Report</b></td>
-      <td align="center"><img src="https://raw.githubusercontent.com/infly-ai/INF-MLLM/main/Infinity-Parser2/assets/us_stock.png" width="800"/></td>
+      <td align="center"><a href=="https://raw.githubusercontent.com/infly-ai/INF-MLLM/main/Infinity-Parser2/assets/us_stock.png">Historical Newspaper</td>
     </tr>
     <tr>
       <td align="center"><b>Academic Paper (arXiv)</b></td>
-      <td align="center"><img src="https://raw.githubusercontent.com/infly-ai/INF-MLLM/main/Infinity-Parser2/assets/arxiv.png" width="800"/></td>
+      <td align="center"><a href=="https://raw.githubusercontent.com/infly-ai/INF-MLLM/main/Infinity-Parser2/assets/arxiv.png">Academic Paper (arXiv)</td>
     </tr>
     <tr>
       <td align="center"><b>Magazine Page</b></td>
-      <td align="center"><img src="https://raw.githubusercontent.com/infly-ai/INF-MLLM/main/Infinity-Parser2/assets/magazine.png" width="800"/></td>
+      <td align="center"><a href=="https://raw.githubusercontent.com/infly-ai/INF-MLLM/main/Infinity-Parser2/assets/magazine.png">Magazine Page</td>
     </tr>
     <tr>
       <td align="center"><b>Scanned Mathematics</b></td>
-      <td align="center"><img src="https://raw.githubusercontent.com/infly-ai/INF-MLLM/main/Infinity-Parser2/assets/old_scan_math.png" width="800"/></td>
+      <td align="center"><a href=="https://raw.githubusercontent.com/infly-ai/INF-MLLM/main/Infinity-Parser2/assets/old_scan_math.png">Scanned Mathematics</td>
     </tr>
   </tbody>
 </table>
