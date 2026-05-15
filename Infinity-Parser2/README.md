@@ -12,6 +12,10 @@
 🚀 <a href="https://huggingface.co/spaces/infly/Infinity-Parser2-Demo">Demo</a>
 </p>
 
+## News
+
+- [2026-05-11] Released flagship document parsing models: [Infinity-Parser2-Pro](https://huggingface.co/infly/Infinity-Parser2-Pro), [Infinity-Parser2-Flash](https://huggingface.co/infly/Infinity-Parser2-Flash), and the dataset [Infinity-Doc2-5M](https://huggingface.co/datasets/infly/Infinity-Doc2-5M). Infinity-Parser2 achieves SOTA results on olmOCR-bench and ParseBench.
+
 <p align="center">
     <img src="https://raw.githubusercontent.com/infly-ai/INF-MLLM/main/Infinity-Parser2/assets/newspaper_1.png" width="1200"/>
 </p>
