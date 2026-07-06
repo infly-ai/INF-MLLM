@@ -45,7 +45,7 @@ git checkout f7cfe4c22098b154c76b6ec950d1c0a464eecf8d
 hf download --repo-type dataset allenai/olmOCR-bench --local-dir ./olmOCR-bench
 ```
 
-The PDFs live under `olmOCR-bench/bench_data/pdfs`. Stage 2 runs inference over these PDFs.
+The PDFs live under `olmOCR-bench/bench_data/pdfs`. Runs inference over these PDFs.
 By default its Markdown output goes to `./Infinity-Parser2-results` next to the script,
 which you then copy into `bench_data` before scoring; alternatively pass `--output_dir`
 pointing straight at `/path/to/olmOCR-bench/bench_data/Infinity-Parser2-results` to skip the copy.
