@@ -24,7 +24,7 @@ olmocr-bench/
 ---
 
 
-## Environment and Data Preparation
+## Stage 2 — Environment and Data Preparation
 
 - Infinity-Parser2 installed (`pip install -e .` from the repo root, or `pip install infinity-parser2`).
 - A running **vLLM server** exposing the model (the inference script uses the
@@ -50,7 +50,7 @@ pointing straight at `olmOCR-bench/bench_data/Infinity-Parser2-results` to skip 
 
 ---
 
-## Stage 1 — Inference
+## Stage 2 — Inference
 
 ### Start the model server
 
@@ -103,7 +103,7 @@ back to one-by-one inference so a single bad PDF cannot take down the whole batc
 
 ---
 
-## Stage 2 — Scoring with olmOCR-Bench
+## Stage 3 — Scoring with olmOCR-Bench
 
 The harness expects each candidate's Markdown under
 `bench_data/<candidate_name>/<category>/...`. If you ran Stage 1 with the default
@@ -127,7 +127,11 @@ python -m olmocr.bench.benchmark \
 
 ---
 
+Once scoring finishes, you'll see per-category and overall results printed like this:
 
+<p align="center">
+    <img src="Infinity-Parser/assets/olmocr_bench_score.png" width="400"/>
+<p>
 
 ## Notes
 
