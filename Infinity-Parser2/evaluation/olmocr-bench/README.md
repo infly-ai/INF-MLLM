@@ -17,7 +17,7 @@ The pipeline has two stages:
 
 ```
 olmocr-bench/
-├── infer.py                     # Stage 1: run inference, write per-doc Markdown
+├── infer.py                     # run inference, write per-doc Markdown
 ├── utils.py                     # Category-aware post-processing helpers
 └── README.md
 ```
