@@ -21,16 +21,8 @@ olmocr-bench/
 ├── utils.py                     # Category-aware post-processing helpers
 └── README.md
 ```
-
-`utils.py` bundles the post-processing applied to raw model output:
-
-| Function | Applied to categories | Purpose |
-|---|---|---|
-| `convert_latex_in_markdown` | `multi_column`, `tables` | Convert LaTeX to Unicode symbols |
-| `apply_synonym_map` | `multi_column`, `tables` | Normalize common symbol variants |
-| `latex_formula_normalization` | `arxiv_math`, `old_scans_math` | Merge/split adjacent LaTeX formulas |
-
 ---
+
 
 ## Environment and Data Preparation
 
@@ -85,7 +77,7 @@ python infer.py PDF_DIR [OUTPUT_DIR] [BATCH_SIZE] [--model_name ...] [--api_url 
 | Argument | Meaning |
 |---|---|
 | `PDF_DIR` | **(required, positional)** Directory of benchmark PDFs, searched recursively. **Sub-folder names are used as category labels**, so keep the benchmark's directory structure. |
-| `OUTPUT_DIR` | (optional, positional) Where Markdown + `inference.jsonl` are written (default: `./Infinity-Parser2-results` next to the script). Leave unset and copy into `bench_data` afterwards, or pass `olmOCR-bench/bench_data/Infinity-Parser2-results` to write there directly. |
+| `OUTPUT_DIR` | (optional, positional) Where Markdown + `inference.jsonl` are written (default: `./Infinity-Parser2-results` next to the script). Leave unset and copy into `bench_data` afterwards, or pass `/path/to/olmOCR-bench/bench_data/Infinity-Parser2-results` to write there directly. |
 | `BATCH_SIZE` | (optional, positional) PDFs handed to the model per batch (default: `4`). |
 | `--model_name` | Served model name; must match `--served-model-name` on the vLLM server (default: `inf-mllm`). |
 | `--api_url` | vLLM chat-completions endpoint; must match your running server (default: `http://localhost:8000/v1/chat/completions`). |
