@@ -6,7 +6,7 @@ tests across categories (arxiv math, tables, multi-column, old scans, etc.).
 
 The pipeline has three stages:
 
-1. **Environment & data prep** — install dependencies and download the olmOCR-Bench
+1. **Environment & Data Preparation** — install dependencies and download the olmOCR-Bench
    harness + dataset.
 2. **Inference** (`infer.py`) — run Infinity-Parser2 over the benchmark PDFs and write
    one Markdown file per document, laid out the way the benchmark harness expects.
