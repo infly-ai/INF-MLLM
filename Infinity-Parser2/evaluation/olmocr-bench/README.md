@@ -4,11 +4,13 @@ Evaluate **Infinity-Parser2** on [olmOCR-Bench](https://github.com/allenai/olmoc
 document-parsing benchmark that scores OCR/parsing output against per-document unit
 tests across categories (arxiv math, tables, multi-column, old scans, etc.).
 
-The pipeline has two stages:
+The pipeline has three stages:
 
-1. **Inference** (`infer.py`) — run Infinity-Parser2 over the benchmark PDFs and write
+1. **Environment & data prep** — install dependencies and download the olmOCR-Bench
+   harness + dataset.
+2. **Inference** (`infer.py`) — run Infinity-Parser2 over the benchmark PDFs and write
    one Markdown file per document, laid out the way the benchmark harness expects.
-2. **Scoring** (`olmocr.bench.benchmark`) — feed those Markdown files to the official
+3. **Scoring** (`olmocr.bench.benchmark`) — feed those Markdown files to the official
    olmOCR-Bench harness and get category-level scores.
 
 ---
@@ -43,10 +45,10 @@ git checkout f7cfe4c22098b154c76b6ec950d1c0a464eecf8d
 hf download --repo-type dataset allenai/olmOCR-bench --local-dir ./olmOCR-bench
 ```
 
-The PDFs live under `olmOCR-bench/bench_data/pdf`. Stage 2 runs inference over these PDFs.
+The PDFs live under `olmOCR-bench/bench_data/pdfs`. Stage 2 runs inference over these PDFs.
 By default its Markdown output goes to `./Infinity-Parser2-results` next to the script,
-which you then copy into `bench_data` before scoring; alternatively pass `OUTPUT_DIR`
-pointing straight at `olmOCR-bench/bench_data/Infinity-Parser2-results` to skip the copy.
+which you then copy into `bench_data` before scoring; alternatively pass `--output_dir`
+pointing straight at `/path/to/olmOCR-bench/bench_data/Infinity-Parser2-results` to skip the copy.
 
 ---
 
@@ -108,9 +110,9 @@ back to one-by-one inference so a single bad PDF cannot take down the whole batc
 ## Stage 3 — Scoring with olmOCR-Bench
 
 The harness expects each candidate's Markdown under
-`bench_data/<candidate_name>/<category>/...`. If you ran Stage 1 with the default
-`OUTPUT_DIR`, copy the results into `bench_data` first (skip this if you already pointed
-`OUTPUT_DIR` at `bench_data`):
+`bench_data/<candidate_name>/<category>/...`. If you ran inference with the default
+`--output_dir`, copy the results into `bench_data` first (skip this if you already pointed
+`--output_dir` at `bench_data`):
 
 ```bash
 cp -r ./Infinity-Parser2-results /path/to/olmOCR-bench/bench_data/
@@ -132,7 +134,7 @@ python -m olmocr.bench.benchmark \
 Once scoring finishes, you'll see per-category and overall results printed like this:
 
 <p align="center">
-    <img src="Infinity-Parser/assets/olmocr_bench_score.png" width="400"/>
+    <img src="https://raw.githubusercontent.com/infly-ai/INF-MLLM/main/Infinity-Parser2/olmocr_bench_score.png" width="400"/>
 <p>
 
 ## Notes
