@@ -134,7 +134,7 @@ python -m olmocr.bench.benchmark \
 Once scoring finishes, you'll see per-category and overall results printed like this:
 
 <p align="center">
-    <img src="https://raw.githubusercontent.com/infly-ai/INF-MLLM/main/Infinity-Parser2/olmocr_bench_score.png" width="400"/>
+    <img src="https://raw.githubusercontent.com/infly-ai/INF-MLLM/main/Infinity-Parser2/assets/olmocr_bench_score.png" width="400"/>
 <p>
 
 ## Notes
