@@ -43,7 +43,7 @@ git checkout f7cfe4c22098b154c76b6ec950d1c0a464eecf8d
 hf download --repo-type dataset allenai/olmOCR-bench --local-dir ./olmOCR-bench
 ```
 
-The PDFs live under `olmOCR-bench/bench_data/pdf`. Stage 1 runs inference over these PDFs.
+The PDFs live under `olmOCR-bench/bench_data/pdf`. Stage 2 runs inference over these PDFs.
 By default its Markdown output goes to `./Infinity-Parser2-results` next to the script,
 which you then copy into `bench_data` before scoring; alternatively pass `OUTPUT_DIR`
 pointing straight at `olmOCR-bench/bench_data/Infinity-Parser2-results` to skip the copy.
@@ -71,14 +71,14 @@ vllm serve infly/Infinity-Parser2-Flash \
 `infer.py` is driven entirely by command-line arguments:
 
 ```bash
-python infer.py PDF_DIR [OUTPUT_DIR] [BATCH_SIZE] [--model_name ...] [--api_url ...]
+python infer.py --pdf_dir PDF_DIR [--output_dir OUTPUT_DIR] [--batch_size N] [--model_name ...] [--api_url ...]
 ```
 
 | Argument | Meaning |
 |---|---|
-| `PDF_DIR` | **(required, positional)** Directory of benchmark PDFs, searched recursively. **Sub-folder names are used as category labels**, so keep the benchmark's directory structure. |
-| `OUTPUT_DIR` | (optional, positional) Where Markdown + `inference.jsonl` are written (default: `./Infinity-Parser2-results` next to the script). Leave unset and copy into `bench_data` afterwards, or pass `/path/to/olmOCR-bench/bench_data/Infinity-Parser2-results` to write there directly. |
-| `BATCH_SIZE` | (optional, positional) PDFs handed to the model per batch (default: `4`). |
+| `--pdf_dir` | **(required)** Directory of benchmark PDFs, searched recursively. **Sub-folder names are used as category labels**, so keep the benchmark's directory structure. |
+| `--output_dir` | Where Markdown + `inference.jsonl` are written (default: `./Infinity-Parser2-results` next to the script). Leave unset and copy into `bench_data` afterwards, or pass `/path/to/olmOCR-bench/bench_data/Infinity-Parser2-results` to write there directly. |
+| `--batch_size` | PDFs handed to the model per batch (default: `4`). |
 | `--model_name` | Served model name; must match `--served-model-name` on the vLLM server (default: `inf-mllm`). |
 | `--api_url` | vLLM chat-completions endpoint; must match your running server (default: `http://localhost:8000/v1/chat/completions`). |
 
@@ -86,7 +86,9 @@ Then run:
 
 ```bash
 cd INF-MLLM/Infinity-Parser2/evaluation/olmocr-bench
-python infer.py /path/to/olmOCR-bench/bench_data/pdfs /path/to/olmOCR-bench/bench_data/Infinity-Parser2-results
+python infer.py \
+    --pdf_dir /path/to/olmOCR-bench/bench_data/pdfs \
+    --output_dir /path/to/olmOCR-bench/bench_data/Infinity-Parser2-results
 ```
 
 **Output**

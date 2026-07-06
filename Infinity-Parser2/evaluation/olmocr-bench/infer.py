@@ -60,20 +60,19 @@ def parse_args():
         description="Run Infinity-Parser2 inference over a directory of PDFs."
     )
     arg_parser.add_argument(
-        "PDF_DIR",
+        "--pdf_dir",
+        required=True,
         help="Directory containing the PDFs to parse (searched recursively).",
     )
     arg_parser.add_argument(
-        "OUTPUT_DIR",
-        nargs="?",
+        "--output_dir",
         default=None,
         help="Directory for the results (default: ./Infinity-Parser2-results next "
         "to this script). When left unset, a cp command to copy the results into "
         "the benchmark's bench_data is printed at the end.",
     )
     arg_parser.add_argument(
-        "BATCH_SIZE",
-        nargs="?",
+        "--batch_size",
         type=int,
         default=4,
         help="Number of PDFs per inference batch (default: 4).",
@@ -95,9 +94,9 @@ def parse_args():
 def main():
     args = parse_args()
 
-    PDF_DIR = args.PDF_DIR
-    OUTPUT_DIR = args.OUTPUT_DIR or os.path.join(_SCRIPT_DIR, "Infinity-Parser2-results")
-    BATCH_SIZE = args.BATCH_SIZE
+    PDF_DIR = args.pdf_dir
+    OUTPUT_DIR = args.output_dir or os.path.join(_SCRIPT_DIR, "Infinity-Parser2-results")
+    BATCH_SIZE = args.batch_size
     # Raw inference results, one JSON line per PDF: {"pdf": ..., "markdown": ...}
     JSONL_PATH = os.path.join(OUTPUT_DIR, "inference.jsonl")
     parser = InfinityParser2(
@@ -185,7 +184,7 @@ def main():
 
     # OUTPUT_DIR was not given -> results sit next to the script. Remind the user
     # to copy them into the benchmark's bench_data before scoring.
-    if args.OUTPUT_DIR is None:
+    if args.output_dir is None:
         print(
             "[infer] OUTPUT_DIR not set; copy the results into the benchmark's "
             "bench_data before scoring, e.g.:"
