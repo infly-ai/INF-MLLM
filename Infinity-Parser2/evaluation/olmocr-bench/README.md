@@ -24,7 +24,7 @@ olmocr-bench/
 ---
 
 
-## Stage 2 — Environment and Data Preparation
+## Stage 1 — Environment and Data Preparation
 
 - Infinity-Parser2 installed (`pip install -e .` from the repo root, or `pip install infinity-parser2`).
 - A running **vLLM server** exposing the model (the inference script uses the
