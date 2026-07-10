@@ -8,7 +8,7 @@
 🤗 <a href="https://huggingface.co/infly/Infinity-Parser2-Pro">Infinity-Parser2-Pro</a> |
 🤗 <a href="https://huggingface.co/infly/Infinity-Parser2-Flash">Infinity-Parser2-Flash</a> |
 📊 <a href="https://huggingface.co/datasets/infly/Infinity-Doc2-5M">Dataset</a> |
-📄 <a>Paper (coming soon...)</a> |
+📄 <a href="https://arxiv.org/pdf/2607.07836v1">Paper</a> |
 🚀 <a href="https://huggingface.co/spaces/infly/Infinity-Parser2-Demo">Demo</a>
 </p>
 
@@ -22,13 +22,13 @@
 
 ## Introduction
 
-We are excited to release Infinity-Parser2, our latest flagship document understanding model. We offer two distinct variants to address diverse deployment constraints: Infinity-Parser2-Pro, optimized for maximum accuracy in precision-critical tasks, achieves state-of-the-art results on olmOCR-Bench (87.6%) and ParseBench (74.3%), surpassing frontier models including DeepSeek-OCR-2, PaddleOCR-VL-1.5, and MinerU-2.5. Infinity-Parser2-Flash, engineered for low-latency inference, delivers a 3.68x speedup over our previous Infinity-Parser-7B model. With significant upgrades to both our data engine and multi-task reinforcement learning approach, the model consolidates robust multi-modal parsing capabilities into a unified architecture, unlocking brand-new zero-shot capabilities across a wide range of real-world business scenarios.
+We are excited to release Infinity-Parser2, our latest flagship document understanding model. We offer two distinct variants to address diverse deployment constraints: Infinity-Parser2-Pro, optimized for maximum accuracy in precision-critical tasks, achieves state-of-the-art results on olmOCR-Bench (87.6%) and ParseBench (74.3%), surpassing frontier models including DeepSeek-OCR-2, PaddleOCR-VL-1.5, and MinerU2.5. Infinity-Parser2-Flash, engineered for low-latency inference, delivers a 3.68x speedup over our previous Infinity-Parser-7B model. With significant upgrades to both our data engine and multi-task reinforcement learning approach, the model consolidates robust multi-modal parsing capabilities into a unified architecture, unlocking brand-new zero-shot capabilities across a wide range of real-world business scenarios.
 
 ### Key Features
 
 - **Upgraded Data Engine**: We have comprehensively enhanced our synthetic data engine to support both fixed-layout and flexible-layout document formats. By curating nearly 5 million diverse document parsing samples across a wide range of layouts, combined with a dynamic adaptive sampling strategy, we ensure highly balanced and robust multi-task learning across various document types.
 - **Multi-Task Reinforcement Learning**: We designed a novel verifiable reward system to support Joint Reinforcement Learning (RL), enabling seamless and simultaneous co-optimization of multiple complex tasks, including document parsing, element parsing, chart parsing, chemical formula parsing, document vqa, and general multimodal understanding.
-- **Breakthrough Parsing Performance**: Infinity-Parser2-Pro substantially outperforms our previous 7B model, achieving 87.6% on olmOCR-Bench and 74.3% on ParseBench, surpassing frontier models such as DeepSeek-OCR-2, PaddleOCR-VL, and MinerU-2.5.
+- **Breakthrough Parsing Performance**: Infinity-Parser2-Pro substantially outperforms our previous 7B model, achieving 87.6% on olmOCR-Bench and 74.3% on ParseBench, surpassing frontier models such as DeepSeek-OCR-2, PaddleOCR-VL, and MinerU2.5.
 - **Inference Acceleration**: Infinity-Parser2-Flash delivers significantly higher efficiency than Infinity-Parser-7B, with inference throughput increased by 3.68x (from 441 to 1,624 tokens/sec), reducing both deployment latency and costs.
 
 ## Performance
@@ -49,7 +49,7 @@ We are excited to release Infinity-Parser2, our latest flagship document underst
       <th>Infinity-Parser2-Flash</th>
       <th>PaddleOCR-VL-1.5</th>
       <th>DeepSeek-OCR-2</th>
-      <th>MinerU-2.5</th>
+      <th>MinerU2.5</th>
       <th>Gemini-3-Pro</th>
     </tr>
   </thead>
@@ -61,7 +61,7 @@ We are excited to release Infinity-Parser2, our latest flagship document underst
       <td>olmOCR-bench</td>
       <td><b>87.6</b></td>
       <td>86.0</td>
-      <td>80.0†</td>
+      <td>78.5</td>
       <td>76.3</td>
       <td>75.2</td>
       <td>-</td>
@@ -70,7 +70,7 @@ We are excited to release Infinity-Parser2, our latest flagship document underst
       <td>ParseBench</td>
       <td><b>74.3</b></td>
       <td>72.2</td>
-      <td>40.9†</td>
+      <td>66.0</td>
       <td>41.2</td>
       <td>45.9</td>
       <td>69.1‡</td>
@@ -119,9 +119,9 @@ We are excited to release Infinity-Parser2, our latest flagship document underst
     </tr>
     <tr>
       <td>OmniDocBench-v1.5-TextBlock</td>
-      <td>93.66</td>
-      <td>93.53</td>
-      <td><b>94.97*</b></td>
+      <td><b>95.05</b></td>
+      <td>94.31</td>
+      <td>94.97*</td>
       <td>84.13*</td>
       <td>86.00</td>
       <td>-</td>
@@ -149,10 +149,10 @@ We are excited to release Infinity-Parser2, our latest flagship document underst
     </tr>
     <tr>
       <td>Chart2Table</td>
-      <td>80.45</td>
+      <td><b>86.5</b></td>
       <td>80.49</td>
-      <td><b>86.2*</b></td>
-      <td>-</td>
+      <td>86.2*</td>
+      <td>49.7*</td>
       <td>-</td>
       <td>-</td>
     </tr>
@@ -170,10 +170,10 @@ We are excited to release Infinity-Parser2, our latest flagship document underst
     </tr>
     <tr>
       <td>CoSyn_Chemical</td>
-      <td><b>71.48</b></td>
-      <td>62.08</td>
+      <td><b>73.19</b></td>
+      <td>63.34</td>
       <td>-</td>
-      <td>52.16*</td>
+      <td>47.02*</td>
       <td>-</td>
       <td>-</td>
     </tr>
@@ -267,7 +267,7 @@ We are excited to release Infinity-Parser2, our latest flagship document underst
   </tbody>
 </table>
 
-Note: '*' denotes results evaluated using our internal evaluation tools. Results marked with '†' are from PaddleOCR-VL. '‡' denotes results from the Gemini-3.1-Pro.
+Note: '*' denotes results evaluated using our internal evaluation tools. '‡' denotes results from the Gemini-3.1-Pro.
 
 ## Quick Start
 
@@ -650,3 +650,17 @@ Infinity-Parser2 has several known limitations to consider. It primarily support
 ## Acknowledgments
 
 We would like to thank [Qwen3.5](https://github.com/QwenLM/Qwen3.5), [ms-swift](https://github.com/modelscope/ms-swift), [VeRL](https://github.com/verl-project/verl), [lmms-eval](https://github.com/EvolvingLMMs-Lab/lmms-eval), [olmocr](https://huggingface.co/datasets/allenai/olmOCR-bench), [PaddleOCR-VL](https://github.com/PaddlePaddle/PaddleOCR), [MinerU](https://github.com/opendatalab/MinerU), [dots.ocr](https://github.com/rednote-hilab/dots.ocr), [Chandra-OCR-2](https://github.com/datalab-to/chandra) for providing dataset, code and models.
+
+## Citation
+
+```
+@misc{huang2026infinityparser2technicalreport,
+      title={Infinity-Parser2 Technical Report},
+      author={Zuming Huang and Jun Huang and Kexuan Ren and Baode Wang and Weizhen Li and Jianming Feng and Yu Wang and Yichen Yao and Shijun Lin and Yige Tang and Cheng Peng and Weidi Xu and Wei Chu and Yinghui Xu and Yuan Qi},
+      year={2026},
+      eprint={2607.07836},
+      archivePrefix={arXiv},
+      primaryClass={cs.AI},
+      url={https://arxiv.org/abs/2607.07836},
+}
+```
