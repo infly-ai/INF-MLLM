@@ -8,7 +8,7 @@
 🤗 <a href="https://huggingface.co/infly/Infinity-Parser2-Pro">Infinity-Parser2-Pro</a> |
 🤗 <a href="https://huggingface.co/infly/Infinity-Parser2-Flash">Infinity-Parser2-Flash</a> |
 📊 <a href="https://huggingface.co/datasets/infly/Infinity-Doc2-5M">Dataset</a> |
-📄 <a href="https://arxiv.org/pdf/2607.07836v1">Paper</a> |
+📄 <a href="https://arxiv.org/pdf/2607.07836">Paper</a> |
 🚀 <a href="https://huggingface.co/spaces/infly/Infinity-Parser2-Demo">Demo</a>
 </p>
 
