@@ -27,6 +27,7 @@ Here is a brief overview of the models available in this repository. For more de
 **Infinity-Parser2** is our latest flagship document parsing model, offering two distinct variants: Infinity-Parser2-Pro optimized for maximum accuracy, and Infinity-Parser2-Flash engineered for high-speed inference (3.68x faster than Infinity-Parser-7B). Built on an upgraded data engine supporting nearly 5 million diverse document samples and a novel multi-task reinforcement learning framework with joint verification rewards, Infinity-Parser2 achieves state-of-the-art results on olmOCR-Bench (87.6%) and ParseBench (74.3%), surpassing frontier models including DeepSeek-OCR-2, PaddleOCR-VL-1.5, and MinerU-2.5.
 
 - **Key Features:** Upgraded data engine, multi-task RL, dual variants (Pro/Flash).
+- **Paper:** [Infinity-Parser2 Technical Report](https://arxiv.org/pdf/2607.07836)
 - **Models:** [Infinity-Parser2-Pro](https://huggingface.co/infly/Infinity-Parser2-Pro), [Infinity-Parser2-Flash](https://huggingface.co/infly/Infinity-Parser2-Flash)
 - **Dataset:** [Infinity-Doc2-5M](https://huggingface.co/datasets/infly/Infinity-Doc2-5M)
 - **Web Demo:** [Infinity-Parser2-Demo](https://huggingface.co/spaces/infly/Infinity-Parser2-Demo)
