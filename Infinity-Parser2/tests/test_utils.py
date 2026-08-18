@@ -15,6 +15,7 @@ from infinity_parser2.utils import (
     encode_image_to_base64,
     extract_json_content,
     load_image,
+    parse_pages_spec,
     truncate_last_incomplete_element,
     obtain_origin_hw,
     restore_abs_bbox_coordinates,
@@ -201,6 +202,24 @@ class TestConvertPdfToImages(unittest.TestCase):
         for img in result:
             self.assertEqual(img.mode, "RGB")
 
+    def test_convert_pdf_with_pages_str_selects_subset(self):
+        """Test that pages spec string selects only the requested pages."""
+        pdf_path = self._create_multi_page_pdf(5)
+        result = convert_pdf_to_images(pdf_path, pages="1-2,4")
+        self.assertEqual(len(result), 3)
+
+    def test_convert_pdf_with_pages_list_selects_subset(self):
+        """Test that a list of 1-based page numbers selects only those pages."""
+        pdf_path = self._create_multi_page_pdf(5)
+        result = convert_pdf_to_images(pdf_path, pages=[1, 3, 5])
+        self.assertEqual(len(result), 3)
+
+    def test_convert_pdf_with_pages_out_of_range_raises_error(self):
+        """Test that a page spec with no valid pages raises ValueError."""
+        pdf_path = self._create_multi_page_pdf(2)
+        with self.assertRaises(ValueError):
+            convert_pdf_to_images(pdf_path, pages="5-10")
+
     def _create_simple_pdf(self):
         """Helper to create a simple PDF for testing."""
         try:
@@ -214,6 +233,52 @@ class TestConvertPdfToImages(unittest.TestCase):
             return pdf_path
         except ImportError:
             self.skipTest("PyMuPDF not available for creating test PDF")
+
+    def _create_multi_page_pdf(self, num_pages: int):
+        """Helper to create a multi-page PDF for testing."""
+        try:
+            import fitz
+            pdf_path = os.path.join(self.temp_dir, f"test_{num_pages}pages.pdf")
+            doc = fitz.open()
+            for i in range(num_pages):
+                page = doc.new_page(width=595, height=842)
+                page.insert_text((100, 100), f"Page {i + 1}", fontsize=12)
+            doc.save(pdf_path)
+            doc.close()
+            return pdf_path
+        except ImportError:
+            self.skipTest("PyMuPDF not available for creating test PDF")
+
+
+class TestParsePagesSpec(unittest.TestCase):
+    """Tests for parse_pages_spec utility function."""
+
+    def test_single_range(self):
+        self.assertEqual(parse_pages_spec("1-3", 10), [0, 1, 2])
+
+    def test_mixed_spec(self):
+        self.assertEqual(parse_pages_spec("1-2,4,7-8", 10), [0, 1, 3, 6, 7])
+
+    def test_list_of_ints(self):
+        self.assertEqual(parse_pages_spec([1, 3, 5], 10), [0, 2, 4])
+
+    def test_duplicates_are_deduplicated(self):
+        self.assertEqual(parse_pages_spec("1-3,2", 10), [0, 1, 2])
+
+    def test_out_of_range_pages_are_clipped(self):
+        self.assertEqual(parse_pages_spec("1-100", 3), [0, 1, 2])
+
+    def test_no_valid_pages_raises_error(self):
+        with self.assertRaises(ValueError):
+            parse_pages_spec("5-10", 3)
+
+    def test_invalid_range_raises_error(self):
+        with self.assertRaises(ValueError):
+            parse_pages_spec("5-1", 10)
+
+    def test_invalid_token_raises_error(self):
+        with self.assertRaises(ValueError):
+            parse_pages_spec("abc", 10)
 
 
 class TestExtractJsonContent(unittest.TestCase):

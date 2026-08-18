@@ -294,6 +294,41 @@ class TestInfinityParser2MockedParse(unittest.TestCase):
         finally:
             os.unlink(temp_file.name)
 
+    def _create_multi_page_pdf(self, num_pages: int) -> str:
+        """Helper to create a multi-page PDF for testing."""
+        import fitz
+
+        pdf_path = os.path.join(self.temp_dir, f"test_{num_pages}pages.pdf")
+        doc = fitz.open()
+        for i in range(num_pages):
+            page = doc.new_page(width=595, height=842)
+            page.insert_text((100, 100), f"Page {i + 1}", fontsize=12)
+        doc.save(pdf_path)
+        doc.close()
+        return pdf_path
+
+    def test_parse_pdf_with_pages_selects_subset(self):
+        """Test that pages param limits inference to selected physical pages."""
+        parser = self._make_parser()
+        parser._backend.parse_batch.return_value = ["Result"] * 2
+        pdf_path = self._create_multi_page_pdf(5)
+
+        parser.parse(pdf_path, pages="1-2")
+
+        raw_inputs = parser._backend.parse_batch.call_args[0][0]
+        self.assertEqual(len(raw_inputs), 2)
+
+    def test_parse_pdf_without_pages_uses_all_pages(self):
+        """Test that omitting pages parses every page of the PDF."""
+        parser = self._make_parser()
+        parser._backend.parse_batch.return_value = ["Result"] * 5
+        pdf_path = self._create_multi_page_pdf(5)
+
+        parser.parse(pdf_path)
+
+        raw_inputs = parser._backend.parse_batch.call_args[0][0]
+        self.assertEqual(len(raw_inputs), 5)
+
     def test_parse_with_task_type_doc2md(self):
         """Test parsing with doc2md task type."""
         parser = self._make_parser()

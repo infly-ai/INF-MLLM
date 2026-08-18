@@ -10,7 +10,7 @@ from .file import (
     compress_directory_to_zip,
     package_results_as_zip,
 )
-from .pdf import convert_pdf_to_images
+from .pdf import convert_pdf_to_images, parse_pages_spec
 from .image import encode_image_to_base64, load_image
 from .model import ModelCache, get_model_cache
 
@@ -45,6 +45,7 @@ __all__ = [
     "package_results_as_zip",
     "load_image",
     "convert_pdf_to_images",
+    "parse_pages_spec",
     "encode_image_to_base64",
     "ModelCache",
     "get_model_cache",

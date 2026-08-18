@@ -131,6 +131,7 @@ class InfinityParser2:
         batch_size: int = 4,
         output_dir: Optional[str] = None,
         output_format: str = "md",
+        pages: Optional[Union[str, List[int]]] = None,
         **kwargs,
     ) -> Optional[Union[str, List[str], Dict[str, str]]]:
         """Parse document(s) and extract text content.
@@ -150,6 +151,11 @@ class InfinityParser2:
             batch_size: Number of images to process in one batch. Defaults to 4.
             output_dir: If provided, results are saved to output_dir and this function
                 returns None. If None, results are returned directly.
+            pages: Optional physical page selection for PDF inputs, 1-based.
+                Accepts a human-friendly spec string such as "1-3,5,8-10" or
+                an explicit list of 1-based page numbers, e.g. [1, 3, 5].
+                Applied to every PDF among the inputs; ignored for image
+                inputs. Defaults to None, which parses every page.
             output_format: Output format for results. Options: "md" or "json".
                 Defaults to "md".
                 - For doc2json tasks:
@@ -179,6 +185,8 @@ class InfinityParser2:
             >>> result = parser.parse("./demo_data")
             >>> # Save results to output_dir, returns None
             >>> parser.parse("demo_data/demo.pdf", output_dir="./output")
+            >>> # Parse only specific physical pages of a PDF
+            >>> result = parser.parse("demo_data/demo.pdf", pages="1-3,5")
         """
         if task_type not in SUPPORTED_TASK_TYPES:
             raise ValueError(
@@ -202,7 +210,7 @@ class InfinityParser2:
         is_directory = isinstance(input_data, str) and os.path.isdir(input_data)
         file_paths = normalize_input(input_data)
         file_results = self._parse_files(
-            file_paths, prompt, task_type, batch_size, output_format, **kwargs
+            file_paths, prompt, task_type, batch_size, output_format, pages, **kwargs
         )
 
         if output_dir is not None:
@@ -227,6 +235,7 @@ class InfinityParser2:
         task_type: str,
         batch_size: int = 4,
         output_format: str = "md",
+        pages: Optional[Union[str, List[int]]] = None,
         **kwargs,
     ) -> List[str]:
         """Parse multiple files with batched inference.
@@ -237,7 +246,7 @@ class InfinityParser2:
         """
 
         # prepare batch entries
-        batch_entries = prepare_batch_entries(inputs)
+        batch_entries = prepare_batch_entries(inputs, pages=pages)
         if not batch_entries:
             return [] if len(inputs) > 1 else ""
 

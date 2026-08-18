@@ -3,7 +3,7 @@
 import os
 import uuid
 from pathlib import Path
-from typing import List, Union
+from typing import List, Optional, Union
 
 from PIL import Image
 
@@ -17,11 +17,15 @@ SUPPORTED_OUTPUT_FORMATS = ["md", "json"]
 
 def prepare_batch_entries(
     inputs: List[Union[str, Image.Image]],
+    pages: Optional[Union[str, List[int]]] = None,
 ) -> tuple[list[tuple[int, Union[str, Image.Image]]], list[int]]:
     """Expand inputs into batch entries, splitting PDFs into individual pages.
 
     Args:
         inputs: List of file paths or PIL Images.
+        pages: Optional physical page selection, 1-based, applied to every
+            PDF among inputs (e.g. "1-3,5" or [1, 3, 5]). Ignored for
+            non-PDF inputs. Defaults to None, which keeps every page.
 
     Returns:
         batch_entries: List of (file_idx, item) tuples, where item is either
@@ -33,7 +37,7 @@ def prepare_batch_entries(
         if isinstance(item, str):
             ext = Path(item).suffix.lower()
             if ext == ".pdf":
-                page_images = convert_pdf_to_images(item)
+                page_images = convert_pdf_to_images(item, pages=pages)
                 for page_img in page_images:
                     batch_entries.append((idx, page_img))
             else:
