@@ -43,6 +43,9 @@ Examples:
   # Output raw JSON
   parser demo_data/demo.pdf --output-format json
 
+  # Parse only specific physical pages of a PDF (1-based)
+  parser demo_data/demo.pdf --pages 1-2
+
   # Use transformers backend
   parser demo_data/demo.pdf --backend transformers
 
@@ -83,6 +86,12 @@ Examples:
         type=int,
         default=4,
         help="Batch size for inference. Defaults to 4.",
+    )
+    parser.add_argument(
+        "--pages",
+        default=None,
+        help="Physical page selection for PDF inputs, 1-based, e.g. "
+             "'1-3,5,8-10'. Ignored for image inputs. Defaults to all pages.",
     )
     parser.add_argument(
         "--backend",
@@ -136,7 +145,7 @@ Examples:
     parser.add_argument(
         "--version",
         action="version",
-        version="Infinity-Parser2 0.3.0",
+        version="Infinity-Parser2 0.4.0",
     )
 
     return parser
@@ -178,6 +187,7 @@ def main(argv: Optional[List[str]] = None) -> int:
             batch_size=args.batch_size,
             output_dir=args.output_dir,
             output_format=args.output_format,
+            pages=args.pages,
         )
 
         if result is not None:
