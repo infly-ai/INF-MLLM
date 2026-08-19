@@ -8,19 +8,15 @@ from typing import Dict, List, Optional, Union
 import torch
 from PIL import Image
 
-from .backends import (
-    BaseBackend,
-    TransformersBackend,
-    VLLMEngineBackend,
-    VLLMServerBackend,
-)
+from . import backends
+from .backends import BaseBackend
 from .prompts import SUPPORTED_TASK_TYPES, resolve_prompt
 from .utils import *
 
 BACKEND_REGISTRY = {
-    "transformers": TransformersBackend,
-    "vllm-engine": VLLMEngineBackend,
-    "vllm-server": VLLMServerBackend,
+    "transformers": "TransformersBackend",
+    "vllm-engine": "VLLMEngineBackend",
+    "vllm-server": "VLLMServerBackend",
 }
 
 
@@ -100,7 +96,7 @@ class InfinityParser2:
                 f"Unsupported backend: {self.backend_name}. "
                 f"Supported backends: {list(BACKEND_REGISTRY.keys())}"
             )
-        backend_cls = BACKEND_REGISTRY[self.backend_name]
+        backend_cls = getattr(backends, BACKEND_REGISTRY[self.backend_name])
         common_kwargs = {
             "model_name": self._model_path,
             "device": self.device,
@@ -156,14 +152,16 @@ class InfinityParser2:
                 an explicit list of 1-based page numbers, e.g. [1, 3, 5].
                 Applied to every PDF among the inputs; ignored for image
                 inputs. Defaults to None, which parses every page.
-            output_format: Output format for results. Options: "md" or "json".
-                Defaults to "md".
+            output_format: Output format for results. Options: "md", "json", or
+                "md,json". Defaults to "md".
                 - For doc2json tasks:
                     - output_format="md": Returns markdown (converts JSON to markdown
                       via convert_json_to_markdown). If output_dir is set, saves only
                       the markdown result.
                     - output_format="json": Returns raw JSON result. If output_dir is
                       set, saves only the JSON result.
+                    - output_format="md,json": If output_dir is set, saves BOTH
+                      result.md and result.json. Without output_dir, returns markdown.
                 - For doc2md tasks or custom prompts: Only "md" is supported.
                   If "json" is passed, a ValueError will be raised.
             **kwargs: Additional arguments passed to the model.
@@ -193,12 +191,14 @@ class InfinityParser2:
                 f"task_type must be one of {SUPPORTED_TASK_TYPES}, got '{task_type}'"
             )
 
-        if output_format not in SUPPORTED_OUTPUT_FORMATS:
+        if output_format == "json,md":
+            output_format = "md,json"
+        if output_format not in SUPPORTED_OUTPUT_FORMATS and output_format != "md,json":
             raise ValueError(
-                f"output_format must be one of {SUPPORTED_OUTPUT_FORMATS}, got '{output_format}'"
+                f"output_format must be one of {SUPPORTED_OUTPUT_FORMATS + ['md,json']}, got '{output_format}'"
             )
 
-        if output_format == "json" and task_type != "doc2json":
+        if output_format in ("json", "md,json") and task_type != "doc2json":
             raise ValueError(
                 "output_format='json' is only supported for doc2json tasks. "
                 "For other task types, output_format must be 'md'."
@@ -221,12 +221,20 @@ class InfinityParser2:
                 task_type=task_type,
                 output_format=output_format,
             )
-        elif is_directory:
-            return dict(zip(file_paths, file_results))
-        elif len(file_results) == 1:
-            return file_results[0]
         else:
-            return file_results
+            # For in-memory results, "md" (and the combined "md,json") return the
+            # rendered Markdown; the raw JSON is available via output_format="json".
+            display_results = (
+                [convert_json_to_markdown(r) for r in file_results]
+                if task_type == "doc2json" and output_format in ("md", "md,json")
+                else file_results
+            )
+            if is_directory:
+                return dict(zip(file_paths, display_results))
+            elif len(display_results) == 1:
+                return display_results[0]
+            else:
+                return display_results
 
     def _parse_files(
         self,
@@ -264,11 +272,11 @@ class InfinityParser2:
         for entry_idx, (file_idx, image_input) in enumerate(batch_entries):
             raw_result = batch_results[entry_idx]
 
-            # postprocess result
+            # postprocess result; doc2json results are kept as raw JSON and
+            # rendered to Markdown later at save/return time, so the combined
+            # "md,json" output needs only one inference pass.
             if task_type == "doc2json":
-                text = postprocess_doc2json_result(
-                    raw_result, image_input, output_format
-                )
+                text = postprocess_doc2json_result(raw_result, image_input, "json")
             elif task_type == "doc2md":
                 text = postprocess_doc2md_result(raw_result)
             else:
@@ -276,11 +284,11 @@ class InfinityParser2:
 
             page_results[file_idx].append(text)
 
-        # Join results based on length of page_results and output_format
+        # Join results: JSON pages into one array, Markdown pages with newlines.
         for idx in range(num_files):
             if len(page_results[idx]) == 1:
                 file_results[idx] = page_results[idx][0]
-            elif output_format == "json":
+            elif task_type == "doc2json":
                 file_results[idx] = "[" + ",".join(page_results[idx]) + "]"
             else:
                 file_results[idx] = "\n\n".join(page_results[idx])

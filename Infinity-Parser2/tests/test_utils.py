@@ -612,7 +612,7 @@ class TestSaveResults(unittest.TestCase):
         self.assertTrue(os.path.exists(json_path))
         self.assertFalse(os.path.exists(md_path))
         with open(json_path, "r") as f:
-            self.assertEqual(f.read(), json_result)
+            self.assertEqual(json.loads(f.read()), json.loads(json_result))
 
     def test_save_results_handles_multiple_keys(self):
         """Test saving multiple results."""

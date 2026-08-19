@@ -429,6 +429,27 @@ class TestInfinityParser2MockedParse(unittest.TestCase):
         finally:
             shutil.rmtree(output_dir, ignore_errors=True)
 
+    def test_parse_with_output_dir_and_output_format_md_json(self):
+        """Test parsing with output_dir and output_format='md,json' saves both files."""
+        parser = self._make_parser()
+        parser._backend.parse_batch.return_value = ['[{"bbox": [0,0,100,100], "category": "text", "text": "Hello"}]']
+        temp_file = os.path.join(self.temp_dir, "test.png")
+        Image.new("RGB", (100, 100), color="white").save(temp_file)
+        output_dir = tempfile.mkdtemp()
+        try:
+            parser.parse(temp_file, output_dir=output_dir, output_format="md,json")
+            subdir = os.path.join(output_dir, "test.png")
+            md_file = os.path.join(subdir, "result.md")
+            json_file = os.path.join(subdir, "result.json")
+            self.assertTrue(os.path.exists(md_file))
+            self.assertTrue(os.path.exists(json_file))
+            with open(md_file, "r") as f:
+                self.assertIn("Hello", f.read())
+            with open(json_file, "r") as f:
+                self.assertIn('"category": "text"', f.read())
+        finally:
+            shutil.rmtree(output_dir, ignore_errors=True)
+
     def test_parse_with_custom_prompt(self):
         """Test parsing with custom_prompt (task_type='custom')."""
         parser = self._make_parser()

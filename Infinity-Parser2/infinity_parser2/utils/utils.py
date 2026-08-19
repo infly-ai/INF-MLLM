@@ -115,6 +115,10 @@ def convert_json_to_markdown(ans: str, keep_header_footer: bool = False) -> str:
         items = json.loads(ans)
         if not isinstance(items, list):
             return ans
+        # Multi-page PDFs join page-level arrays into a list of page lists;
+        # flatten one level so each element below is a layout item dict.
+        if items and isinstance(items[0], list):
+            items = [el for page in items for el in page]
         lines = []
         for sub in items:
             if "text" not in sub or not sub["text"]:

@@ -8,6 +8,15 @@ from typing import Tuple, Union
 from PIL import Image
 from importlib import metadata
 
+
+def _fallback_smart_resize(height, width, factor, min_pixels, max_pixels):
+    # ponytail: no Qwen grid alignment; install qwen-vl-utils for its resize policy.
+    if height * width <= max_pixels:
+        return height, width
+    scale = (max_pixels / (height * width)) ** 0.5
+    return max(1, int(height * scale)), max(1, int(width * scale))
+
+
 try:
     from qwen_vl_utils.vision_process import smart_resize
 
@@ -22,16 +31,18 @@ try:
         )
 except metadata.PackageNotFoundError:
     warnings.warn(
-        "qwen-vl-utils is not installed. The encode_image_to_base64 function with "
-        "smart resizing will not be available. Install it with: pip install qwen-vl-utils",
+        "qwen-vl-utils is not installed; using basic image resizing. "
+        "Install it for smart resizing: pip install qwen-vl-utils",
         UserWarning,
     )
+    smart_resize = _fallback_smart_resize
 except ImportError as e:
     warnings.warn(
-        f"Failed to import qwen-vl-utils: {e}. The encode_image_to_base64 function with "
-        "smart resizing will not be available. Install it with: pip install qwen-vl-utils",
+        f"Failed to import qwen-vl-utils: {e}; using basic image resizing. "
+        "Install it for smart resizing: pip install qwen-vl-utils",
         UserWarning,
     )
+    smart_resize = _fallback_smart_resize
 
 
 # MIME type mapping for common image formats

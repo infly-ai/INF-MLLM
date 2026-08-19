@@ -78,8 +78,8 @@ Examples:
     parser.add_argument(
         "--output-format",
         default="md",
-        choices=["md", "json"],
-        help="Output format. Defaults to 'md'.",
+        choices=["md", "json", "md,json"],
+        help="Output format: 'md', 'json', or 'md,json' (both). Defaults to 'md'.",
     )
     parser.add_argument(
         "--batch-size",
@@ -101,8 +101,11 @@ Examples:
     )
     parser.add_argument(
         "--model-name",
-        default="infly/Infinity-Parser2-Pro",
-        help="Model name on HuggingFace Hub or local path.",
+        default=os.environ.get(
+            "INFINITY_PARSER2_MODEL_NAME", "infly/Infinity-Parser2-Pro"
+        ),
+        help="Model name on HuggingFace Hub or local path. "
+             "Defaults to $INFINITY_PARSER2_MODEL_NAME.",
     )
     parser.add_argument(
         "--tensor-parallel-size",
@@ -112,13 +115,16 @@ Examples:
     )
     parser.add_argument(
         "--api-url",
-        default="http://localhost:8000/v1/chat/completions",
-        help="API URL for vllm-server backend.",
+        default=os.environ.get(
+            "INFINITY_PARSER2_API_URL", "http://localhost:8000/v1/chat/completions"
+        ),
+        help="API URL for vllm-server backend. "
+             "Defaults to $INFINITY_PARSER2_API_URL.",
     )
     parser.add_argument(
         "--api-key",
-        default="EMPTY",
-        help="API key for vllm-server backend.",
+        default=os.environ.get("INFINITY_PARSER2_API_KEY", "EMPTY"),
+        help="API key for vllm-server backend. Defaults to $INFINITY_PARSER2_API_KEY.",
     )
     parser.add_argument(
         "--model-cache-dir",
