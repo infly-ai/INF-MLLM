@@ -1,14 +1,15 @@
 ---
-name: infinity-parser2-20260819
+name: infinity-parser2
 description: Parse PDFs, scanned documents, and document images (screenshots, invoices, paper documents, whiteboard photos) into structured layout JSON (labeled regions with bounding boxes) and Markdown via Infinity-Parser2 through an existing vLLM server. Use when the user wants to extract text, tables, formulas, or structured data from visual documents; mentions OCR, text recognition, or document parsing; or asks to parse, digitize, or extract content from a document. Requires a vLLM OpenAI-compatible API URL, API key.
 ---
 
-# Infinity-Parser2 Skills
+# Infinity-Parser2 Skill
 
 > **Prerequisite**: `pip install infinity_parser2`
 
 Use only the `vllm-server` backend. The vLLM server must already be running.
-The server URL and API key are read from the `INFINITY_PARSER2_*` environment variables.
+The CLI reads the server URL and API key directly from the `INFINITY_PARSER2_*`
+process environment variables.
 
 ## CLI
 
@@ -66,7 +67,7 @@ print("saved to /path/to/output")
 - Convert directly to Markdown: `parser.parse(path, task_type="doc2md", output_dir="/path/to/output")`.
 - Parse several paths: `parser.parse([path1, path2], output_dir="/path/to/output")`.
 
-Accept PDF files and supported document images. For a directory, pass its path directly to `parser.parse()`. When `output_dir` is set, the default `output_format="md,json"` keeps both `result.md` and `result.json`. Each input gets its own subdirectory: `<output_dir>/<input-basename>/result.md` and `result.json`.
+Accept PDF files and supported document images. For a directory, pass its path directly to `parser.parse()`.When both `result.md` and `result.json` are needed, explicitly set `output_format="md,json"`. Each input gets its own subdirectory: `<output_dir>/<input-basename>/result.md` and `result.json`.
 
 ## PDF Pages
 
@@ -79,4 +80,6 @@ parser.parse("/path/to/document.pdf", pages=[1, 3, 5], output_dir="/path/to/outp
 
 Omit `pages` to parse every page. The selection applies to each PDF in a multi-file call and is ignored for images.
 
-If a required `.env` value is absent, identify its variable name and stop. Never request or expose API keys in output.
+Before running, verify that `INFINITY_PARSER2_API_URL` is exported in the
+process environment. If the endpoint requires authentication, also verify
+`INFINITY_PARSER2_API_KEY`. Never request, print, or expose API keys.

@@ -1,4 +1,0 @@
-interface:
-  display_name: "Infinity Parser2 vLLM Server"
-  short_description: "Parse documents through an existing vLLM server"
-  default_prompt: "Use $infinity-parser2-vllm-server-20260819 to parse this document through my vLLM server."
