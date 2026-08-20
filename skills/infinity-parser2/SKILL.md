@@ -1,6 +1,6 @@
 ---
 name: infinity-parser2
-description: Parse PDFs, scanned documents, and document images (screenshots, invoices, paper documents, whiteboard photos) into structured layout JSON (labeled regions with bounding boxes) and Markdown via Infinity-Parser2 through an existing vLLM server. Use when the user wants to extract text, tables, formulas, or structured data from visual documents; mentions OCR, text recognition, or document parsing; or asks to parse, digitize, or extract content from a document. Requires a vLLM OpenAI-compatible API URL, API key.
+description: Parse PDFs, scanned documents, and document images (screenshots, invoices, paper documents, whiteboard photos) into structured layout JSON (labeled regions with bounding boxes) and Markdown via Infinity-Parser2 through an existing vLLM server. Use when the user wants to extract text, tables, formulas, or structured data from visual documents; mentions OCR, text recognition, or document parsing; or asks to parse, digitize, or extract content from a document. Requires a vLLM OpenAI-compatible API URL and API key.
 ---
 
 # Infinity-Parser2 Skill
@@ -66,6 +66,10 @@ print("saved to /path/to/output")
 - Write only layout JSON: `parser.parse(path, output_dir="/path/to/output", output_format="json")`.
 - Convert directly to Markdown: `parser.parse(path, task_type="doc2md", output_dir="/path/to/output")`.
 - Parse several paths: `parser.parse([path1, path2], output_dir="/path/to/output")`.
+
+`output_format="json"` or `"md,json"` is only valid when `task_type="doc2json"`
+(the default). `doc2md` and `custom` tasks only support `output_format="md"`;
+passing `json`/`md,json` with them raises a `ValueError`.
 
 Accept PDF files and supported document images. For a directory, pass its path directly to `parser.parse()`.When both `result.md` and `result.json` are needed, explicitly set `output_format="md,json"`. Each input gets its own subdirectory: `<output_dir>/<input-basename>/result.md` and `result.json`.
 
