@@ -5,7 +5,6 @@ import re
 from pathlib import Path
 from typing import Dict, List, Optional, Union
 
-import torch
 from PIL import Image
 
 from . import backends
@@ -68,11 +67,9 @@ class InfinityParser2:
 
         self.model_name = model_name
         self.backend_name = backend.lower()
-        self.tensor_parallel_size = (
-            tensor_parallel_size
-            if tensor_parallel_size is not None
-            else torch.cuda.device_count()
-        )
+        # Only vllm-engine uses tensor_parallel_size; its GPU-count default is
+        # resolved lazily in _init_backend so other backends never need torch.
+        self.tensor_parallel_size = tensor_parallel_size
         self.device = device
         self.api_url = api_url
         self.api_key = api_key
@@ -111,6 +108,10 @@ class InfinityParser2:
                 "api_key": self.api_key,
             }
         elif self.backend_name == "vllm-engine":
+            if self.tensor_parallel_size is None:
+                import torch
+
+                self.tensor_parallel_size = torch.cuda.device_count()
             backend_kwargs = {
                 **common_kwargs,
                 "tensor_parallel_size": self.tensor_parallel_size,
@@ -210,7 +211,7 @@ class InfinityParser2:
         is_directory = isinstance(input_data, str) and os.path.isdir(input_data)
         file_paths = normalize_input(input_data)
         file_results = self._parse_files(
-            file_paths, prompt, task_type, batch_size, output_format, pages, **kwargs
+            file_paths, prompt, task_type, batch_size, pages, **kwargs
         )
 
         if output_dir is not None:
@@ -242,7 +243,6 @@ class InfinityParser2:
         prompt: Optional[str],
         task_type: str,
         batch_size: int = 4,
-        output_format: str = "md",
         pages: Optional[Union[str, List[int]]] = None,
         **kwargs,
     ) -> List[str]:

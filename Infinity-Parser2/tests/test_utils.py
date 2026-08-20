@@ -632,6 +632,20 @@ class TestSaveResults(unittest.TestCase):
         result_path = os.path.join(self.temp_dir, "test_key", "result.md")
         self.assertTrue(os.path.exists(result_path))
 
+    def test_save_results_json_with_non_doc2json_raises_error(self):
+        """Test that output_format='json' with a non-doc2json task_type raises
+        ValueError instead of silently disappearing under python -O."""
+        keys = ["test_key"]
+        results = ["Test result content"]
+        with self.assertRaises(ValueError) as context:
+            save_results(
+                keys, results, self.temp_dir, task_type="doc2md", output_format="json"
+            )
+        self.assertIn(
+            "output_format='json' is only supported for doc2json tasks",
+            str(context.exception),
+        )
+
 
 class TestModelCache(unittest.TestCase):
     """Tests for ModelCache utility class."""

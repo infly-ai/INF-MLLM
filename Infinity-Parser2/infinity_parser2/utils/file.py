@@ -148,9 +148,10 @@ def save_results(
     save_md = output_format in ("md", "md,json")
 
     if save_json:
-        assert (
-            task_type == "doc2json"
-        ), "output_format='json' is only supported for doc2json tasks."
+        if task_type != "doc2json":
+            raise ValueError(
+                "output_format='json' is only supported for doc2json tasks."
+            )
         save_results_json(keys, results, output_dir)
     if save_md:
         # doc2json results are kept as raw JSON; render Markdown from them here.
