@@ -612,7 +612,7 @@ class TestSaveResults(unittest.TestCase):
         self.assertTrue(os.path.exists(json_path))
         self.assertFalse(os.path.exists(md_path))
         with open(json_path, "r") as f:
-            self.assertEqual(f.read(), json_result)
+            self.assertEqual(json.loads(f.read()), json.loads(json_result))
 
     def test_save_results_handles_multiple_keys(self):
         """Test saving multiple results."""
@@ -631,6 +631,20 @@ class TestSaveResults(unittest.TestCase):
         save_results(keys, results, self.temp_dir, task_type="doc2md")
         result_path = os.path.join(self.temp_dir, "test_key", "result.md")
         self.assertTrue(os.path.exists(result_path))
+
+    def test_save_results_json_with_non_doc2json_raises_error(self):
+        """Test that output_format='json' with a non-doc2json task_type raises
+        ValueError instead of silently disappearing under python -O."""
+        keys = ["test_key"]
+        results = ["Test result content"]
+        with self.assertRaises(ValueError) as context:
+            save_results(
+                keys, results, self.temp_dir, task_type="doc2md", output_format="json"
+            )
+        self.assertIn(
+            "output_format='json' is only supported for doc2json tasks",
+            str(context.exception),
+        )
 
 
 class TestModelCache(unittest.TestCase):

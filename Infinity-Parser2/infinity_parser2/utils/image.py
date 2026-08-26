@@ -6,32 +6,26 @@ from io import BytesIO
 from pathlib import Path
 from typing import Tuple, Union
 from PIL import Image
-from importlib import metadata
+
+
+def _fallback_smart_resize(height, width, factor, min_pixels, max_pixels):
+    # ponytail: no Qwen grid alignment; install qwen-vl-utils for its resize policy.
+    if height * width <= max_pixels:
+        return height, width
+    scale = (max_pixels / (height * width)) ** 0.5
+    return max(1, int(height * scale)), max(1, int(width * scale))
+
 
 try:
+    # setup.py pins qwen-vl-utils>=0.0.14, so no runtime version check is needed.
     from qwen_vl_utils.vision_process import smart_resize
-
-    _qwen_vl_utils_version = metadata.version("qwen-vl-utils")
-    if _qwen_vl_utils_version < "0.0.14":
-        warnings.warn(
-            f"qwen-vl-utils version {_qwen_vl_utils_version} is installed, "
-            f"but version 0.0.14 or higher is recommended. "
-            f"Some features may not work correctly. "
-            f"Upgrade with: pip install qwen-vl-utils>=0.0.14",
-            UserWarning,
-        )
-except metadata.PackageNotFoundError:
-    warnings.warn(
-        "qwen-vl-utils is not installed. The encode_image_to_base64 function with "
-        "smart resizing will not be available. Install it with: pip install qwen-vl-utils",
-        UserWarning,
-    )
 except ImportError as e:
     warnings.warn(
-        f"Failed to import qwen-vl-utils: {e}. The encode_image_to_base64 function with "
-        "smart resizing will not be available. Install it with: pip install qwen-vl-utils",
+        f"qwen-vl-utils is not available ({e}); using basic image resizing. "
+        "Install it for smart resizing: pip install qwen-vl-utils",
         UserWarning,
     )
+    smart_resize = _fallback_smart_resize
 
 
 # MIME type mapping for common image formats

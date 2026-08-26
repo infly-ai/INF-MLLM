@@ -1,5 +1,6 @@
 """File system utilities for Infinity-Parser2."""
 
+import json
 import os
 import uuid
 from pathlib import Path
@@ -134,21 +135,32 @@ def save_results(
         results: Parsed results (same order as inputs).
         output_dir: Base output directory.
         task_type: Task type (e.g., "doc2json", "doc2md", "custom").
-        output_format: Output format to save. Options: "md" or "json".
+        output_format: Output format to save. Options: "md", "json", or "md,json".
             - "md": Save only markdown result.
             - "json": Save only JSON result (only valid for doc2json mode).
+            - "md,json": Save both result.md and result.json (doc2json only).
     """
     keys = [
         uuid.uuid4().hex[:8] if isinstance(inp, Image.Image) else inp for inp in inputs
     ]
 
-    if output_format == "json":
-        assert (
-            task_type == "doc2json"
-        ), "output_format='json' is only supported for doc2json tasks."
+    save_json = output_format in ("json", "md,json")
+    save_md = output_format in ("md", "md,json")
+
+    if save_json:
+        if task_type != "doc2json":
+            raise ValueError(
+                "output_format='json' is only supported for doc2json tasks."
+            )
         save_results_json(keys, results, output_dir)
-    else:
-        save_results_md(keys, results, output_dir)
+    if save_md:
+        # doc2json results are kept as raw JSON; render Markdown from them here.
+        md_results = (
+            [convert_json_to_markdown(r) for r in results]
+            if task_type == "doc2json"
+            else results
+        )
+        save_results_md(keys, md_results, output_dir)
 
     print(f"[Infinity-Parser2] Results saved to: {os.path.abspath(output_dir)}")
 
@@ -179,9 +191,10 @@ def save_results_md(keys: List[str], results: List[str], output_dir: str) -> Non
 def save_results_json(keys: List[str], results: List[str], output_dir: str) -> None:
     """Save JSON parsing results to output directory.
 
-    Creates a subdirectory for each entry and writes result.json inside it.
-    For file paths, the folder name is the filename (basename); for UUIDs,
-    the folder name is the UUID itself.
+    Creates a subdirectory for each entry and writes a pretty-printed
+    result.json inside it. For file paths, the folder name is the filename
+    (basename); for UUIDs, the folder name is the UUID itself. A result that
+    is not valid JSON is written verbatim.
 
     Args:
         keys: Identifiers (file paths or UUIDs).
@@ -195,8 +208,12 @@ def save_results_json(keys: List[str], results: List[str], output_dir: str) -> N
         file_dir = os.path.join(output_dir, folder_name)
         os.makedirs(file_dir, exist_ok=True)
         result_path = os.path.join(file_dir, "result.json")
+        try:
+            content = json.dumps(json.loads(result), indent=2, ensure_ascii=False)
+        except (ValueError, TypeError):
+            content = result
         with open(result_path, "w", encoding="utf-8") as f:
-            f.write(result)
+            f.write(content)
 
 
 def compress_directory_to_zip(directory_path: str, output_zip_path: str) -> int:
