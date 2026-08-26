@@ -198,18 +198,23 @@ def _get_font(size: int = 14):
 
 
 def draw_bboxes_on_image(
-    image_path: Union[str, Path],
+    image: Union[str, Path, Image.Image],
     json_text: str,
 ) -> Image.Image | None:
     """Draw category-colored bounding boxes on a copy of the image.
 
+    image is a file path or a PIL Image (e.g. a rendered PDF page); the source
+    image itself is never modified.
     json_text is expected to be already post-processed (single-page flat list)
     with pixel-coordinate bboxes.
     """
-    try:
-        img = Image.open(image_path).convert("RGB")
-    except (IOError, OSError):
-        return None
+    if isinstance(image, Image.Image):
+        img = image.convert("RGB")  # convert() always returns a new image
+    else:
+        try:
+            img = Image.open(image).convert("RGB")
+        except (IOError, OSError):
+            return None
 
     try:
         data = json.loads(json_text)
@@ -220,7 +225,10 @@ def draw_bboxes_on_image(
         return img
 
     draw = ImageDraw.Draw(img)
-    font = _get_font(16)
+    # Scale annotations with the page so they stay legible on full-resolution
+    # pages: a 300-dpi A4 page is ~2480x3508.
+    scale = max(1, round(max(img.width, img.height) / 1200))
+    font = _get_font(16 * scale)
 
     for idx, item in enumerate(data):
         bbox = item.get("bbox", [])
@@ -231,7 +239,7 @@ def draw_bboxes_on_image(
         color = CATEGORY_COLORS.get(category, (200, 200, 200))
         x1, y1, x2, y2 = bbox
 
-        draw.rectangle([x1, y1, x2, y2], outline=color, width=2)
+        draw.rectangle([x1, y1, x2, y2], outline=color, width=2 * scale)
 
         label = f"{idx}:{category}"
         try:
@@ -239,7 +247,7 @@ def draw_bboxes_on_image(
             tb0 = draw.textbbox((0, 0), label, font=font)
             tw = tb0[2] - tb0[0]
             th = tb0[3] - tb0[1]
-            pad = 3
+            pad = 3 * scale
 
             # Place label above the bbox; fall back to inside if near top edge.
             lx = x1
@@ -263,7 +271,7 @@ def draw_bboxes_on_image(
         text_width = tb[2] - tb[0]
         text_height = tb[3] - tb[1]
 
-        margin = 10
+        margin = 10 * scale
         x = img.width - text_width - margin * 2
         y = margin
 

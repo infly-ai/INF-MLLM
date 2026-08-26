@@ -484,6 +484,128 @@ class TestInfinityParser2MockedParse(unittest.TestCase):
             shutil.rmtree(dir_path)
 
 
+class TestInfinityParser2VisualizeLayout(unittest.TestCase):
+    """Tests for the visualize_layout parameter of parse."""
+
+    # Normalised [0-1000] bbox covering the top-left quarter of the page.
+    LAYOUT_JSON = '[{"bbox": [0, 0, 500, 500], "category": "text", "text": "Hello"}]'
+
+    def setUp(self):
+        """Set up test fixtures with mocked backend."""
+        self.temp_dir = tempfile.mkdtemp()
+        self.output_dir = tempfile.mkdtemp()
+        self.image_path = os.path.join(self.temp_dir, "test.png")
+        Image.new("RGB", (400, 400), color="white").save(self.image_path)
+
+    def tearDown(self):
+        """Clean up temporary files."""
+        shutil.rmtree(self.temp_dir, ignore_errors=True)
+        shutil.rmtree(self.output_dir, ignore_errors=True)
+
+    def _make_parser(self, results):
+        """Create parser with mocked backend returning the given results."""
+        parser = InfinityParser2(backend="vllm-engine")
+        parser._backend = MagicMock()
+        parser._backend.parse_batch.return_value = results
+        return parser
+
+    def test_visualize_layout_saves_one_image_per_page(self):
+        """Test that layout images are saved next to the results of an image input."""
+        parser = self._make_parser([self.LAYOUT_JSON])
+
+        parser.parse(self.image_path, output_dir=self.output_dir, visualize_layout=True)
+
+        layout_dir = os.path.join(self.output_dir, "test.png", "layout")
+        page_path = os.path.join(layout_dir, "page_1.png")
+        self.assertTrue(os.path.exists(page_path))
+        self.assertEqual(sorted(os.listdir(layout_dir)), ["page_1.png"])
+        with Image.open(page_path) as page:
+            self.assertEqual(page.size, (400, 400))
+
+    def test_visualize_layout_draws_bboxes_in_pixel_coordinates(self):
+        """Test that drawn bboxes are restored from [0-1000] to pixel coordinates."""
+        from infinity_parser2.utils.utils import CATEGORY_COLORS
+
+        parser = self._make_parser([self.LAYOUT_JSON])
+
+        parser.parse(self.image_path, output_dir=self.output_dir, visualize_layout=True)
+
+        page_path = os.path.join(self.output_dir, "test.png", "layout", "page_1.png")
+        with Image.open(page_path) as page:
+            page = page.convert("RGB")
+            # 500/1000 * 400px = 200px, so the right edge of the box is at x=200.
+            self.assertEqual(page.getpixel((200, 100)), CATEGORY_COLORS["text"])
+            # Outside the box the page is untouched.
+            self.assertEqual(page.getpixel((350, 350)), (255, 255, 255))
+
+    def test_visualize_layout_disabled_by_default(self):
+        """Test that no layout directory is created unless visualize_layout is set."""
+        parser = self._make_parser([self.LAYOUT_JSON])
+
+        parser.parse(self.image_path, output_dir=self.output_dir)
+
+        self.assertFalse(
+            os.path.exists(os.path.join(self.output_dir, "test.png", "layout"))
+        )
+
+    def test_visualize_layout_pdf_saves_every_page(self):
+        """Test that every parsed PDF page gets its own layout image."""
+        import fitz
+
+        pdf_path = os.path.join(self.temp_dir, "test.pdf")
+        doc = fitz.open()
+        for i in range(3):
+            page = doc.new_page(width=595, height=842)
+            page.insert_text((100, 100), f"Page {i + 1}", fontsize=12)
+        doc.save(pdf_path)
+        doc.close()
+        parser = self._make_parser([self.LAYOUT_JSON] * 3)
+
+        parser.parse(pdf_path, output_dir=self.output_dir, visualize_layout=True)
+
+        layout_dir = os.path.join(self.output_dir, "test.pdf", "layout")
+        self.assertEqual(
+            sorted(os.listdir(layout_dir)), ["page_1.png", "page_2.png", "page_3.png"]
+        )
+
+    def test_visualize_layout_pil_image_shares_result_folder(self):
+        """Test that a PIL Image input keeps results and layout in one folder."""
+        parser = self._make_parser([self.LAYOUT_JSON])
+
+        parser.parse(
+            Image.new("RGB", (400, 400), color="white"),
+            output_dir=self.output_dir,
+            visualize_layout=True,
+        )
+
+        folders = os.listdir(self.output_dir)
+        self.assertEqual(len(folders), 1)
+        result_dir = os.path.join(self.output_dir, folders[0])
+        self.assertTrue(os.path.exists(os.path.join(result_dir, "result.md")))
+        self.assertTrue(os.path.exists(os.path.join(result_dir, "layout", "page_1.png")))
+
+    def test_visualize_layout_requires_doc2json(self):
+        """Test that visualize_layout is rejected for tasks without layout bboxes."""
+        parser = self._make_parser(["# Title"])
+
+        with self.assertRaises(ValueError) as context:
+            parser.parse(
+                self.image_path,
+                task_type="doc2md",
+                output_dir=self.output_dir,
+                visualize_layout=True,
+            )
+        self.assertIn("only supported for doc2json tasks", str(context.exception))
+
+    def test_visualize_layout_requires_output_dir(self):
+        """Test that visualize_layout without output_dir raises ValueError."""
+        parser = self._make_parser([self.LAYOUT_JSON])
+
+        with self.assertRaises(ValueError) as context:
+            parser.parse(self.image_path, visualize_layout=True)
+        self.assertIn("requires output_dir", str(context.exception))
+
+
 class TestTaskType(unittest.TestCase):
     """Tests for task_type parameter and SUPPORTED_TASK_TYPES."""
 

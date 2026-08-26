@@ -432,6 +432,9 @@ parser demo_data/demo.pdf --output-format json
 
 # Convert to Markdown directly
 parser demo_data/demo.png --task doc2md
+
+# Visualize the layout of every page (./output/demo.pdf/layout/page_1.png, ...)
+parser demo_data/demo.pdf -o ./output --visualize-layout
 ```
 
 ```bash
@@ -483,6 +486,9 @@ result = parser.parse("demo_data", batch_size=8)
 
 # Save results to directory
 parser.parse("demo_data/demo.pdf", output_dir="./output")
+
+# Save results plus a layout visualization of every page
+parser.parse("demo_data/demo.pdf", output_dir="./output", visualize_layout=True)
 ```
 
 **Backends:**
@@ -564,6 +570,8 @@ result = parser.parse("demo_data/demo.pdf")
 | `batch_size` | `int` | `4` | Number of images to process per batch |
 | `output_dir` | `str` | `None` | If set, saves results to this directory instead of returning them |
 | `output_format` | `str` | `"md"` | `"md"` \| `"json"`. Only `"md"` is supported for `doc2md` / `custom` tasks |
+| `pages` | `str \| List[int]` | `None` | Physical page selection for PDF inputs, 1-based (e.g. `"1-3,5"` or `[1, 3, 5]`). All pages by default |
+| `visualize_layout` | `bool` | `False` | If `True`, also saves a layout visualization of every page. Requires `output_dir` and `task_type="doc2json"` |
 | `**kwargs` | — | — | Additional args passed to the model (e.g., `max_new_tokens`, `temperature`) |
 
 ### Return Values
@@ -575,6 +583,7 @@ result = parser.parse("demo_data/demo.pdf")
 | Directory       | `Dict[str, str]` (path→content) | `None`        |
 
 When `output_dir` is set, results are saved to `output_dir/{filename}/result.md` (or `result.json`).
+With `visualize_layout=True`, each parsed page is additionally saved as `output_dir/{filename}/layout/page_{n}.png`, with the layout bboxes drawn on the page and colored per category.
 
 ## Advanced Usage
 

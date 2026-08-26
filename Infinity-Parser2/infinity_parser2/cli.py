@@ -46,6 +46,9 @@ Examples:
   # Parse only specific physical pages of a PDF (1-based)
   parser demo_data/demo.pdf --pages 1-2
 
+  # Also visualize the layout of every page (./results/demo.pdf/layout/page_1.png, ...)
+  parser demo_data/demo.pdf -o ./results --visualize-layout
+
   # Use transformers backend
   parser demo_data/demo.pdf --backend transformers
 
@@ -92,6 +95,13 @@ Examples:
         default=None,
         help="Physical page selection for PDF inputs, 1-based, e.g. "
              "'1-3,5,8-10'. Ignored for image inputs. Defaults to all pages.",
+    )
+    parser.add_argument(
+        "--visualize-layout",
+        action="store_true",
+        help="Also save a layout visualization of every parsed page to "
+             "<output-dir>/<filename>/layout/page_<n>.png. Requires "
+             "--output-dir and --task doc2json. Defaults to False.",
     )
     parser.add_argument(
         "--backend",
@@ -194,6 +204,7 @@ def main(argv: Optional[List[str]] = None) -> int:
             output_dir=args.output_dir,
             output_format=args.output_format,
             pages=args.pages,
+            visualize_layout=args.visualize_layout,
         )
 
         if result is not None:
