@@ -39,7 +39,7 @@ setup(
     author="INF Tech",
     author_email="contact@inftech.ai",
     url="https://github.com/infly-ai/INF-MLLM",
-    packages=find_packages(),
+    packages=find_packages(exclude=["tests", "tests.*"]),
     python_requires=">=3.12",
     install_requires=install_requires,
     classifiers=[
