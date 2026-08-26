@@ -12,6 +12,7 @@ from PIL import Image
 
 from infinity_parser2.utils import (
     convert_pdf_to_images,
+    draw_bboxes_on_image,
     encode_image_to_base64,
     extract_json_content,
     load_image,
@@ -644,6 +645,95 @@ class TestSaveResults(unittest.TestCase):
         self.assertIn(
             "output_format='json' is only supported for doc2json tasks",
             str(context.exception),
+        )
+
+
+class TestDrawBboxesOnImage(unittest.TestCase):
+    """Tests for draw_bboxes_on_image utility function."""
+
+    # Pixel-coordinate bbox, as produced by postprocess_doc2json_result.
+    LAYOUT_JSON = '[{"bbox": [10, 10, 90, 90], "category": "text", "text": "Hello"}]'
+
+    def setUp(self):
+        """Set up test fixtures."""
+        self.temp_dir = tempfile.mkdtemp()
+        self.image_path = os.path.join(self.temp_dir, "test.png")
+        Image.new("RGB", (100, 100), color="white").save(self.image_path)
+
+    def tearDown(self):
+        """Clean up temporary files."""
+        import shutil
+        shutil.rmtree(self.temp_dir, ignore_errors=True)
+
+    def test_draw_bboxes_from_path(self):
+        """Test drawing bboxes on an image loaded from a file path."""
+        drawn = draw_bboxes_on_image(self.image_path, self.LAYOUT_JSON)
+        self.assertIsInstance(drawn, Image.Image)
+        self.assertEqual(drawn.size, (100, 100))
+        with Image.open(self.image_path) as source:
+            self.assertNotEqual(list(drawn.getdata()), list(source.convert("RGB").getdata()))
+
+    def test_draw_bboxes_from_pil_image_keeps_source_unchanged(self):
+        """Test that drawing on a PIL Image does not modify the source image."""
+        source = Image.new("RGB", (100, 100), color="white")
+        drawn = draw_bboxes_on_image(source, self.LAYOUT_JSON)
+        self.assertIsInstance(drawn, Image.Image)
+        self.assertIsNot(drawn, source)
+        self.assertEqual(set(source.getdata()), {(255, 255, 255)})
+
+    def test_draw_bboxes_missing_file_returns_none(self):
+        """Test that an unreadable image path returns None."""
+        missing = os.path.join(self.temp_dir, "missing.png")
+        self.assertIsNone(draw_bboxes_on_image(missing, self.LAYOUT_JSON))
+
+    def test_draw_bboxes_invalid_json_returns_none(self):
+        """Test that unparseable layout JSON returns None."""
+        self.assertIsNone(draw_bboxes_on_image(self.image_path, "not json"))
+
+    def test_draw_bboxes_empty_layout_returns_image(self):
+        """Test that an empty layout list returns the image unannotated."""
+        drawn = draw_bboxes_on_image(self.image_path, "[]")
+        self.assertIsInstance(drawn, Image.Image)
+        self.assertEqual(set(drawn.getdata()), {(255, 255, 255)})
+
+
+class TestSaveResultsLayoutPages(unittest.TestCase):
+    """Tests for the layout_pages argument of save_results."""
+
+    def setUp(self):
+        """Set up test fixtures."""
+        self.temp_dir = tempfile.mkdtemp()
+
+    def tearDown(self):
+        """Clean up temporary files."""
+        import shutil
+        shutil.rmtree(self.temp_dir, ignore_errors=True)
+
+    def test_save_results_writes_layout_images(self):
+        """Test that layout images are saved beside the result file."""
+        json_result = json.dumps(
+            [{"bbox": [0, 0, 50, 50], "category": "text", "text": "Hello"}]
+        )
+        layout_pages = [[(Image.new("RGB", (100, 100), color="white"), json_result)] * 2]
+        save_results(
+            ["test_key"],
+            [json_result],
+            self.temp_dir,
+            task_type="doc2json",
+            layout_pages=layout_pages,
+        )
+
+        layout_dir = os.path.join(self.temp_dir, "test_key", "layout")
+        self.assertEqual(sorted(os.listdir(layout_dir)), ["page_1.png", "page_2.png"])
+        self.assertTrue(
+            os.path.exists(os.path.join(self.temp_dir, "test_key", "result.md"))
+        )
+
+    def test_save_results_without_layout_pages_skips_layout_dir(self):
+        """Test that no layout directory is created by default."""
+        save_results(["test_key"], ["Test content"], self.temp_dir, task_type="doc2md")
+        self.assertFalse(
+            os.path.exists(os.path.join(self.temp_dir, "test_key", "layout"))
         )
 
 

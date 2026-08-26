@@ -3,7 +3,7 @@
 import os
 import re
 from pathlib import Path
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 from PIL import Image
 
@@ -129,6 +129,7 @@ class InfinityParser2:
         output_dir: Optional[str] = None,
         output_format: str = "md",
         pages: Optional[Union[str, List[int]]] = None,
+        visualize_layout: bool = False,
         **kwargs,
     ) -> Optional[Union[str, List[str], Dict[str, str]]]:
         """Parse document(s) and extract text content.
@@ -165,6 +166,12 @@ class InfinityParser2:
                       result.md and result.json. Without output_dir, returns markdown.
                 - For doc2md tasks or custom prompts: Only "md" is supported.
                   If "json" is passed, a ValueError will be raised.
+            visualize_layout: If True, save a layout visualization of every
+                parsed page (image, or PDF page) to
+                output_dir/{filename}/layout/page_{n}.png, with
+                category-colored bounding boxes drawn on the page. Requires
+                output_dir to be set and task_type="doc2json", since only that
+                task produces layout bboxes. Defaults to False.
             **kwargs: Additional arguments passed to the model.
 
         Returns:
@@ -186,6 +193,9 @@ class InfinityParser2:
             >>> parser.parse("demo_data/demo.pdf", output_dir="./output")
             >>> # Parse only specific physical pages of a PDF
             >>> result = parser.parse("demo_data/demo.pdf", pages="1-3,5")
+            >>> # Also save layout visualizations next to the results
+            >>> parser.parse("demo_data/demo.pdf", output_dir="./output",
+            ...              visualize_layout=True)
         """
         if task_type not in SUPPORTED_TASK_TYPES:
             raise ValueError(
@@ -205,13 +215,31 @@ class InfinityParser2:
                 "For other task types, output_format must be 'md'."
             )
 
+        if visualize_layout:
+            if task_type != "doc2json":
+                raise ValueError(
+                    "visualize_layout=True is only supported for doc2json tasks, "
+                    "the only ones that produce layout bboxes."
+                )
+            if output_dir is None:
+                raise ValueError(
+                    "visualize_layout=True requires output_dir, since layout "
+                    "images are saved to output_dir/{filename}/layout/."
+                )
+
         prompt = resolve_prompt(task_type, custom_prompt)
         print(f"[Infinity-Parser2] task_type: {task_type}, prompt: {prompt}")
 
         is_directory = isinstance(input_data, str) and os.path.isdir(input_data)
         file_paths = normalize_input(input_data)
-        file_results = self._parse_files(
-            file_paths, prompt, task_type, batch_size, pages, **kwargs
+        file_results, layout_pages = self._parse_files(
+            file_paths,
+            prompt,
+            task_type,
+            batch_size,
+            pages,
+            collect_pages=visualize_layout,
+            **kwargs,
         )
 
         if output_dir is not None:
@@ -221,6 +249,7 @@ class InfinityParser2:
                 output_dir,
                 task_type=task_type,
                 output_format=output_format,
+                layout_pages=layout_pages,
             )
         else:
             # For in-memory results, "md" (and the combined "md,json") return the
@@ -244,19 +273,29 @@ class InfinityParser2:
         task_type: str,
         batch_size: int = 4,
         pages: Optional[Union[str, List[int]]] = None,
+        collect_pages: bool = False,
         **kwargs,
-    ) -> List[str]:
+    ) -> Tuple[Union[str, List[str]], Optional[List[LayoutPages]]]:
         """Parse multiple files with batched inference.
 
         All images (including PDF pages) are collected and batched together for
         efficient inference. Results are then aggregated back to the original
         file-level granularity.
+
+        Args:
+            collect_pages: If True, also return the per-file (page image, page
+                result) pairs the aggregated results were built from, which
+                layout visualization needs. Defaults to False, which returns
+                None instead.
+
+        Returns:
+            Tuple of (file-level results, per-file page data or None).
         """
 
         # prepare batch entries
         batch_entries = prepare_batch_entries(inputs, pages=pages)
         if not batch_entries:
-            return [] if len(inputs) > 1 else ""
+            return ([] if len(inputs) > 1 else "", None)
 
         # parse batch
         raw_inputs = [entry[1] for entry in batch_entries]
@@ -267,6 +306,9 @@ class InfinityParser2:
         # aggregate batch results
         num_files = len({entry[0] for entry in batch_entries})
         page_results: List[List[str]] = [[] for _ in range(num_files)]
+        layout_pages: Optional[List[LayoutPages]] = (
+            [[] for _ in range(num_files)] if collect_pages else None
+        )
         file_results: List[str] = [""] * num_files
 
         for entry_idx, (file_idx, image_input) in enumerate(batch_entries):
@@ -283,6 +325,8 @@ class InfinityParser2:
                 text = raw_result
 
             page_results[file_idx].append(text)
+            if layout_pages is not None:
+                layout_pages[file_idx].append((image_input, text))
 
         # Join results: JSON pages into one array, Markdown pages with newlines.
         for idx in range(num_files):
@@ -293,4 +337,4 @@ class InfinityParser2:
             else:
                 file_results[idx] = "\n\n".join(page_results[idx])
 
-        return file_results
+        return file_results, layout_pages

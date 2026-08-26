@@ -3,6 +3,7 @@
 from .file import (
     get_files_from_directory,
     is_supported_file,
+    LayoutPages,
     normalize_input,
     prepare_batch_entries,
     save_results,
@@ -31,6 +32,7 @@ __all__ = [
     "extract_json_content",
     "get_files_from_directory",
     "is_supported_file",
+    "LayoutPages",
     "normalize_input",
     "obtain_origin_hw",
     "postprocess_doc2json_result",

@@ -9,11 +9,16 @@ from typing import List, Optional, Union
 from PIL import Image
 
 from .pdf import convert_pdf_to_images
-from .utils import convert_json_to_markdown
+from .utils import convert_json_to_markdown, draw_bboxes_on_image
 
 SUPPORTED_IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".bmp", ".tiff", ".webp"}
 SUPPORTED_DOC_EXTENSIONS = {".pdf"}
 SUPPORTED_OUTPUT_FORMATS = ["md", "json"]
+
+# Per-page (page image, page JSON text) pairs of a single input file, where the
+# page image is a file path (image input) or a PIL Image (rendered PDF page)
+# and the JSON text holds pixel-coordinate bboxes.
+LayoutPages = list[tuple[Union[str, Image.Image], str]]
 
 
 def prepare_batch_entries(
@@ -123,6 +128,7 @@ def save_results(
     output_dir: str,
     task_type: str = "doc2json",
     output_format: str = "md",
+    layout_pages: Optional[List[LayoutPages]] = None,
 ) -> None:
     """Save parsing results to output directory.
 
@@ -139,6 +145,9 @@ def save_results(
             - "md": Save only markdown result.
             - "json": Save only JSON result (only valid for doc2json mode).
             - "md,json": Save both result.md and result.json (doc2json only).
+        layout_pages: Optional per-input page data (same order as inputs) used
+            to render layout visualizations next to the results. Defaults to
+            None, which skips visualization.
     """
     keys = [
         uuid.uuid4().hex[:8] if isinstance(inp, Image.Image) else inp for inp in inputs
@@ -161,6 +170,8 @@ def save_results(
             else results
         )
         save_results_md(keys, md_results, output_dir)
+    if layout_pages is not None:
+        save_layout_visualizations(keys, layout_pages, output_dir)
 
     print(f"[Infinity-Parser2] Results saved to: {os.path.abspath(output_dir)}")
 
@@ -214,6 +225,44 @@ def save_results_json(keys: List[str], results: List[str], output_dir: str) -> N
             content = result
         with open(result_path, "w", encoding="utf-8") as f:
             f.write(content)
+
+
+def save_layout_visualizations(
+    keys: List[str],
+    layout_pages: List[LayoutPages],
+    output_dir: str,
+) -> None:
+    """Save layout visualizations to output directory.
+
+    Creates a "layout" subdirectory for each entry and writes one page_{n}.png
+    per parsed page inside it, with category-colored bounding boxes drawn on
+    the source image. For file paths, the parent folder name is the filename
+    (basename); for UUIDs, it is the UUID itself.
+
+    Args:
+        keys: Identifiers (file paths or UUIDs).
+        layout_pages: Per-entry (page image, page JSON) pairs (same order as
+            keys). The JSON is expected to hold pixel-coordinate bboxes.
+        output_dir: Base output directory.
+    """
+    os.makedirs(output_dir, exist_ok=True)
+
+    for key, pages in zip(keys, layout_pages):
+        if not pages:
+            continue
+        folder_name = Path(key).name
+        layout_dir = os.path.join(output_dir, folder_name, "layout")
+        os.makedirs(layout_dir, exist_ok=True)
+        for page_num, (page_image, page_json) in enumerate(pages, start=1):
+            image = draw_bboxes_on_image(page_image, page_json)
+            if image is None:
+                print(
+                    f"[Infinity-Parser2] Skipped layout visualization for "
+                    f"{folder_name} page {page_num}: unreadable page image or "
+                    f"invalid layout JSON."
+                )
+                continue
+            image.save(os.path.join(layout_dir, f"page_{page_num}.png"), "PNG")
 
 
 def compress_directory_to_zip(directory_path: str, output_zip_path: str) -> int:
