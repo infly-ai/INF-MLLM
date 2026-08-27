@@ -380,11 +380,11 @@ conda activate infinity_parser2
 
 # 1. Install PyTorch (CUDA). These are the versions pinned by vLLM 0.26.0, whose wheels are CUDA 12.9 builds.
 # Find the proper build for your CUDA version at https://pytorch.org/get-started/previous-versions
-pip install torch==2.11.0 torchvision==0.26.0 torchaudio==2.11.0 --index-url https://download.pytorch.org/whl/cu129
+pip install torch==2.11.0 torchvision==0.26.0 torchaudio==2.11.0 torchcodec==0.16.0+cu129 --index-url https://download.pytorch.org/whl/cu129
 
 # 2. Install vLLM. NOTE: you may need the command below first to resolve triton and numpy conflicts.
 # pip uninstall -y pytorch-triton opencv-python opencv-python-headless numpy && rm -rf "$(python -c 'import site; print(site.getsitepackages()[0])')/cv2"
-pip install vllm==0.26.0
+pip install "vllm==0.26.0+cu129" --extra-index-url https://wheels.vllm.ai/0.26.0/cu129/
 
 # 3. Check that torch was not replaced. Expected: 2.11.0+cu129 0.26.0+cu129
 python -c "import torch, torchvision; print(torch.__version__, torchvision.__version__)"
@@ -532,12 +532,14 @@ To start a vLLM server:
 ```bash
 vllm serve infly/Infinity-Parser2-Pro \
     --trust-remote-code \
-    --reasoning-parser qwen3 \
+    --default-chat-template-kwargs '{"enable_thinking": false}' \
+    --chat-template-content-format openai \
     --host 0.0.0.0 \
     --port 8000 \
     --tensor-parallel-size 2 \
     --gpu-memory-utilization 0.85 \
     --max-model-len 65536 \
+    --max-num-batched-tokens 32768 \
     --mm-encoder-tp-mode data \
     --mm-processor-cache-type shm \
     --enable-prefix-caching
