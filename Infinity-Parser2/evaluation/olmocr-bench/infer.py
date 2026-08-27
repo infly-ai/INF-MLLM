@@ -14,6 +14,9 @@ from utils import (
 
 _SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
+# olmOCR-Bench scores page 1 only (results are named *_pg1_repeat1.md).
+PARSE_KWARGS = {"task_type": "doc2json", "output_format": "md", "pages": "1"}
+
 
 # ---------------------------------------------------------------------------
 # Post-processing + md writing (category-aware)
@@ -75,12 +78,12 @@ def parse_args():
         "--batch_size",
         type=int,
         default=4,
-        help="Number of PDFs per inference batch (default: 4).",
+        help="Number of PDFs sent to the server concurrently per batch (default: 4).",
     )
     arg_parser.add_argument(
         "--model_name",
         default="inf-mllm",
-        help='Model name to use (default: "inf-mllm").',
+        help='Served model name; must match --served-model-name (default: "inf-mllm").',
     )
     arg_parser.add_argument(
         "--api_url",
@@ -147,14 +150,8 @@ def main():
                 f"{start + 1}-{start + len(batch)}/{len(pending)}"
             )
             try:
-                # Hand the whole batch to the model at once; batch_size lets the
-                # backend pool inference across PDFs
-                results = parser.parse(
-                    batch,
-                    task_type="doc2json",
-                    output_format="md",
-                    batch_size=BATCH_SIZE,
-                )
+                # Hand the whole batch over at once; the backend fans it out
+                results = parser.parse(batch, batch_size=BATCH_SIZE, **PARSE_KWARGS)
                 if isinstance(results, str):  # parse returns str for a single-element list
                     results = [results]
                 for src_path, text in zip(batch, results):
@@ -166,12 +163,7 @@ def main():
                 print(f"[infer] batch failed, retry one-by-one:\n{traceback.format_exc()}")
                 for src_path in batch:
                     try:
-                        text = parser.parse(
-                            src_path,
-                            task_type="doc2json",
-                            output_format="md",
-                            batch_size=BATCH_SIZE,
-                        )
+                        text = parser.parse(src_path, batch_size=1, **PARSE_KWARGS)
                         handle_result(out, OUTPUT_DIR, src_path, text)
                         done += 1
                     except Exception:
