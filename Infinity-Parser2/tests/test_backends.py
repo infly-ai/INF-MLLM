@@ -426,7 +426,7 @@ class TestVLLMServerBackend(unittest.TestCase):
                 import os
                 os.unlink(temp_file.name)
 
-    def test_vllm_server_extra_body(self):
+    def test_vllm_server_request_params(self):
         """Test that OpenAI client is called with correct parameters."""
         with patch("infinity_parser2.backends.vllm_server.OpenAI") as mock_openai:
             mock_client_instance = MagicMock()
@@ -456,10 +456,7 @@ class TestVLLMServerBackend(unittest.TestCase):
                 self.assertEqual(call_kwargs["max_tokens"], 32768)
                 self.assertEqual(call_kwargs["temperature"], 0.0)
                 self.assertEqual(call_kwargs["top_p"], 1.0)
-                self.assertEqual(
-                    call_kwargs["extra_body"],
-                    {"chat_template_kwargs": {"enable_thinking": False}}
-                )
+                self.assertNotIn("extra_body", call_kwargs)
             finally:
                 import os
                 os.unlink(temp_file.name)

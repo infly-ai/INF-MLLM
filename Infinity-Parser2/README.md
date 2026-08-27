@@ -374,20 +374,27 @@ For bulk processing, advanced features, or an end-to-end PDF parsing pipeline, w
 conda create -n infinity_parser2 python=3.12
 conda activate infinity_parser2
 
-# Install PyTorch (CUDA). Find the proper version at https://pytorch.org/get-started/previous-versions based on your CUDA version.
-pip install torch==2.10.0 torchvision==0.25.0 torchaudio==2.10.0 --index-url https://download.pytorch.org/whl/cu128
+# Install in this order: PyTorch -> vLLM -> FlashAttention.
+# vLLM pins torch exactly and will replace a mismatched one; FlashAttention is compiled against
+# the installed torch, so it must come last.
 
-# Install FlashAttention (FlashAttention-2 is recommended by default)
-# Standard install (compiles from source, ~10-30 min):
+# 1. Install PyTorch (CUDA). These are the versions pinned by vLLM 0.26.0, whose wheels are CUDA 12.9 builds.
+# Find the proper build for your CUDA version at https://pytorch.org/get-started/previous-versions
+pip install torch==2.11.0 torchvision==0.26.0 torchaudio==2.11.0 torchcodec==0.16.0+cu129 --index-url https://download.pytorch.org/whl/cu129
+
+# 2. Install vLLM. NOTE: you may need the command below first to resolve triton and numpy conflicts.
+# pip uninstall -y pytorch-triton opencv-python opencv-python-headless numpy && rm -rf "$(python -c 'import site; print(site.getsitepackages()[0])')/cv2"
+pip install "vllm==0.26.0+cu129" --extra-index-url https://wheels.vllm.ai/0.26.0/cu129/
+
+# 3. Check that torch was not replaced. Expected: 2.11.0+cu129 0.26.0+cu129
+python -c "import torch, torchvision; print(torch.__version__, torchvision.__version__)"
+
+# 4. Install FlashAttention (FlashAttention-2 by default; compiles from source, ~10-30 min)
 pip install flash-attn==2.8.3 --no-build-isolation
-# Faster install: download wheel from https://github.com/Dao-AILab/flash-attention/releases. Then run: pip install /path/to/<wheel_filename>.whl
+# Faster: download a wheel matching your torch (e.g. ...cu12torch2.11cxx11abiTRUE...) from
+# https://github.com/Dao-AILab/flash-attention/releases, then run: pip install /path/to/<wheel_filename>.whl
 # For Hopper GPUs (e.g. H100, H800), we recommend FlashAttention-3 instead. See: https://github.com/Dao-AILab/flash-attention
 # NOTE: The code will prioritize detecting FlashAttention-3. If not found, it falls back to FlashAttention-2.
-
-# Install vLLM
-# NOTE: you may need to run the command below to resolve triton and numpy conflicts before installing vllm.
-# pip uninstall -y pytorch-triton opencv-python opencv-python-headless numpy && rm -rf "$(python -c 'import site; print(site.getsitepackages()[0])')/cv2"
-pip install vllm==0.17.1
 ```
 
 #### Install infinity_parser2
@@ -525,12 +532,14 @@ To start a vLLM server:
 ```bash
 vllm serve infly/Infinity-Parser2-Pro \
     --trust-remote-code \
-    --reasoning-parser qwen3 \
+    --default-chat-template-kwargs '{"enable_thinking": false}' \
+    --chat-template-content-format openai \
     --host 0.0.0.0 \
     --port 8000 \
     --tensor-parallel-size 2 \
     --gpu-memory-utilization 0.85 \
     --max-model-len 65536 \
+    --max-num-batched-tokens 32768 \
     --mm-encoder-tp-mode data \
     --mm-processor-cache-type shm \
     --enable-prefix-caching
@@ -638,6 +647,7 @@ print(cache.resolve_model_path("infly/Infinity-Parser2-Pro"))
 
 - Python 3.12+
 - CUDA-compatible GPU
+- vLLM >= 0.26.0 (vLLM backends only)
 - See `setup.py` for full dependency list.
 
 ### Visual Parsing Examples

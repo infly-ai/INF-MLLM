@@ -28,7 +28,9 @@ olmocr-bench/
 
 ## Stage 1 — Environment and Data Preparation
 
-- Infinity-Parser2 installed (`pip install -e .` from the repo root, or `pip install infinity-parser2`).
+- Infinity-Parser2 installed (`pip install infinity_parser2`, or `pip install -e .` from
+  `INF-MLLM/Infinity-Parser2`). See the [root README](../../README.md#pre-requisites) for the
+  required PyTorch → vLLM → FlashAttention install order.
 - A running **vLLM server** exposing the model (the inference script uses the
   `vllm-server` backend at `http://localhost:8000`).
 - `hf` for downloading the benchmark dataset.
@@ -45,7 +47,7 @@ git checkout f7cfe4c22098b154c76b6ec950d1c0a464eecf8d
 hf download --repo-type dataset allenai/olmOCR-bench --local-dir ./olmOCR-bench
 ```
 
-The PDFs live under `olmOCR-bench/bench_data/pdfs`. Runs inference over these PDFs.
+The PDFs live under `olmOCR-bench/bench_data/pdfs`; `infer.py` runs inference over them.
 By default its Markdown output goes to `./Infinity-Parser2-results` next to the script,
 which you then copy into `bench_data` before scoring; alternatively pass `--output_dir`
 pointing straight at `/path/to/olmOCR-bench/bench_data/Infinity-Parser2-results` to skip the copy.
@@ -59,16 +61,23 @@ pointing straight at `/path/to/olmOCR-bench/bench_data/Infinity-Parser2-results`
 ```bash
 vllm serve infly/Infinity-Parser2-Flash \
     --trust-remote-code \
-    --reasoning-parser qwen3 \
+    --default-chat-template-kwargs '{"enable_thinking": false}' \
+    --chat-template-content-format openai \
     --host 0.0.0.0 \
     --port 8000 \
     --gpu-memory-utilization 0.85 \
     --max-model-len 65536 \
+    --max-num-batched-tokens 32768 \
     --mm-encoder-tp-mode data \
     --mm-processor-cache-type shm \
     --enable-prefix-caching \
     --served-model-name inf-mllm
 ```
+
+> **`--default-chat-template-kwargs '{"enable_thinking": false}'` is required.** The client no
+> longer sends `enable_thinking` per request, so without this flag the server returns reasoning
+> text that ends up in the scored Markdown. Swap in `infly/Infinity-Parser2-Pro` for the
+> flagship scores, and add `--tensor-parallel-size N` for multi-GPU.
 
 `infer.py` is driven entirely by command-line arguments:
 
@@ -80,7 +89,7 @@ python infer.py --pdf_dir PDF_DIR [--output_dir OUTPUT_DIR] [--batch_size N] [--
 |---|---|
 | `--pdf_dir` | **(required)** Directory of benchmark PDFs, searched recursively. **Sub-folder names are used as category labels**, so keep the benchmark's directory structure. |
 | `--output_dir` | Where Markdown + `inference.jsonl` are written (default: `./Infinity-Parser2-results` next to the script). Leave unset and copy into `bench_data` afterwards, or pass `/path/to/olmOCR-bench/bench_data/Infinity-Parser2-results` to write there directly. |
-| `--batch_size` | PDFs handed to the model per batch (default: `4`). |
+| `--batch_size` | PDFs sent to the server concurrently per batch (default: `4`). |
 | `--model_name` | Served model name; must match `--served-model-name` on the vLLM server (default: `inf-mllm`). |
 | `--api_url` | vLLM chat-completions endpoint; must match your running server (default: `http://localhost:8000/v1/chat/completions`). |
 
@@ -100,7 +109,8 @@ python infer.py \
   `infer.py` skips PDFs already present here.
 - `Infinity-Parser2-results/<category>/<doc>_pg1_repeat1.md` — the post-processed
   Markdown the benchmark harness scores. The `_pg1_repeat1` suffix is the filename
-  convention olmOCR-Bench expects.
+  convention olmOCR-Bench expects; inference passes `pages="1"` to match it, so only
+  the first page of each PDF is parsed.
 
 The run is crash-safe: each result is flushed immediately, and batches that fail fall
 back to one-by-one inference so a single bad PDF cannot take down the whole batch.

@@ -94,11 +94,6 @@ class VLLMServerBackend(BaseBackend):
         max_tokens = kwargs.get("max_new_tokens", kwargs.get("max_tokens", 32768))
         temperature = kwargs.get("temperature", 0.0)
         top_p = kwargs.get("top_p", 1.0)
-        extra_body = {
-            "chat_template_kwargs": {
-                "enable_thinking": False
-            }
-        }
 
         def parse_one(item: Union[str, Image.Image]) -> str:
             base64_data, mime_type = encode_image_to_base64(item, min_pixels=self.min_pixels, max_pixels=self.max_pixels)
@@ -118,7 +113,6 @@ class VLLMServerBackend(BaseBackend):
                 temperature=temperature,
                 top_p=top_p,
                 timeout=self.timeout,
-                extra_body=extra_body,
             )
             return response.choices[0].message.content
 

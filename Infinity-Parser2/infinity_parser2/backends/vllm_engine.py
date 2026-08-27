@@ -52,6 +52,11 @@ class VLLMEngineBackend(BaseBackend):
             trust_remote_code=True,
             tensor_parallel_size=self.tensor_parallel_size,
             gpu_memory_utilization=0.85,
+            max_model_len=65536,
+            max_num_batched_tokens=32768,
+            mm_encoder_tp_mode="data",
+            mm_processor_cache_type="shm",
+            enable_prefix_caching=True,
             **self.kwargs,
         )
 
@@ -109,6 +114,7 @@ class VLLMEngineBackend(BaseBackend):
                 batch_messages,
                 sampling_params=sampling_params,
                 use_tqdm=False,
+                chat_template_content_format="openai",
                 chat_template_kwargs=chat_template_kwargs,
             )
             for j, output in enumerate(outputs):
