@@ -25,7 +25,7 @@ parser /path/to/document.pdf \
   --output-dir /path/to/output \
   --output-format md,json \
   --pages 5-7 \
-  --model-name infinity-parser2-flash
+  --model-name inf-mllm
 ```
 
 Key flags:
@@ -46,7 +46,7 @@ import os
 from infinity_parser2 import InfinityParser2
 
 parser = InfinityParser2(
-    model_name="infinity-parser2-flash",
+    model_name="inf-mllm",
     backend="vllm-server",
     api_url=os.environ["INFINITY_PARSER2_API_URL"],
     api_key=os.environ["INFINITY_PARSER2_API_KEY"],
