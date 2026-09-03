@@ -49,26 +49,6 @@ class VLLMServerBackend(BaseBackend):
         self.min_pixels = min_pixels
         self.max_pixels = max_pixels
         self.client = OpenAI(api_key=self.api_key, base_url=self.api_url.rsplit("/chat/completions", 1)[0])
-        self.init()
-
-    def init(self) -> None:
-        """Validate server connection.
-
-        Note: This is a no-op as the server is started separately.
-        Call this to verify connectivity.
-        """
-        try:
-            self.client.chat.completions.create(
-                model=self.model_name,
-                messages=[{"role": "user", "content": "ping"}],
-                max_tokens=1,
-                timeout=5,
-            )
-        except Exception as e:
-            raise RuntimeError(
-                f"Cannot connect to vLLM server at {self.api_url}. "
-                f"Please ensure the server is running. Error: {e}"
-            )
 
     def parse_batch(
         self,
