@@ -50,6 +50,10 @@ class VLLMServerBackend(BaseBackend):
         self.max_pixels = max_pixels
         self.client = OpenAI(api_key=self.api_key, base_url=self.api_url.rsplit("/chat/completions", 1)[0])
 
+    def init(self) -> None:
+        """No-op initialization; the OpenAI client is created in ``__init__``."""
+        pass
+
     def parse_batch(
         self,
         input_data: list[Union[str, Image.Image]],
