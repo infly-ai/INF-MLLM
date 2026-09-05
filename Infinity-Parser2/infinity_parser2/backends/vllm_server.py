@@ -49,6 +49,7 @@ class VLLMServerBackend(BaseBackend):
         self.min_pixels = min_pixels
         self.max_pixels = max_pixels
         self.client = OpenAI(api_key=self.api_key, base_url=self.api_url.rsplit("/chat/completions", 1)[0])
+        self.init()
 
     def init(self) -> None:
         """No-op initialization; the OpenAI client is created in ``__init__``."""
