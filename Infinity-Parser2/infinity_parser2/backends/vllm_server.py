@@ -52,23 +52,8 @@ class VLLMServerBackend(BaseBackend):
         self.init()
 
     def init(self) -> None:
-        """Validate server connection.
-
-        Note: This is a no-op as the server is started separately.
-        Call this to verify connectivity.
-        """
-        try:
-            self.client.chat.completions.create(
-                model=self.model_name,
-                messages=[{"role": "user", "content": "ping"}],
-                max_tokens=1,
-                timeout=5,
-            )
-        except Exception as e:
-            raise RuntimeError(
-                f"Cannot connect to vLLM server at {self.api_url}. "
-                f"Please ensure the server is running. Error: {e}"
-            )
+        """No-op initialization; the OpenAI client is created in ``__init__``."""
+        pass
 
     def parse_batch(
         self,
