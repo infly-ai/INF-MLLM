@@ -41,12 +41,12 @@ class GradioApp:
                 ),
                 "auth": os.environ.get("INFINITY_API_AUTH_PRO", ""),
             },
-            "Infinity-Parser2-Flash": {
-                "api_base": os.environ.get(
-                    "INFINITY_API_BASE_FLASH", "http://localhost:8002"
-                ),
-                "auth": os.environ.get("INFINITY_API_AUTH_FLASH", ""),
-            },
+            # "Infinity-Parser2-Flash": {
+            #     "api_base": os.environ.get(
+            #         "INFINITY_API_BASE_FLASH", "http://localhost:8002"
+            #     ),
+            #     "auth": os.environ.get("INFINITY_API_AUTH_FLASH", ""),
+            # },
         }
         self.available_models = list(self.model_configs.keys())
         self._http_client = httpx.AsyncClient(verify=False, timeout=600.0)
@@ -688,6 +688,7 @@ class GradioApp:
             label="Model Selection",
             info="Select the model to use for parsing",
             interactive=True,
+            visible=False,
         )
 
         # Core: State for carrying file content in memory.
