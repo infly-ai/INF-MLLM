@@ -9,7 +9,7 @@ Reproduce [olmOCR-Bench](https://github.com/allenai/olmocr/tree/main/olmocr/benc
 
 ## 1. Set up
 
-Copy `.env.example` to `.env`, then set `INF_API_URL` and `INF_API_KEY`. Environment variables with the same names override the file.
+Copy `.env.example` to `.env`, then set `INF_API_URL` to the full chat completions endpoint (ending in `/v1/chat/completions`) and `INF_API_KEY` to your key. Environment variables with the same names override the file.
 
 Install the official harness and download the dataset, both pinned to the evaluated revisions:
 
@@ -37,7 +37,7 @@ python3 scripts/infer.py \
   --workers 8
 ```
 
-The script sends each PDF to `/v1/chat/completions` as a Base64 `file` content part with model `infinity-parser-<tier>` and `parser_options` set to page 1, `keep_header_footer: false`, and `parse_chart: false`. It saves each raw response under `raw/`, and writes `<category>/<name>_pg1_repeat1.md` in the layout the harness expects. Category-specific post-processing in `scripts/postprocess.py` is applied to the Markdown:
+The script sends each PDF to `INF_API_URL` as a Base64 `file` content part with model `infinity-parser-<tier>` and `parser_options` set to page 1, `keep_header_footer: false`, and `parse_chart: false`. It saves each raw response under `raw/`, and writes `<category>/<name>_pg1_repeat1.md` in the layout the harness expects. Category-specific post-processing in `scripts/postprocess.py` is applied to the Markdown:
 
 | Category | Post-processing |
 | --- | --- |

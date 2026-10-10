@@ -49,7 +49,7 @@ def parse_pdf(url, key, path, tier, retries=3):
     for attempt in range(1, retries + 1):
         try:
             response = requests.post(
-                f"{url.rstrip('/')}/v1/chat/completions",
+                url,
                 headers={"Authorization": f"Bearer {key}"},
                 json=payload,
                 timeout=1800,
