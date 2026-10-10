@@ -2,6 +2,7 @@
 """Parse olmOCR-Bench PDFs with Infinity Parser and write benchmark-ready Markdown."""
 
 import argparse
+import base64
 import json
 import os
 import sys
@@ -29,25 +30,41 @@ def config():
     )
 
 
+def markdown(result):
+    return result["choices"][0]["message"]["content"]
+
+
 def parse_pdf(url, key, path, tier, retries=3):
-    # olmOCR-Bench scores page 1 only; headers/footers and figure descriptions must stay out of the Markdown.
-    payload = {"tier": tier, "pages": "1", "keep_header_footer": "false", "parse_chart": "false"}
-    pdf_bytes = path.read_bytes()
+    pdf_data = base64.b64encode(path.read_bytes()).decode("ascii")
+    payload = {
+        "model": f"infinity-parser-{tier}",
+        "messages": [{"role": "user", "content": [{
+            "type": "file",
+            # The gateway requires a PDF data URL and a .pdf filename.
+            "file": {"filename": "upload.pdf", "file_data": f"data:application/pdf;base64,{pdf_data}"},
+        }]}],
+        # olmOCR-Bench scores page 1 only; headers/footers and figure descriptions must stay out of the Markdown.
+        "parser_options": {"pages": "1", "keep_header_footer": False, "parse_chart": False},
+    }
     for attempt in range(1, retries + 1):
         try:
             response = requests.post(
-                f"{url.rstrip('/')}/v1/parse",
+                f"{url.rstrip('/')}/v1/chat/completions",
                 headers={"Authorization": f"Bearer {key}"},
-                data=payload,
-                files={"file": ("upload.pdf", pdf_bytes, "application/pdf")},
+                json=payload,
                 timeout=1800,
             )
             response.raise_for_status()
             result = response.json()
-            if result.get("failed_pages"):
-                raise RuntimeError(f"failed pages: {result['failed_pages']}")
-            if not isinstance(result.get("markdown"), str):
-                raise RuntimeError("response is missing markdown")
+            failed_pages = (result.get("parser_result") or {}).get("failed_pages")
+            if failed_pages:
+                raise RuntimeError(f"failed pages: {failed_pages}")
+            try:
+                content = markdown(result)
+            except (KeyError, IndexError, TypeError):
+                content = None
+            if not isinstance(content, str):
+                raise RuntimeError("response is missing message content")
             return result
         except (requests.RequestException, RuntimeError, ValueError) as exc:
             # 4xx errors (except rate limiting) will not succeed on retry.
@@ -106,11 +123,11 @@ def main():
     for pdf in pdfs:
         if not raw_path(pdf).exists():
             continue
-        markdown = json.loads(raw_path(pdf).read_text(encoding="utf-8"))["markdown"]
+        text = markdown(json.loads(raw_path(pdf).read_text(encoding="utf-8")))
         category = pdf.parent.name
         md = args.output_dir / category / f"{pdf.stem}_pg1_repeat1.md"
         md.parent.mkdir(parents=True, exist_ok=True)
-        md.write_text(postprocess(markdown, category), encoding="utf-8")
+        md.write_text(postprocess(text, category), encoding="utf-8")
         written += 1
 
     print(f"Wrote {written}/{len(pdfs)} Markdown files to {args.output_dir}")

@@ -37,7 +37,7 @@ python3 scripts/infer.py \
   --workers 8
 ```
 
-The script sends page 1 of each PDF to `/v1/parse` with `keep_header_footer=false` and `parse_chart=false`, saves each raw response under `raw/`, and writes `<category>/<name>_pg1_repeat1.md` in the layout the harness expects. Category-specific post-processing in `scripts/postprocess.py` is applied to the Markdown:
+The script sends each PDF to `/v1/chat/completions` as a Base64 `file` content part with model `infinity-parser-<tier>` and `parser_options` set to page 1, `keep_header_footer: false`, and `parse_chart: false`. It saves each raw response under `raw/`, and writes `<category>/<name>_pg1_repeat1.md` in the layout the harness expects. Category-specific post-processing in `scripts/postprocess.py` is applied to the Markdown:
 
 | Category | Post-processing |
 | --- | --- |
@@ -63,3 +63,21 @@ python -m olmocr.bench.benchmark \
 
 - Do not rename the category folders under `pdfs/`; the post-processing and the harness both use the folder names.
 - The pinned harness commit and dataset revision keep scores reproducible. Newer revisions may change tests or metrics.
+
+## Reference scores
+
+Scores from running the commands above with `--tier flash`. A successful reproduction lands within 1 point of each value.
+
+| Category | Score (%) | Passed / Tests |
+| --- | --- | --- |
+| `arxiv_math` | 88.1 | 2579 / 2927 |
+| `baseline` | 99.9 | 1392 / 1394 |
+| `headers_footers` | 91.8 | 698 / 760 |
+| `long_tiny_text` | 89.8 | 397 / 442 |
+| `multi_column` | 83.4 | 737 / 884 |
+| `old_scans` | 52.1 | 274 / 526 |
+| `old_scans_math` | 89.5 | 410 / 458 |
+| `table_tests` | 87.1 | 890 / 1022 |
+| **Overall** | **85.2** (95% CI: 84.3–86.1) | 8413 tests |
+
+The overall score is the average of the eight category scores, not the pooled pass rate.
